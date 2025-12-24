@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Couples Therapy Assistant - UI Prototype</title>
+  <link rel="stylesheet" href="design-system.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Nunito+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    /* Prototype Navigation */
+    .prototype-nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      height: 100vh;
+      background: white;
+      border-right: 1px solid var(--color-neutral-200);
+      overflow-y: auto;
+      z-index: 1000;
+      padding: var(--space-4);
+    }
+
+    .prototype-nav h2 {
+      font-size: var(--text-sm);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--color-neutral-500);
+      margin-bottom: var(--space-2);
+      margin-top: var(--space-4);
+    }
+
+    .prototype-nav h2:first-child {
+      margin-top: 0;
+    }
+
+    .prototype-nav a {
+      display: block;
+      padding: var(--space-2) var(--space-3);
+      color: var(--color-neutral-700);
+      text-decoration: none;
+      border-radius: var(--radius-md);
+      font-size: var(--text-sm);
+      transition: all var(--transition-fast);
+    }
+
+    .prototype-nav a:hover {
+      background: var(--color-primary-50);
+      color: var(--color-primary-600);
+    }
+
+    .prototype-nav a.active {
+      background: var(--color-primary-100);
+      color: var(--color-primary-700);
+      font-weight: var(--font-medium);
+    }
+
+    .prototype-content {
+      margin-left: 280px;
+      min-height: 100vh;
+    }
+
+    .screen {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    /* Screen Container */
+    .screen-container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: var(--space-8) var(--space-4);
+    }
+
+    .screen-container.wide {
+      max-width: 1024px;
+    }
+
+    /* App Header */
+    .app-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-4) var(--space-6);
+      background: white;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .app-logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      font-family: var(--font-heading);
+      font-weight: var(--font-bold);
+      font-size: var(--text-lg);
+      color: var(--color-primary-600);
+    }
+
+    .app-logo-icon {
+      width: 32px;
+      height: 32px;
+      background: linear-gradient(135deg, var(--color-primary-500), var(--color-accent-500));
+      border-radius: var(--radius-lg);
+    }
+
+    /* Auth Screens */
+    .auth-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: var(--space-8);
+      background: linear-gradient(135deg, var(--color-primary-50), var(--color-accent-50));
+    }
+
+    .auth-card {
+      width: 100%;
+      max-width: 420px;
+      background: white;
+      border-radius: var(--radius-2xl);
+      box-shadow: var(--shadow-xl);
+      padding: var(--space-8);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: var(--space-8);
+    }
+
+    .auth-title {
+      text-align: center;
+      margin-bottom: var(--space-6);
+    }
+
+    /* Dashboard */
+    .dashboard-grid {
+      display: grid;
+      gap: var(--space-6);
+    }
+
+    @media (min-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .conflict-item {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--border-color);
+      cursor: pointer;
+      transition: background var(--transition-fast);
+    }
+
+    .conflict-item:hover {
+      background: var(--color-neutral-50);
+    }
+
+    .conflict-item:last-child {
+      border-bottom: none;
+    }
+
+    .conflict-title {
+      font-weight: var(--font-medium);
+      margin-bottom: var(--space-1);
+    }
+
+    .conflict-meta {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: var(--space-12) var(--space-6);
+    }
+
+    .empty-state-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto var(--space-6);
+      background: var(--color-neutral-100);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-3xl);
+    }
+
+    /* Guidance Display */
+    .guidance-section {
+      margin-bottom: var(--space-6);
+    }
+
+    .guidance-section-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-3);
+    }
+
+    .guidance-section-content {
+      padding-left: var(--space-6);
+    }
+
+    .conversation-starter {
+      background: var(--color-primary-50);
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-3);
+    }
+
+    .conversation-starter-label {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      text-transform: uppercase;
+      color: var(--color-primary-600);
+      margin-bottom: var(--space-1);
+    }
+
+    /* Survey Progress */
+    .survey-header {
+      margin-bottom: var(--space-8);
+    }
+
+    .survey-progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: var(--text-sm);
+      color: var(--color-neutral-600);
+      margin-bottom: var(--space-2);
+    }
+
+    .survey-question {
+      margin-bottom: var(--space-6);
+    }
+
+    .survey-question-number {
+      font-size: var(--text-sm);
+      color: var(--color-primary-500);
+      font-weight: var(--font-medium);
+      margin-bottom: var(--space-2);
+    }
+
+    .survey-question-text {
+      font-size: var(--text-lg);
+      font-weight: var(--font-semibold);
+      margin-bottom: var(--space-4);
+    }
+
+    /* Radio/Checkbox Options */
+    .option-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3);
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3) var(--space-4);
+      border: 2px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .option-item:hover {
+      border-color: var(--color-primary-300);
+      background: var(--color-primary-50);
+    }
+
+    .option-item.selected {
+      border-color: var(--color-primary-500);
+      background: var(--color-primary-50);
+    }
+
+    .option-radio {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--color-neutral-300);
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .option-item.selected .option-radio {
+      border-color: var(--color-primary-500);
+    }
+
+    .option-item.selected .option-radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      background: var(--color-primary-500);
+      border-radius: var(--radius-full);
+    }
+
+    /* Loading State */
+    .loading-overlay {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--space-12);
+      text-align: center;
+    }
+
+    .loading-text {
+      margin-top: var(--space-4);
+      color: var(--color-neutral-600);
+    }
+
+    .loading-subtext {
+      font-size: var(--text-sm);
+      color: var(--color-neutral-500);
+      margin-top: var(--space-2);
+    }
+
+    /* Page Footer (Crisis Resources) */
+    .page-footer {
+      margin-top: auto;
+      padding-top: var(--space-8);
+    }
+
+    /* Disclaimer */
+    .disclaimer {
+      text-align: center;
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+      padding: var(--space-4);
+      border-top: 1px solid var(--border-color);
+    }
+
+    /* Visibility Toggle */
+    .visibility-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--color-neutral-50);
+      border-radius: var(--radius-lg);
+      margin-top: var(--space-4);
+    }
+
+    .visibility-icon {
+      font-size: var(--text-lg);
+    }
+
+    .visibility-text {
+      flex: 1;
+    }
+
+    .visibility-label {
+      font-weight: var(--font-medium);
+    }
+
+    .visibility-hint {
+      font-size: var(--text-xs);
+      color: var(--color-neutral-500);
+    }
+
+    /* Partner Perspective */
+    .partner-perspective {
+      padding: var(--space-4);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+
+    .partner-a {
+      background: var(--color-primary-50);
+      border-left: 4px solid var(--color-primary-500);
+    }
+
+    .partner-b {
+      background: var(--color-secondary-50);
+      border-left: 4px solid var(--color-secondary-500);
+    }
+
+    .partner-label {
+      font-size: var(--text-xs);
+      font-weight: var(--font-semibold);
+      text-transform: uppercase;
+      margin-bottom: var(--space-2);
+    }
+
+    .partner-a .partner-label {
+      color: var(--color-primary-600);
+    }
+
+    .partner-b .partner-label {
+      color: var(--color-secondary-600);
+    }
+
+    /* Pattern Alert */
+    .pattern-alert {
+      display: flex;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      background: var(--color-accent-50);
+      border: 1px solid var(--color-accent-200);
+      border-radius: var(--radius-lg);
+      margin-bottom: var(--space-4);
+    }
+
+    .pattern-icon {
+      font-size: var(--text-lg);
+    }
+
+    .pattern-title {
+      font-weight: var(--font-semibold);
+      color: var(--color-accent-700);
+      margin-bottom: var(--space-1);
+    }
+
+    .pattern-text {
+      font-size: var(--text-sm);
+      color: var(--color-accent-600);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="prototype-nav">
+    <div style="margin-bottom: var(--space-4);">
+      <div class="app-logo">
+        <div class="app-logo-icon"></div>
+        <span>CTA Prototype</span>
+      </div>
+    </div>
+
+    <h2>Authentication</h2>
+    <a href="#login" class="active" onclick="showScreen('login')">Login</a>
+    <a href="#register" onclick="showScreen('register')">Register</a>
+    <a href="#forgot-password" onclick="showScreen('forgot-password')">Forgot Password</a>
+    <a href="#accept-invite" onclick="showScreen('accept-invite')">Accept Invitation</a>
+
+    <h2>Onboarding</h2>
+    <a href="#intake-start" onclick="showScreen('intake-start')">Intake Survey - Start</a>
+    <a href="#intake-questions" onclick="showScreen('intake-questions')">Intake Survey - Questions</a>
+    <a href="#intake-complete" onclick="showScreen('intake-complete')">Intake Survey - Complete</a>
+    <a href="#invite-partner" onclick="showScreen('invite-partner')">Invite Partner</a>
+
+    <h2>Dashboard</h2>
+    <a href="#dashboard-empty" onclick="showScreen('dashboard-empty')">Dashboard - Empty</a>
+    <a href="#dashboard" onclick="showScreen('dashboard')">Dashboard - With Conflicts</a>
+    <a href="#dashboard-pending" onclick="showScreen('dashboard-pending')">Dashboard - Partner B</a>
+
+    <h2>Conflict Flow</h2>
+    <a href="#create-conflict" onclick="showScreen('create-conflict')">Create Conflict</a>
+    <a href="#conflict-waiting" onclick="showScreen('conflict-waiting')">Waiting for Partner</a>
+    <a href="#respond-conflict" onclick="showScreen('respond-conflict')">Respond (Blind Input)</a>
+    <a href="#guidance-individual" onclick="showScreen('guidance-individual')">Individual Guidance</a>
+    <a href="#guidance-full" onclick="showScreen('guidance-full')">Full Guidance</a>
+
+    <h2>States</h2>
+    <a href="#loading" onclick="showScreen('loading')">Loading State</a>
+    <a href="#crisis" onclick="showScreen('crisis')">Crisis Resources</a>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="prototype-content">
+
+    <!-- LOGIN SCREEN -->
+    <section id="login" class="screen active">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-logo">
+            <div class="app-logo" style="justify-content: center;">
+              <div class="app-logo-icon" style="width: 48px; height: 48px;"></div>
+            </div>
+            <p style="margin-top: var(--space-2); color: var(--color-neutral-600);">Couples Therapy Assistant</p>
+          </div>
+
+          <h1 class="heading-3 auth-title">Welcome Back</h1>
+
+          <form class="flex flex-col gap-4">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" placeholder="you@example.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" placeholder="Enter your password">
+              <a href="#forgot-password" class="form-hint" style="color: var(--color-primary-500);">Forgot password?</a>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);">
+              Sign In
+            </button>
+          </form>
+
+          <p style="text-align: center; margin-top: var(--space-6); color: var(--color-neutral-600);">
+            Don't have an account?
+            <a href="#register" style="color: var(--color-primary-500); font-weight: var(--font-medium);">Sign up</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTER SCREEN -->
+    <section id="register" class="screen">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div class="auth-logo">
+            <div class="app-logo" style="justify-content: center;">
+              <div class="app-logo-icon" style="width: 48px; height: 48px;"></div>
+            </div>
+          </div>
+
+          <h1 class="heading-3 auth-title">Create Your Account</h1>
+          <p style="text-align: center; margin-bottom: var(--space-6); color: var(--color-neutral-600);">
+            Start your journey to better communication
+          </p>
+
+          <form class="flex flex-col gap-4">
+            <div class="form-group">
+              <label class="form-label">Full Name</label>
+              <input type="text" class="form-input" placeholder="Your name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" placeholder="you@example.com">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Password</label>
+              <input type="password" class="form-input" placeholder="Create a secure password">
+              <span class="form-hint">At least 8 characters with a number</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Confirm Password</label>
+              <input type="password" class="form-input" placeholder="Confirm your password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);">
+              Create Account
+            </button>
+          </form>
+
+          <p style="text-align: center; margin-top: var(--space-6); color: var(--color-neutral-600);">
+            Already have an account?
+            <a href="#login" style="color: var(--color-primary-500); font-weight: var(--font-medium);">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- FORGOT PASSWORD SCREEN -->
+    <section id="forgot-password" class="screen">
+      <div class="auth-container">
+        <div class="auth-card">
+          <h1 class="heading-3 auth-title">Reset Password</h1>
+          <p style="text-align: center; margin-bottom: var(--space-6); color: var(--color-neutral-600);">
+            Enter your email and we'll send you a link to reset your password.
+          </p>
+
+          <form class="flex flex-col gap-4">
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-input" placeholder="you@example.com">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+              Send Reset Link
+            </button>
+          </form>
+
+          <p style="text-align: center; margin-top: var(--space-6);">
+            <a href="#login" style="color: var(--color-primary-500);">Back to login</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCEPT INVITATION SCREEN -->
+    <section id="accept-invite" class="screen">
+      <div class="auth-container">
+        <div class="auth-card">
+          <div style="text-align: center; margin-bottom: var(--space-6);">
+            <div style="font-size: 48px; margin-bottom: var(--space-4);">💑</div>
+            <h1 class="heading-3">You've Been Invited!</h1>
+            <p style="color: var(--color-neutral-600); margin-top: var(--space-2);">
+              <strong>Sarah</strong> has invited you to join Couples Therapy Assistant
+            </p>
+          </div>
+
+          <div class="alert alert-info" style="margin-bottom: var(--space-6);">
+            <div>
+              <strong>How it works:</strong> You'll each describe conflicts from your perspective, then receive personalized guidance to help you communicate better.
+            </div>
+          </div>
+
+          <form class="flex flex-col gap-4">
+            <div class="form-group">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-input" placeholder="Your name">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Create Password</label>
+              <input type="password" class="form-input" placeholder="Create a secure password">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; margin-top: var(--space-4);">
+              Accept Invitation
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTAKE SURVEY - START -->
+    <section id="intake-start" class="screen">
+      <div class="screen-container">
+        <div style="text-align: center; padding: var(--space-12) 0;">
+          <div style="font-size: 64px; margin-bottom: var(--space-6);">🌱</div>
+          <h1 class="heading-2" style="margin-bottom: var(--space-4);">Let's Get to Know You</h1>
+          <p class="body-large" style="color: var(--color-neutral-600); margin-bottom: var(--space-8);">
+            This brief survey helps us personalize guidance for your unique relationship. It takes about 5-7 minutes.
+          </p>
+
+          <div style="text-align: left; max-width: 320px; margin: 0 auto var(--space-8);">
+            <div class="flex items-center gap-4" style="margin-bottom: var(--space-3);">
+              <span style="color: var(--color-success-500);">✓</span>
+              <span>Your answers are private</span>
+            </div>
+            <div class="flex items-center gap-4" style="margin-bottom: var(--space-3);">
+              <span style="color: var(--color-success-500);">✓</span>
+              <span>You can update anytime</span>
+            </div>
+            <div class="flex items-center gap-4">
+              <span style="color: var(--color-success-500);">✓</span>
+              <span>Helps AI understand your needs</span>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg">
+            Begin Survey
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTAKE SURVEY - QUESTIONS -->
+    <section id="intake-questions" class="screen">
+      <div class="screen-container">
+        <div class="survey-header">
+          <div class="survey-progress-text">
+            <span>Question 5 of 18</span>
+            <span>28%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 28%;"></div>
+          </div>
+        </div>
+
+        <div class="survey-question">
+          <div class="survey-question-number">Question 5</div>
+          <div class="survey-question-text">What's your primary communication style during disagreements?</div>
+
+          <div class="option-group">
+            <div class="option-item">
+              <div class="option-radio"></div>
+              <div>
+                <div style="font-weight: var(--font-medium);">Direct</div>
+                <div class="caption">I express my feelings and needs openly</div>
+              </div>
+            </div>
+            <div class="option-item selected">
+              <div class="option-radio"></div>
+              <div>
+                <div style="font-weight: var(--font-medium);">Indirect</div>
+                <div class="caption">I hint at issues rather than stating them directly</div>
+              </div>
+            </div>
+            <div class="option-item">
+              <div class="option-radio"></div>
+              <div>
+                <div style="font-weight: var(--font-medium);">Avoidant</div>
+                <div class="caption">I tend to withdraw or avoid conflict</div>
+              </div>
+            </div>
+            <div class="option-item">
+              <div class="option-radio"></div>
+              <div>
+                <div style="font-weight: var(--font-medium);">Assertive</div>
+                <div class="caption">I stand firm while respecting others</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-between" style="margin-top: var(--space-8);">
+          <button class="btn btn-ghost">← Back</button>
+          <button class="btn btn-primary">Continue →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INTAKE SURVEY - COMPLETE -->
+    <section id="intake-complete" class="screen">
+      <div class="screen-container">
+        <div style="text-align: center; padding: var(--space-12) 0;">
+          <div style="font-size: 64px; margin-bottom: var(--space-6);">🎉</div>
+          <h1 class="heading-2" style="margin-bottom: var(--space-4);">Survey Complete!</h1>
+          <p class="body-large" style="color: var(--color-neutral-600); margin-bottom: var(--space-8);">
+            We now have a better understanding of your relationship dynamics. This will help us provide more personalized guidance.
+          </p>
+
+          <div class="card" style="text-align: left; margin-bottom: var(--space-8);">
+            <div class="card-body">
+              <h3 class="heading-4" style="margin-bottom: var(--space-4);">What's Next?</h3>
+              <div class="flex items-center gap-4" style="margin-bottom: var(--space-3);">
+                <span class="badge badge-primary">1</span>
+                <span>Invite your partner to join</span>
+              </div>
+              <div class="flex items-center gap-4" style="margin-bottom: var(--space-3);">
+                <span class="badge badge-neutral">2</span>
+                <span>They complete their own survey</span>
+              </div>
+              <div class="flex items-center gap-4">
+                <span class="badge badge-neutral">3</span>
+                <span>Start working through conflicts together</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg">
+            Invite Your Partner
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- INVITE PARTNER -->
+    <section id="invite-partner" class="screen">
+      <div class="screen-container">
+        <h1 class="heading-2" style="margin-bottom: var(--space-2);">Invite Your Partner</h1>
+        <p style="color: var(--color-neutral-600); margin-bottom: var(--space-8);">
+          Send an invitation so you can work through conflicts together.
+        </p>
+
+        <div class="card">
+          <div class="card-body">
+            <form class="flex flex-col gap-4">
+              <div class="form-group">
+                <label class="form-label">Partner's Email</label>
+                <input type="email" class="form-input" placeholder="partner@example.com">
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">Personal Message (optional)</label>
+                <textarea class="form-input form-textarea" placeholder="Add a personal note to your invitation..."></textarea>
+              </div>
+
+              <button type="submit" class="btn btn-primary" style="width: 100%;">
+                Send Invitation
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top: var(--space-6);">
+          <div>
+            <strong>Note:</strong> Your partner will need to create their own account and complete their intake survey before you can start using the app together.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD - EMPTY -->
+    <section id="dashboard-empty" class="screen">
+      <div class="app-header">
+        <div class="app-logo">
+          <div class="app-logo-icon"></div>
+          <span>CTA</span>
+        </div>
+        <button class="btn btn-ghost btn-sm">Settings</button>
+      </div>
+
+      <div class="screen-container wide">
+        <div class="empty-state">
+          <div class="empty-state-icon">💬</div>
+          <h2 class="heading-3" style="margin-bottom: var(--space-3);">No Conflicts Yet</h2>
+          <p style="color: var(--color-neutral-600); margin-bottom: var(--space-6); max-width: 400px; margin-left: auto; margin-right: auto;">
+            When you encounter a disagreement, start here to get personalized guidance for both of you.
+          </p>
+          <button class="btn btn-primary btn-lg">
+            Start New Conflict
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD - WITH CONFLICTS -->
+    <section id="dashboard" class="screen">
+      <div class="app-header">
+        <div class="app-logo">
+          <div class="app-logo-icon"></div>
+          <span>CTA</span>
+        </div>
+        <button class="btn btn-ghost btn-sm">Settings</button>
+      </div>
+
+      <div class="screen-container wide">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-6);">
+          <h1 class="heading-2">Dashboard</h1>
+          <button class="btn btn-primary">+ New Conflict</button>
+        </div>
+
+        <div class="dashboard-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="heading-4">In Progress</h3>
+            </div>
+            <div>
+              <div class="conflict-item">
+                <div>
+                  <div class="conflict-title">Household Chores</div>
+                  <div class="conflict-meta">Started Dec 22 • Waiting for partner</div>
+                </div>
+                <span class="badge badge-warning">Pending</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="heading-4">Completed</h3>
+            </div>
+            <div>
+              <div class="conflict-item">
+                <div>
+                  <div class="conflict-title">Weekend Plans</div>
+                  <div class="conflict-meta">Completed Dec 20</div>
+                </div>
+                <span class="badge badge-success">Done</span>
+              </div>
+              <div class="conflict-item">
+                <div>
+                  <div class="conflict-title">Budget Discussion</div>
+                  <div class="conflict-meta">Completed Dec 15</div>
+                </div>
+                <span class="badge badge-success">Done</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pattern-alert" style="margin-top: var(--space-6);">
+          <div class="pattern-icon">📊</div>
+          <div>
+            <div class="pattern-title">Pattern Detected</div>
+            <div class="pattern-text">This is the 3rd time "household responsibilities" has come up in the past 30 days. Consider scheduling a dedicated conversation about this topic.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DASHBOARD - PARTNER B PENDING -->
+    <section id="dashboard-pending" class="screen">
+      <div class="app-header">
+        <div class="app-logo">
+          <div class="app-logo-icon"></div>
+          <span>CTA</span>
+        </div>
+        <button class="btn btn-ghost btn-sm">Settings</button>
+      </div>
+
+      <div class="screen-container wide">
+        <div class="flex justify-between items-center" style="margin-bottom: var(--space-6);">
+          <h1 class="heading-2">Dashboard</h1>
+        </div>
+
+        <div class="alert alert-info" style="margin-bottom: var(--space-6);">
+          <div>
+            <strong>Action needed:</strong> Sarah has described a conflict and is waiting for your perspective. Respond to receive personalized guidance.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <h3 class="heading-4">Needs Your Response</h3>
+          </div>
+          <div>
+            <div class="conflict-item">
+              <div>
+                <div class="conflict-title">Household Chores</div>
+                <div class="conflict-meta">Sarah started this Dec 22</div>
+              </div>
+              <button class="btn btn-primary btn-sm">Respond</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CREATE CONFLICT -->
+    <section id="create-conflict" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Back</a>
+        <span style="font-weight: var(--font-medium);">New Conflict</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container">
+        <h1 class="heading-2" style="margin-bottom: var(--space-2);">Describe the Conflict</h1>
+        <p style="color: var(--color-neutral-600); margin-bottom: var(--space-6);">
+          Share your perspective. Your partner will respond separately before seeing your description.
+        </p>
+
+        <form class="flex flex-col gap-6">
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" placeholder="e.g., Household Chores" value="Household Chores">
+            <span class="form-hint">A short name for this conflict</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your Perspective</label>
+            <textarea class="form-input form-textarea" style="min-height: 160px;" placeholder="Describe the situation from your point of view...">I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done. I've mentioned this before but nothing seems to change. It makes me feel unappreciated and exhausted.</textarea>
+            <span class="form-hint">Minimum 100 characters • 247 / 100</span>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Guidance Style</label>
+            <select class="form-input">
+              <option>Structured (organized sections)</option>
+              <option>Conversational (flowing text)</option>
+            </select>
+          </div>
+
+          <div class="visibility-toggle">
+            <span class="visibility-icon">👁️</span>
+            <div class="visibility-text">
+              <div class="visibility-label">Share with partner</div>
+              <div class="visibility-hint">Your partner will see your description after they respond</div>
+            </div>
+            <div class="toggle active">
+              <div class="toggle-switch"></div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+            Submit & Get Guidance
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- CONFLICT - WAITING FOR PARTNER -->
+    <section id="conflict-waiting" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span style="font-weight: var(--font-medium);">Household Chores</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container">
+        <div class="partner-perspective partner-a">
+          <div class="partner-label">Your Perspective</div>
+          <p>I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done. I've mentioned this before but nothing seems to change. It makes me feel unappreciated and exhausted.</p>
+        </div>
+
+        <div class="card guidance-card individual" style="margin-bottom: var(--space-6);">
+          <div class="card-header">
+            <h3 class="heading-4">Your Individual Guidance</h3>
+            <p class="caption">Based on your perspective only</p>
+          </div>
+          <div class="card-body">
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>💭</span> Emotions I'm Noticing
+              </div>
+              <div class="guidance-section-content">
+                <p><strong>Primary:</strong> Frustration, Exhaustion</p>
+                <p><strong>Underlying:</strong> Feeling unappreciated, Loneliness</p>
+                <p class="body-small" style="margin-top: var(--space-2); color: var(--color-neutral-600);">
+                  It sounds like you're carrying a heavy load, both physically and emotionally. The exhaustion you're feeling may be compounded by not feeling seen or valued for your contributions.
+                </p>
+              </div>
+            </div>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>❤️</span> Your Underlying Needs
+              </div>
+              <div class="guidance-section-content">
+                <ul style="margin-left: var(--space-4);">
+                  <li>To feel appreciated for your contributions</li>
+                  <li>To share responsibilities more equally</li>
+                  <li>To have rest and recovery time</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>💬</span> Conversation Starter
+              </div>
+              <div class="guidance-section-content">
+                <div class="conversation-starter">
+                  <div class="conversation-starter-label">Try saying:</div>
+                  <p>"When I come home and see dishes in the sink, I feel exhausted because I need some time to decompress. Could we talk about how to divide this more evenly?"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info">
+          <div>
+            <strong>Waiting for your partner...</strong><br>
+            <span class="body-small">Once they share their perspective, you'll both receive additional personalized guidance.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESPOND TO CONFLICT (BLIND INPUT) -->
+    <section id="respond-conflict" class="screen">
+      <div class="app-header">
+        <a href="#dashboard-pending" class="btn btn-ghost btn-sm">← Back</a>
+        <span style="font-weight: var(--font-medium);">Respond</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container">
+        <h1 class="heading-2" style="margin-bottom: var(--space-2);">Household Chores</h1>
+        <p style="color: var(--color-neutral-600); margin-bottom: var(--space-6);">
+          Sarah has described this conflict. Share your perspective before seeing theirs.
+        </p>
+
+        <div class="alert alert-info" style="margin-bottom: var(--space-6);">
+          <div>
+            <strong>Why can't I see Sarah's description?</strong><br>
+            <span class="body-small">To ensure your perspective is authentic and unbiased, you'll share your thoughts first. You'll see Sarah's view after submitting.</span>
+          </div>
+        </div>
+
+        <form class="flex flex-col gap-6">
+          <div class="form-group">
+            <label class="form-label">Your Perspective</label>
+            <textarea class="form-input form-textarea" style="min-height: 160px;" placeholder="Describe this situation from your point of view..."></textarea>
+            <span class="form-hint">Minimum 100 characters</span>
+          </div>
+
+          <div class="visibility-toggle">
+            <span class="visibility-icon">👁️</span>
+            <div class="visibility-text">
+              <div class="visibility-label">Share with partner</div>
+              <div class="visibility-hint">Sarah will see your description after you submit</div>
+            </div>
+            <div class="toggle active">
+              <div class="toggle-switch"></div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width: 100%;">
+            Submit My Perspective
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- INDIVIDUAL GUIDANCE ONLY -->
+    <section id="guidance-individual" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span style="font-weight: var(--font-medium);">Household Chores</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container">
+        <div class="card guidance-card individual">
+          <div class="card-header">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="heading-4">Your Individual Guidance</h3>
+                <p class="caption">Phase 1: Understanding your perspective</p>
+              </div>
+              <span class="badge badge-primary">Individual</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="margin-bottom: var(--space-4);">Based on what you've shared, here's what I'm noticing about your experience with this conflict...</p>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>💭</span> Emotions Identified
+              </div>
+              <div class="guidance-section-content">
+                <p>You seem to be experiencing <strong>frustration</strong> and <strong>feeling unappreciated</strong>. These feelings are valid given the situation you've described.</p>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-ghost btn-sm" style="color: var(--color-error-500);">⚠️ Report this advice</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FULL GUIDANCE (ALL PHASES) -->
+    <section id="guidance-full" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span style="font-weight: var(--font-medium);">Household Chores</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container" style="max-width: 768px;">
+        <h1 class="heading-2" style="margin-bottom: var(--space-6);">Household Chores</h1>
+
+        <div class="partner-perspective partner-a" style="margin-bottom: var(--space-3);">
+          <div class="partner-label">Sarah's Perspective</div>
+          <p>I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done...</p>
+        </div>
+
+        <div class="partner-perspective partner-b" style="margin-bottom: var(--space-6);">
+          <div class="partner-label">Your Perspective</div>
+          <p>I know the house gets messy, but I've been really stressed with the project at work. I try to help on weekends but it never seems like enough...</p>
+        </div>
+
+        <!-- Individual Guidance -->
+        <div class="card guidance-card individual" style="margin-bottom: var(--space-4);">
+          <div class="card-header">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="heading-4">Your Individual Guidance</h3>
+                <p class="caption">Phase 1</p>
+              </div>
+              <span class="badge badge-primary">Individual</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p>You're experiencing stress from work that may be affecting your capacity for household tasks. It's understandable to feel overwhelmed when multiple demands compete for your energy.</p>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-ghost btn-sm" style="color: var(--color-error-500);">⚠️ Report</button>
+          </div>
+        </div>
+
+        <!-- Joint Context Guidance -->
+        <div class="card guidance-card joint" style="margin-bottom: var(--space-4);">
+          <div class="card-header">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="heading-4">Personalized Guidance for You</h3>
+                <p class="caption">Phase 2: Understanding both perspectives</p>
+              </div>
+              <span class="badge" style="background: var(--color-accent-100); color: var(--color-accent-700);">Joint Context</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="margin-bottom: var(--space-4);">Now that I understand both perspectives, here's guidance specifically for you:</p>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>🔍</span> What Sarah May Be Experiencing
+              </div>
+              <div class="guidance-section-content">
+                <p>Sarah's frustration likely stems from feeling unseen in her daily efforts. When she mentions "nothing seems to change," she may be expressing a deeper need to feel heard and valued.</p>
+              </div>
+            </div>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>🌉</span> Bridging the Gap
+              </div>
+              <div class="guidance-section-content">
+                <p>Consider acknowledging Sarah's feelings before explaining your work stress. Try: "I see how much you've been doing, and I'm sorry it's felt unbalanced."</p>
+              </div>
+            </div>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>💬</span> Conversation Starter for You
+              </div>
+              <div class="guidance-section-content">
+                <div class="conversation-starter">
+                  <p>"I want you to know I see how much you've been handling at home. Work has been overwhelming lately, but that's not an excuse. Can we talk about how to make this feel more fair for both of us?"</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-ghost btn-sm" style="color: var(--color-error-500);">⚠️ Report</button>
+          </div>
+        </div>
+
+        <!-- Relationship Guidance -->
+        <div class="card guidance-card relationship" style="margin-bottom: var(--space-6);">
+          <div class="card-header">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="heading-4">Relationship Guidance</h3>
+                <p class="caption">Phase 3: For both of you together</p>
+              </div>
+              <span class="badge" style="background: var(--color-secondary-100); color: var(--color-secondary-700);">Shared</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <p style="margin-bottom: var(--space-4);">This guidance is the same for both of you, designed to help you work together:</p>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>🎯</span> The Core Dynamic
+              </div>
+              <div class="guidance-section-content">
+                <p>You're both feeling stretched thin—Sarah at home, and you at work. Neither of you is wrong; you're both dealing with real stress. The challenge is that your stressors have become invisible to each other.</p>
+              </div>
+            </div>
+
+            <div class="guidance-section">
+              <div class="guidance-section-title">
+                <span>✅</span> Suggested Next Steps
+              </div>
+              <div class="guidance-section-content">
+                <ol style="margin-left: var(--space-4);">
+                  <li style="margin-bottom: var(--space-2);">Schedule a calm time to talk (not when exhausted)</li>
+                  <li style="margin-bottom: var(--space-2);">Each share what's been hardest lately</li>
+                  <li style="margin-bottom: var(--space-2);">Create a trial chore schedule for one week</li>
+                  <li>Check in after the trial to adjust</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+          <div class="card-footer">
+            <button class="btn btn-ghost btn-sm" style="color: var(--color-error-500);">⚠️ Report</button>
+          </div>
+        </div>
+
+        <div class="page-footer">
+          <div class="crisis-footer">
+            <div class="crisis-footer-title">🆘 In Crisis?</div>
+            <div class="crisis-footer-content">
+              <p>If you're experiencing thoughts of self-harm or are in an unsafe situation:</p>
+              <ul style="margin-left: var(--space-4); margin-top: var(--space-2);">
+                <li><span class="crisis-hotline">988</span> - Suicide Prevention Lifeline</li>
+                <li><span class="crisis-hotline">1-800-799-7233</span> - Domestic Violence Hotline</li>
+                <li>Text <span class="crisis-hotline">HOME</span> to 741741 - Crisis Text Line</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="disclaimer">
+            This app is not a substitute for professional mental health care. If you're in crisis, please contact emergency services or a licensed therapist.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOADING STATE -->
+    <section id="loading" class="screen">
+      <div class="screen-container">
+        <div class="loading-overlay">
+          <div class="spinner spinner-lg"></div>
+          <div class="loading-text heading-4">Generating Your Guidance</div>
+          <div class="loading-subtext">Our AI is analyzing your perspectives and preparing personalized insights...</div>
+        </div>
+
+        <div style="margin-top: var(--space-8);">
+          <h3 class="heading-4" style="margin-bottom: var(--space-4);">Loading Variations</h3>
+
+          <div class="card" style="margin-bottom: var(--space-4);">
+            <div class="card-body">
+              <div class="skeleton" style="height: 20px; width: 60%; margin-bottom: var(--space-3);"></div>
+              <div class="skeleton" style="height: 16px; width: 100%; margin-bottom: var(--space-2);"></div>
+              <div class="skeleton" style="height: 16px; width: 90%; margin-bottom: var(--space-2);"></div>
+              <div class="skeleton" style="height: 16px; width: 75%;"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="spinner"></div>
+            <span>Processing...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CRISIS RESOURCES -->
+    <section id="crisis" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Back</a>
+        <span style="font-weight: var(--font-medium);">Crisis Resources</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="screen-container">
+        <div style="text-align: center; margin-bottom: var(--space-8);">
+          <div style="font-size: 48px; margin-bottom: var(--space-4);">❤️‍🩹</div>
+          <h1 class="heading-2">You're Not Alone</h1>
+          <p style="color: var(--color-neutral-600);">Help is available 24/7. Reach out if you need support.</p>
+        </div>
+
+        <div class="card" style="margin-bottom: var(--space-4); border-left: 4px solid var(--color-error-500);">
+          <div class="card-body">
+            <h3 class="heading-4" style="color: var(--color-error-600); margin-bottom: var(--space-3);">Suicide Prevention</h3>
+            <p style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-2);">988</p>
+            <p class="body-small" style="color: var(--color-neutral-600);">National Suicide Prevention Lifeline (US)<br>Available 24/7 by phone or chat</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: var(--space-4); border-left: 4px solid var(--color-warning-500);">
+          <div class="card-body">
+            <h3 class="heading-4" style="color: var(--color-warning-600); margin-bottom: var(--space-3);">Domestic Violence</h3>
+            <p style="font-size: var(--text-2xl); font-weight: var(--font-bold); margin-bottom: var(--space-2);">1-800-799-7233</p>
+            <p class="body-small" style="color: var(--color-neutral-600);">National Domestic Violence Hotline<br>Available 24/7, confidential support</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom: var(--space-4); border-left: 4px solid var(--color-primary-500);">
+          <div class="card-body">
+            <h3 class="heading-4" style="color: var(--color-primary-600); margin-bottom: var(--space-3);">Crisis Text Line</h3>
+            <p style="font-size: var(--text-xl); font-weight: var(--font-bold); margin-bottom: var(--space-2);">Text HOME to 741741</p>
+            <p class="body-small" style="color: var(--color-neutral-600);">Free, 24/7 crisis counseling via text</p>
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top: var(--space-6);">
+          <div>
+            <strong>Remember:</strong> Seeking help is a sign of strength. These services are free, confidential, and staffed by trained professionals who care.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    function showScreen(screenId) {
+      // Hide all screens
+      document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.remove('active');
+      });
+
+      // Show selected screen
+      document.getElementById(screenId).classList.add('active');
+
+      // Update nav
+      document.querySelectorAll('.prototype-nav a').forEach(link => {
+        link.classList.remove('active');
+        if (link.getAttribute('href') === '#' + screenId) {
+          link.classList.add('active');
+        }
+      });
+    }
+
+    // Handle hash changes
+    window.addEventListener('hashchange', () => {
+      const hash = window.location.hash.substring(1);
+      if (hash) {
+        showScreen(hash);
+      }
+    });
+
+    // Check initial hash
+    if (window.location.hash) {
+      showScreen(window.location.hash.substring(1));
+    }
+  </script>
+</body>
+</html>
