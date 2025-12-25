@@ -52,7 +52,7 @@ const ReportAdviceButton: React.FC<ReportAdviceButtonProps> = ({ messageId, conf
 
   if (isReported) {
     return (
-      <div className="report-confirmation">
+      <div className="report-confirmation" role="status" aria-live="polite">
         Thank you. This advice has been reported for review.
       </div>
     );
@@ -65,10 +65,11 @@ const ReportAdviceButton: React.FC<ReportAdviceButtonProps> = ({ messageId, conf
         onClick={handleReport}
         disabled={isReporting}
         title="Report concerning or inappropriate advice"
+        aria-label="Report concerning or inappropriate advice"
       >
         {isReporting ? 'Reporting...' : 'Report this advice'}
       </button>
-      {error && <div className="report-error">{error}</div>}
+      {error && <div className="report-error" role="alert">{error}</div>}
     </div>
   );
 };

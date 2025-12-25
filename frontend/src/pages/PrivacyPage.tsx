@@ -4,8 +4,8 @@ import '../components/layout/Layout.css';
 
 const PrivacyPage: React.FC = () => {
   return (
-    <div className="legal-page">
-      <Link to="/" className="back-link">← Back to Home</Link>
+    <main id="main-content" className="legal-page">
+      <Link to="/" className="back-link" aria-label="Back to home page">← Back to Home</Link>
 
       <h1>Privacy Policy</h1>
       <p className="last-updated">Last Updated: December 25, 2024</p>
@@ -293,7 +293,7 @@ const PrivacyPage: React.FC = () => {
           For our Terms of Service, please visit <Link to="/terms">Terms of Service</Link>.
         </em>
       </p>
-    </div>
+    </main>
   );
 };
 

@@ -4,8 +4,8 @@ import '../components/layout/Layout.css';
 
 const TermsPage: React.FC = () => {
   return (
-    <div className="legal-page">
-      <Link to="/" className="back-link">← Back to Home</Link>
+    <main id="main-content" className="legal-page">
+      <Link to="/" className="back-link" aria-label="Back to home page">← Back to Home</Link>
 
       <h1>Terms of Service</h1>
       <p className="last-updated">Last Updated: December 25, 2024</p>
@@ -217,7 +217,7 @@ const TermsPage: React.FC = () => {
           please seek qualified professional assistance.
         </p>
       </div>
-    </div>
+    </main>
   );
 };
 
