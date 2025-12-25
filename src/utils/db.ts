@@ -54,9 +54,9 @@ export async function initializeDb(): Promise<Surreal> {
 
     // Use namespace-level authentication (not root)
     await db.signin({
-      ns: config.namespace,
-      user: config.username,
-      pass: config.password,
+      namespace: config.namespace,
+      username: config.username,
+      password: config.password,
     });
 
     // Use the namespace and database (creates if not exists)
