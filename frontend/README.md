@@ -1,73 +1,84 @@
-# React + TypeScript + Vite
+# Couples Therapy Assistant - Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript frontend with Firebase authentication.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 18+ (project uses Firebase which requires Node 20+, but will run with warnings on 18)
+- npm
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install --cache /tmp/.npm-cache
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Note: Using a temporary cache location to avoid npm cache permission issues.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Running the Development Server
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run dev
 ```
+
+The app will be available at `http://localhost:5173`
+
+## Project Structure
+
+```
+src/
+├── auth/
+│   ├── firebase-config.ts   # Firebase initialization
+│   ├── AuthSystem.ts         # Auth service class (BOR pattern)
+│   └── AuthContext.tsx       # React auth context provider
+├── components/
+│   ├── LoginPage.tsx         # Login page component
+│   ├── SignupPage.tsx        # Signup page component
+│   └── Auth.css             # Auth pages styling
+├── App.tsx                   # Main app with routing
+└── main.tsx                  # App entry point
+```
+
+## Features
+
+- Email/Password authentication
+- Google Sign-In
+- Protected routes
+- Auth state management
+- Token refresh handling
+- localStorage persistence
+
+## Firebase Configuration
+
+The app is configured to use the Firebase project:
+- Project ID: weiu-fbfe2
+- Auth Domain: weiu-fbfe2.firebaseapp.com
+
+## Authentication Flow
+
+1. User visits app
+2. If not authenticated, redirected to `/login`
+3. User can sign in or sign up with email/password or Google
+4. After authentication, user data stored in localStorage:
+   - `firebaseUID`
+   - `firebaseToken`
+   - `userName`
+   - `userEmail`
+5. User redirected to home page
+6. Protected routes check auth state
+7. Token automatically refreshed as needed
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run preview` - Preview production build
+- `npm run lint` - Run ESLint
+
+## Technologies
+
+- React 18
+- TypeScript
+- Vite
+- Firebase Auth
+- React Router
