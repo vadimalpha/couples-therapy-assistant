@@ -52,22 +52,12 @@ export async function initializeDb(): Promise<Surreal> {
     // Connect to SurrealDB Cloud
     await db.connect(config.url);
 
-    // Try root authentication for cloud instances
-    try {
-      await db.signin({
-        username: config.username,
-        password: config.password,
-      });
-    } catch (authError) {
-      // If root auth fails, try namespace/database auth
-      console.log('Root auth failed, trying namespace/database auth...');
-      await db.signin({
-        namespace: config.namespace,
-        database: config.database,
-        username: config.username,
-        password: config.password,
-      });
-    }
+    // Use namespace-level authentication (not root)
+    await db.signin({
+      ns: config.namespace,
+      user: config.username,
+      pass: config.password,
+    });
 
     // Use the namespace and database (creates if not exists)
     await db.use({

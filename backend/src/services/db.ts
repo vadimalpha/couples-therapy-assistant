@@ -21,7 +21,8 @@ export async function initializeDatabase(): Promise<Surreal> {
 
   try {
     await db.connect(url);
-    await db.signin({ user, pass });
+    // Use namespace-level authentication
+    await db.signin({ ns, user, pass });
     await db.use({ ns, db: database });
     console.log('SurrealDB connected');
     return db;
