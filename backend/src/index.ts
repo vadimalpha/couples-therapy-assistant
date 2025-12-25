@@ -9,6 +9,7 @@ import { initializeWebSocket } from './websocket';
 import { initializeGuidanceWorker } from './queue/workers/guidance-worker';
 import { closeQueues } from './queue';
 import authRoutes from './routes/auth';
+import usersRoutes from './routes/users';
 import relationshipRoutes from './routes/relationships';
 import conversationRoutes from './routes/conversations';
 import conflictRoutes from './routes/conflicts';
@@ -31,7 +32,8 @@ app.get('/health', (req: Request, res: Response) => {
 });
 
 // API Routes
-app.use('/api/users', authRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/users', usersRoutes);
 app.use('/api/relationships', relationshipRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/conflicts', conflictRoutes);
