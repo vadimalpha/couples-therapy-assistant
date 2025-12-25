@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ChatWindow, { Message } from '../chat/ChatWindow';
 import { useConversation } from '../../hooks/useConversation';
 import GuidanceStatus from './GuidanceStatus';
@@ -9,16 +10,20 @@ export interface GuidanceChatProps {
   conflictId: string;
   sessionId: string;
   initialGuidance?: string;
+  relationshipId?: string;
 }
 
 const GuidanceChat: React.FC<GuidanceChatProps> = ({
   conflictId,
   sessionId,
-  initialGuidance
+  initialGuidance,
+  relationshipId
 }) => {
+  const navigate = useNavigate();
   const [guidanceStatus, setGuidanceStatus] = useState<'pending' | 'synthesizing' | 'ready'>('synthesizing');
   const [patterns, setPatterns] = useState<Pattern[]>([]);
   const [patternsLoading, setPatternsLoading] = useState(true);
+  const [sharedChatUnlocked, setSharedChatUnlocked] = useState(false);
   const { messages, sendMessage, isStreaming, isConnected, isFinalized, error } = useConversation(sessionId);
 
   useEffect(() => {
@@ -31,28 +36,42 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
       setGuidanceStatus('synthesizing');
     }
 
-    // Fetch pattern insights
-    const fetchPatterns = async () => {
+    // Fetch pattern insights and shared chat unlock status
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/relationships/patterns', {
+        const patternsResponse = await fetch('/api/relationships/patterns', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
         });
 
-        if (response.ok) {
-          const data = await response.json();
+        if (patternsResponse.ok) {
+          const data = await patternsResponse.json();
           setPatterns(data.patterns || []);
         }
+
+        // Check if shared chat is unlocked (both partners completed joint-context guidance)
+        if (relationshipId) {
+          const unlockResponse = await fetch(`/api/relationships/${relationshipId}/shared-chat-status`, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            },
+          });
+
+          if (unlockResponse.ok) {
+            const unlockData = await unlockResponse.json();
+            setSharedChatUnlocked(unlockData.unlocked || false);
+          }
+        }
       } catch (err) {
-        console.error('Error fetching patterns:', err);
+        console.error('Error fetching data:', err);
       } finally {
         setPatternsLoading(false);
       }
     };
 
-    fetchPatterns();
-  }, [initialGuidance]);
+    fetchData();
+  }, [initialGuidance, relationshipId]);
 
   useEffect(() => {
     // When first AI message arrives, mark as ready
@@ -66,6 +85,12 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
       await sendMessage(content);
     } catch (err) {
       console.error('Failed to send message:', err);
+    }
+  };
+
+  const handleJoinSharedChat = () => {
+    if (relationshipId) {
+      navigate(`/relationships/${relationshipId}/shared`);
     }
   };
 
@@ -104,6 +129,22 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
 
       {!patternsLoading && patterns.length > 0 && (
         <PatternInsights patterns={patterns} />
+      )}
+
+      {sharedChatUnlocked && relationshipId && (
+        <div className="guidance-shared-chat-unlock">
+          <div className="unlock-message">
+            <h3>Ready for Joint Conversation</h3>
+            <p>Both partners have completed their individual guidance. You can now join a shared conversation together.</p>
+          </div>
+          <button
+            onClick={handleJoinSharedChat}
+            className="join-shared-chat-button"
+            aria-label="Join shared relationship conversation"
+          >
+            Join Shared Conversation
+          </button>
+        </div>
       )}
 
       <ChatWindow
