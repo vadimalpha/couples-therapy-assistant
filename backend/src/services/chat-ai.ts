@@ -84,7 +84,7 @@ export async function generateExplorationResponse(
   } catch (error) {
     console.error('Error generating AI response:', error);
     throw new Error(
-      \`Failed to generate AI response: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to generate AI response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -143,7 +143,7 @@ export async function streamExplorationResponse(
   } catch (error) {
     console.error('Error streaming AI response:', error);
     throw new Error(
-      \`Failed to stream AI response: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to stream AI response: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -201,7 +201,7 @@ export async function synthesizeIndividualGuidance(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      \`Individual guidance synthesis - User: \${explorationSession.userId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}\`
+      `Individual guidance synthesis - User: \${explorationSession.userId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
     const jointContextSession = await conversationService.createSession(
@@ -220,7 +220,7 @@ export async function synthesizeIndividualGuidance(
   } catch (error) {
     console.error('Error synthesizing individual guidance:', error);
     throw new Error(
-      \`Failed to synthesize individual guidance: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to synthesize individual guidance: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -301,7 +301,7 @@ export async function synthesizeJointContextGuidance(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      \`Joint-context guidance synthesis - Conflict: \${conflictId}, Partner: \${partnerId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}\`
+      `Joint-context guidance synthesis - Conflict: \${conflictId}, Partner: \${partnerId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
     const jointContextSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
@@ -328,7 +328,7 @@ export async function synthesizeJointContextGuidance(
   } catch (error) {
     console.error('Error synthesizing joint-context guidance:', error);
     throw new Error(
-      \`Failed to synthesize joint-context guidance: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to synthesize joint-context guidance: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -408,14 +408,14 @@ export async function generateRelationshipSynthesis(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      \`Relationship synthesis - Conflict: \${context.conflictId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}\`
+      `Relationship synthesis - Conflict: \${context.conflictId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
     return { content, usage };
   } catch (error) {
     console.error('Error generating relationship synthesis:', error);
     throw new Error(
-      \`Failed to generate relationship synthesis: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to generate relationship synthesis: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -470,14 +470,14 @@ export async function generateRelationshipResponse(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      \`Relationship chat - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}\`
+      `Relationship chat - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
     return { content, usage };
   } catch (error) {
     console.error('Error generating relationship response:', error);
     throw new Error(
-      \`Failed to generate relationship response: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to generate relationship response: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -554,14 +554,14 @@ export async function streamRelationshipResponse(
     }
 
     console.log(
-      \`Relationship chat (stream) - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}\`
+      `Relationship chat (stream) - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
     return { fullContent, usage };
   } catch (error) {
     console.error('Error streaming relationship response:', error);
     throw new Error(
-      \`Failed to stream relationship response: \${error instanceof Error ? error.message : 'Unknown error'}\`
+      `Failed to stream relationship response: \${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -603,19 +603,19 @@ function buildSystemPromptWithContext(
   if (context.intakeData) {
     prompt += '\n\nUser Background (from intake):';
     if (context.intakeData.relationshipLength) {
-      prompt += \`\n- Relationship length: \${context.intakeData.relationshipLength}\`;
+      prompt += `\n- Relationship length: \${context.intakeData.relationshipLength}`;
     }
     if (context.intakeData.mainConcerns) {
-      prompt += \`\n- Main concerns: \${context.intakeData.mainConcerns}\`;
+      prompt += `\n- Main concerns: \${context.intakeData.mainConcerns}`;
     }
     if (context.intakeData.goals) {
-      prompt += \`\n- Goals for therapy: \${context.intakeData.goals}\`;
+      prompt += `\n- Goals for therapy: \${context.intakeData.goals}`;
     }
   }
 
   if (context.relationshipContext) {
     prompt += '\n\nRelationship Context:';
-    prompt += \`\n\${JSON.stringify(context.relationshipContext, null, 2)}\`;
+    prompt += `\n\${JSON.stringify(context.relationshipContext, null, 2)}`;
   }
 
   return prompt;
@@ -642,28 +642,28 @@ function buildIndividualContext(
   context += '--- EXPLORATION CONVERSATION ---\n\n';
   messages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += \`\${label}: \${msg.content}\n\n\`;
+    context += `\${label}: \${msg.content}\n\n`;
   });
 
   if (intakeData) {
     context += '--- USER BACKGROUND (from intake) ---\n\n';
     if (intakeData.relationshipLength) {
-      context += \`Relationship length: \${intakeData.relationshipLength}\n\`;
+      context += `Relationship length: \${intakeData.relationshipLength}\n`;
     }
     if (intakeData.mainConcerns) {
-      context += \`Main concerns: \${intakeData.mainConcerns}\n\`;
+      context += `Main concerns: \${intakeData.mainConcerns}\n`;
     }
     if (intakeData.goals) {
-      context += \`Goals for therapy: \${intakeData.goals}\n\`;
+      context += `Goals for therapy: \${intakeData.goals}\n`;
     }
     context += '\n';
   }
 
   if (userName) {
-    context += \`User's name: \${userName}\n\n\`;
+    context += `User's name: \${userName}\n\n`;
   }
 
-  context += \`Please synthesize personalized guidance based on this exploration conversation. Draw directly from what was shared, validate their experience, identify key themes, and offer warm, actionable suggestions. End with an invitation for continued dialogue.\`;
+  context += `Please synthesize personalized guidance based on this exploration conversation. Draw directly from what was shared, validate their experience, identify key themes, and offer warm, actionable suggestions. End with an invitation for continued dialogue.`;
 
   return context;
 }
@@ -678,49 +678,49 @@ function buildJointContext(
 ): string {
   let context = '';
 
-  context += \`This guidance is being prepared for: \${requestingPartnerName || 'Partner A'}\n\n\`;
+  context += `This guidance is being prepared for: \${requestingPartnerName || 'Partner A'}\n\n`;
 
-  context += \`--- \${requestingPartnerName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n\`;
+  context += `--- \${requestingPartnerName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
   requestingPartnerMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += \`\${label}: \${msg.content}\n\n\`;
+    context += `\${label}: \${msg.content}\n\n`;
   });
 
   if (requestingIntakeData) {
-    context += \`--- \${requestingPartnerName || 'PARTNER A'}'S BACKGROUND (from intake) ---\n\n\`;
+    context += `--- \${requestingPartnerName || 'PARTNER A'}'S BACKGROUND (from intake) ---\n\n`;
     if (requestingIntakeData.relationshipLength) {
-      context += \`Relationship length: \${requestingIntakeData.relationshipLength}\n\`;
+      context += `Relationship length: \${requestingIntakeData.relationshipLength}\n`;
     }
     if (requestingIntakeData.mainConcerns) {
-      context += \`Main concerns: \${requestingIntakeData.mainConcerns}\n\`;
+      context += `Main concerns: \${requestingIntakeData.mainConcerns}\n`;
     }
     if (requestingIntakeData.goals) {
-      context += \`Goals for therapy: \${requestingIntakeData.goals}\n\`;
+      context += `Goals for therapy: \${requestingIntakeData.goals}\n`;
     }
     context += '\n';
   }
 
-  context += \`--- \${otherPartnerName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n\`;
+  context += `--- \${otherPartnerName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
   otherPartnerMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += \`\${label}: \${msg.content}\n\n\`;
+    context += `\${label}: \${msg.content}\n\n`;
   });
 
   if (otherIntakeData) {
-    context += \`--- \${otherPartnerName || 'PARTNER B'}'S BACKGROUND (from intake) ---\n\n\`;
+    context += `--- \${otherPartnerName || 'PARTNER B'}'S BACKGROUND (from intake) ---\n\n`;
     if (otherIntakeData.relationshipLength) {
-      context += \`Relationship length: \${otherIntakeData.relationshipLength}\n\`;
+      context += `Relationship length: \${otherIntakeData.relationshipLength}\n`;
     }
     if (otherIntakeData.mainConcerns) {
-      context += \`Main concerns: \${otherIntakeData.mainConcerns}\n\`;
+      context += `Main concerns: \${otherIntakeData.mainConcerns}\n`;
     }
     if (otherIntakeData.goals) {
-      context += \`Goals for therapy: \${otherIntakeData.goals}\n\`;
+      context += `Goals for therapy: \${otherIntakeData.goals}\n`;
     }
     context += '\n';
   }
 
-  context += \`Please synthesize personalized guidance for \${requestingPartnerName || 'Partner A'} that incorporates both partners' perspectives. Identify patterns across both conversations, areas of alignment and difference, and provide insights that help this partner understand both their own experience and their partner's perspective. Suggest communication approaches that bridge the gap.\`;
+  context += `Please synthesize personalized guidance for \${requestingPartnerName || 'Partner A'} that incorporates both partners' perspectives. Identify patterns across both conversations, areas of alignment and difference, and provide insights that help this partner understand both their own experience and their partner's perspective. Suggest communication approaches that bridge the gap.`;
 
   return context;
 }
@@ -737,32 +737,32 @@ function buildRelationshipSynthesisContext(
   let context = 'You are about to begin a shared relationship conversation with both partners.\n\n';
 
   if (conflictTitle) {
-    context += \`The situation they want to explore together: \${conflictTitle}\n\n\`;
+    context += `The situation they want to explore together: \${conflictTitle}\n\n`;
   }
 
-  context += \`--- \${partnerAName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n\`;
+  context += `--- \${partnerAName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
   partnerAMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += \`\${label}: \${msg.content}\n\n\`;
+    context += `\${label}: \${msg.content}\n\n`;
   });
 
   if (partnerAGuidance) {
-    context += \`--- GUIDANCE PROVIDED TO \${partnerAName || 'PARTNER A'} ---\n\n\`;
-    context += \`\${partnerAGuidance}\n\n\`;
+    context += `--- GUIDANCE PROVIDED TO \${partnerAName || 'PARTNER A'} ---\n\n`;
+    context += `\${partnerAGuidance}\n\n`;
   }
 
-  context += \`--- \${partnerBName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n\`;
+  context += `--- \${partnerBName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
   partnerBMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += \`\${label}: \${msg.content}\n\n\`;
+    context += `\${label}: \${msg.content}\n\n`;
   });
 
   if (partnerBGuidance) {
-    context += \`--- GUIDANCE PROVIDED TO \${partnerBName || 'PARTNER B'} ---\n\n\`;
-    context += \`\${partnerBGuidance}\n\n\`;
+    context += `--- GUIDANCE PROVIDED TO \${partnerBName || 'PARTNER B'} ---\n\n`;
+    context += `\${partnerBGuidance}\n\n`;
   }
 
-  context += \`Please create a warm, welcoming initial message that brings both partners together. Acknowledge what you heard from each of them, highlight areas of alignment and divergence, and invite them into constructive dialogue. Remember to address them as a couple and set a hopeful, collaborative tone.\`;
+  context += `Please create a warm, welcoming initial message that brings both partners together. Acknowledge what you heard from each of them, highlight areas of alignment and divergence, and invite them into constructive dialogue. Remember to address them as a couple and set a hopeful, collaborative tone.`;
 
   return context;
 }
@@ -775,8 +775,8 @@ function buildSystemPromptWithSenderContext(
   let prompt = basePrompt;
 
   prompt += '\n\n## Partner Information\n';
-  prompt += \`Partner A: \${partnerAName || 'Not provided'}\n\`;
-  prompt += \`Partner B: \${partnerBName || 'Not provided'}\n\n\`;
+  prompt += `Partner A: \${partnerAName || 'Not provided'}\n`;
+  prompt += `Partner B: \${partnerBName || 'Not provided'}\n\n`;
   prompt += 'Each message will include sender information so you know which partner is speaking.\n';
   prompt += 'Always address BOTH partners in your responses, not just the one who sent the message.\n';
 
@@ -804,7 +804,7 @@ function convertRelationshipMessages(
 
       return {
         role: 'user' as const,
-        content: \`[Message from \${senderName}]\n\${msg.content}\`,
+        content: `[Message from \${senderName}]\n\${msg.content}`,
       };
     }
   });
@@ -856,7 +856,7 @@ async function getIntakeData(userId: string): Promise<any | null> {
           /(\d+)\s*(year|month|week)s?\s*(together|relationship|dating)/i
         );
         if (lengthMatch) {
-          intakeData.relationshipLength = \`\${lengthMatch[1]} \${lengthMatch[2]}s\`;
+          intakeData.relationshipLength = `\${lengthMatch[1]} \${lengthMatch[2]}s`;
         }
 
         if (
