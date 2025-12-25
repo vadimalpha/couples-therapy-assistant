@@ -1,4 +1,6 @@
 import Surreal from 'surrealdb.js';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 let db: Surreal | null = null;
 
@@ -25,10 +27,36 @@ export async function initializeDatabase(): Promise<Surreal> {
     await db.signin({ namespace: ns, username: user, password: pass });
     await db.use({ namespace: ns, database });
     console.log('SurrealDB connected');
+
+    // Initialize schema if needed
+    await initializeSchema();
+
     return db;
   } catch (error) {
     console.error('Failed to connect to SurrealDB:', error);
     throw error;
+  }
+}
+
+/**
+ * Initialize database schema
+ * Applies schema definitions from schema.surql file
+ */
+async function initializeSchema(): Promise<void> {
+  if (!db) {
+    throw new Error('Database not initialized');
+  }
+
+  try {
+    const schemaPath = join(__dirname, '..', 'db', 'schema.surql');
+    const schema = readFileSync(schemaPath, 'utf-8');
+
+    // Execute schema statements
+    await db.query(schema);
+    console.log('Database schema initialized');
+  } catch (error) {
+    // Log but don't fail - schema might already exist
+    console.warn('Schema initialization warning:', error);
   }
 }
 
