@@ -1,16 +1,20 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { initializeFirebase } from './middleware/auth';
 import { initializeDatabase, closeDatabase } from './services/db';
+import { initializeWebSocket } from './websocket';
 import authRoutes from './routes/auth';
 import relationshipRoutes from './routes/relationships';
+import conversationRoutes from './routes/conversations';
 
 // Load environment variables
 dotenv.config();
 
 const app = express();
+const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
 // Middleware
@@ -26,6 +30,7 @@ app.get('/health', (req: Request, res: Response) => {
 // API Routes
 app.use('/api/users', authRoutes);
 app.use('/api/relationships', relationshipRoutes);
+app.use('/api/conversations', conversationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
@@ -47,10 +52,14 @@ async function startServer() {
     // Initialize SurrealDB connection
     await initializeDatabase();
 
+    // Initialize WebSocket server
+    initializeWebSocket(httpServer);
+
     // Start listening
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Health check: http://localhost:${PORT}/health`);
+      console.log(`WebSocket server ready`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

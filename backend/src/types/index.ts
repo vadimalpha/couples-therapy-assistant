@@ -39,3 +39,32 @@ export interface SurrealDBResponse<T> {
   result?: T;
   error?: string;
 }
+
+export type SessionType =
+  | 'intake'
+  | 'individual_a'
+  | 'individual_b'
+  | 'joint_context_a'
+  | 'joint_context_b'
+  | 'relationship_shared';
+
+export type MessageRole = 'user' | 'ai' | 'partner-a' | 'partner-b';
+
+export interface ConversationMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  senderId?: string;
+  timestamp: string;
+}
+
+export interface ConversationSession {
+  id: string;
+  conflictId?: string;
+  userId: string;
+  sessionType: SessionType;
+  status: 'active' | 'finalized';
+  messages: ConversationMessage[];
+  createdAt: string;
+  finalizedAt?: string;
+}
