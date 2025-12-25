@@ -1,5 +1,6 @@
 import { getDatabase } from './db';
 import { conversationService } from './conversation';
+import { generateConflictEmbedding } from './embeddings';
 import { Conflict, ConflictStatus, ConflictPrivacy } from '../types';
 
 export class ConflictService {
@@ -60,6 +61,11 @@ export class ConflictService {
         updated_at: new Date().toISOString(),
       }
     );
+
+    // Generate and store embedding for conflict (async, don't block creation)
+    generateConflictEmbedding(conflict.id, title).catch(error => {
+      console.error('Failed to generate conflict embedding:', error);
+    });
 
     return {
       ...conflict,
