@@ -66,3 +66,5 @@ Tone Guidelines:
 - Conversational, not clinical
 
 Remember: This guidance should feel like a caring therapist thoughtfully reflecting on what was shared and offering personalized insights. It should invite continued exploration, not feel like a closed verdict.
+
+{{RAG_CONTEXT}}
