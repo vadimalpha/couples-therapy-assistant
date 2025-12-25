@@ -13,6 +13,7 @@ import usersRoutes from './routes/users';
 import relationshipRoutes from './routes/relationships';
 import conversationRoutes from './routes/conversations';
 import conflictRoutes from './routes/conflicts';
+import intakeRoutes from './routes/intake';
 
 // Load environment variables
 dotenv.config();
@@ -37,6 +38,7 @@ app.use('/api/users', usersRoutes);
 app.use('/api/relationships', relationshipRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/conflicts', conflictRoutes);
+app.use('/api/intake', intakeRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
