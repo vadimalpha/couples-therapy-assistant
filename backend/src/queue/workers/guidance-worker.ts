@@ -4,7 +4,7 @@ import { GuidanceJob } from '../jobs';
 import {
   synthesizeIndividualGuidance,
   synthesizeJointContextGuidance,
-} from '../../services/guidance-synthesis';
+} from '../../services/chat-ai';
 
 /**
  * Process guidance synthesis jobs
