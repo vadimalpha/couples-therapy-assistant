@@ -1,9 +1,24 @@
 import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { getDatabase } from './db';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
+
+// Initialize OpenAI client for embeddings
+let openai: OpenAI | null = null;
+try {
+  if (process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  } else {
+    console.warn('OPENAI_API_KEY not set - embeddings will use fallback pseudo-embeddings');
+  }
+} catch (error) {
+  console.error('Failed to initialize OpenAI client:', error);
+}
 
 export interface EmbeddingDocument {
   id: string;
@@ -18,24 +33,41 @@ export interface EmbeddingDocument {
 }
 
 /**
- * Generate text embedding using Claude's API
- * Note: This is a placeholder - Claude doesn't currently provide embeddings API
- * In production, use OpenAI embeddings or a dedicated embedding service
+ * Generate text embedding using OpenAI's text-embedding-ada-002 model
+ * Falls back to pseudo-embedding if OpenAI is not available
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
-  // For now, we'll create a simple hash-based pseudo-embedding
-  // In production, replace with actual embedding service like:
-  // - OpenAI embeddings API
-  // - Cohere embeddings
-  // - Local sentence transformers
+  if (!text || text.trim().length === 0) {
+    throw new Error('Cannot generate embedding for empty text');
+  }
 
+  // Use OpenAI if available
+  if (openai) {
+    try {
+      const response = await openai.embeddings.create({
+        model: 'text-embedding-ada-002',
+        input: text.trim(),
+      });
+
+      if (!response.data || response.data.length === 0) {
+        throw new Error('No embedding returned from OpenAI');
+      }
+
+      return response.data[0].embedding;
+    } catch (error) {
+      console.error('OpenAI embedding generation failed, falling back to pseudo-embedding:', error);
+      // Fall through to pseudo-embedding
+    }
+  }
+
+  // Fallback: Simple hash-based pseudo-embedding for testing
+  // This produces 1536-dimensional embeddings to match OpenAI's ada-002
   const normalized = text.toLowerCase().trim();
-  const embedding = new Array(768).fill(0);
+  const embedding = new Array(1536).fill(0);
 
-  // Simple character-based pseudo-embedding for testing
-  for (let i = 0; i < normalized.length && i < 100; i++) {
+  for (let i = 0; i < normalized.length && i < 200; i++) {
     const charCode = normalized.charCodeAt(i);
-    const idx = (charCode * (i + 1)) % 768;
+    const idx = (charCode * (i + 1)) % 1536;
     embedding[idx] += 1 / (i + 1);
   }
 
@@ -185,5 +217,74 @@ export async function deleteUserEmbeddings(userId: string): Promise<void> {
   } catch (error) {
     console.error('Error deleting user embeddings:', error);
     throw error;
+  }
+}
+
+/**
+ * Generate and store embedding for a conflict
+ * Combines title and description into a searchable text representation
+ */
+export async function generateConflictEmbedding(
+  conflictId: string,
+  title: string,
+  description?: string
+): Promise<void> {
+  const db = getDatabase();
+
+  // Combine title and description for embedding
+  const textParts = [title];
+  if (description && description.trim()) {
+    textParts.push(description);
+  }
+  const content = textParts.join('\n');
+
+  try {
+    // Generate embedding
+    const embedding = await generateEmbedding(content);
+
+    // Get conflict to find userId
+    const fullId = conflictId.startsWith('conflict:')
+      ? conflictId
+      : `conflict:${conflictId}`;
+
+    const conflictResult = await db.query(
+      'SELECT partner_a_id FROM $conflictId',
+      { conflictId: fullId }
+    );
+
+    if (
+      !conflictResult ||
+      conflictResult.length === 0 ||
+      !(conflictResult[0] as any).result ||
+      (conflictResult[0] as any).result.length === 0
+    ) {
+      throw new Error('Conflict not found');
+    }
+
+    const userId = (conflictResult[0] as any).result[0].partner_a_id;
+
+    // Store embedding
+    await db.query(
+      `CREATE embedding CONTENT {
+        userId: $userId,
+        content: $content,
+        embedding: $embedding,
+        metadata: {
+          type: 'conflict',
+          sourceId: $conflictId,
+          createdAt: $createdAt
+        }
+      }`,
+      {
+        userId,
+        content,
+        embedding,
+        conflictId: fullId,
+        createdAt: new Date().toISOString(),
+      }
+    );
+  } catch (error) {
+    console.error('Error generating conflict embedding:', error);
+    // Don't throw - embeddings are optional, failure shouldn't break conflict creation
   }
 }

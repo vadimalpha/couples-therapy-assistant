@@ -19,6 +19,7 @@
     "firebase-admin": "^12.0.0",
     "helmet": "^7.1.0",
     "ioredis": "^5.8.2",
+    "openai": "^6.15.0",
     "socket.io": "^4.8.3",
     "surrealdb.js": "^0.11.1",
     "uuid": "^9.0.1"
