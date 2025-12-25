@@ -11,6 +11,7 @@ import IntakePage from './pages/IntakePage';
 import { ExplorationChat } from './components/conflict';
 import { IntakeChat, IntakeSummary } from './components/intake';
 import './App.css';
+import './styles/accessibility.css';
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -20,7 +21,7 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div style={{ padding: '20px', textAlign: 'center' }}>
+    <main id="main-content" style={{ padding: '20px', textAlign: 'center' }}>
       <h1>Welcome to Couples Therapy Assistant</h1>
       <p>You are signed in as: {user.email}</p>
       <button
@@ -37,10 +38,11 @@ const HomePage: React.FC = () => {
           fontSize: '16px',
           marginTop: '20px'
         }}
+        aria-label="Sign out of your account"
       >
         Sign Out
       </button>
-    </div>
+    </main>
   );
 };
 
@@ -62,6 +64,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
+        <a href="#main-content" className="skip-to-content">
+          Skip to main content
+        </a>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
