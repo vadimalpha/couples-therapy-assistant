@@ -104,3 +104,22 @@ export interface IntakeData {
   completed_at: Date;
   last_updated: Date;
 }
+
+// Pattern Recognition Types
+export interface ThemeFrequency {
+  theme: string;
+  count: number;
+  timeframeDays: number;
+}
+
+export interface RelationshipCycle {
+  type: 'pursue-withdraw' | 'demand-withdraw' | 'mutual-criticism' | 'mutual-avoidance';
+  description: string;
+  frequency: number;
+}
+
+export interface PatternInsights {
+  recurringThemes: ThemeFrequency[];
+  relationshipCycles: RelationshipCycle[];
+  frequencyAlerts: string[];
+}
