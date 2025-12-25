@@ -6,6 +6,7 @@ import {
   streamExplorationResponse,
   validateApiKey,
 } from '../services/ai-exploration';
+import { contentFilter } from '../services/content-filter';
 
 const router = Router();
 
@@ -242,8 +243,38 @@ router.post(
 
         fullContent = content;
 
-        // Save AI response to conversation
-        await conversationService.addMessage(id, 'ai', fullContent);
+        // Content safety check before saving
+        const safetyCheck = await contentFilter.checkForHarmfulContent(fullContent);
+
+        if (!safetyCheck.isSafe) {
+          // Log the filtered content
+          await contentFilter.logFilteredContent(
+            fullContent,
+            safetyCheck.reason || 'Unknown',
+            safetyCheck.severity || 'unknown',
+            {
+              userId,
+              sessionId: id,
+            }
+          );
+
+          // Use fallback message instead
+          const fallbackMessage = contentFilter.getFallbackMessage();
+
+          // Save fallback message to conversation
+          await conversationService.addMessage(id, 'ai', fallbackMessage);
+
+          // Send fallback via SSE (overwrite previous chunks)
+          const fallbackData = JSON.stringify({
+            type: 'filtered',
+            content: fallbackMessage,
+            reason: 'Content filtered for safety',
+          });
+          res.write(`data: ${fallbackData}\n\n`);
+        } else {
+          // Save AI response to conversation (safe content)
+          await conversationService.addMessage(id, 'ai', fullContent);
+        }
 
         // Send completion event with usage stats
         const completionData = JSON.stringify({
