@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import ChatWindow, { Message } from '../chat/ChatWindow';
 import { useConversation } from '../../hooks/useConversation';
 import GuidanceStatus from './GuidanceStatus';
+import { PatternInsights, Pattern } from '../patterns';
 import './Guidance.css';
 
 export interface GuidanceChatProps {
@@ -16,6 +17,8 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
   initialGuidance
 }) => {
   const [guidanceStatus, setGuidanceStatus] = useState<'pending' | 'synthesizing' | 'ready'>('synthesizing');
+  const [patterns, setPatterns] = useState<Pattern[]>([]);
+  const [patternsLoading, setPatternsLoading] = useState(true);
   const { messages, sendMessage, isStreaming, isConnected, isFinalized, error } = useConversation(sessionId);
 
   useEffect(() => {
@@ -27,6 +30,28 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
       // For now, we'll assume it's synthesizing until we get the first message
       setGuidanceStatus('synthesizing');
     }
+
+    // Fetch pattern insights
+    const fetchPatterns = async () => {
+      try {
+        const response = await fetch('/api/relationships/patterns', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setPatterns(data.patterns || []);
+        }
+      } catch (err) {
+        console.error('Error fetching patterns:', err);
+      } finally {
+        setPatternsLoading(false);
+      }
+    };
+
+    fetchPatterns();
   }, [initialGuidance]);
 
   useEffect(() => {
@@ -75,6 +100,10 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
           <h3 className="guidance-initial-title">Your Personalized Guidance</h3>
           <p className="guidance-initial-content">{chatMessages[0].content}</p>
         </div>
+      )}
+
+      {!patternsLoading && patterns.length > 0 && (
+        <PatternInsights patterns={patterns} />
       )}
 
       <ChatWindow
