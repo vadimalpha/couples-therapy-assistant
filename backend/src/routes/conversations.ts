@@ -2,6 +2,10 @@ import { Router, Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { authenticateUser } from '../middleware/auth';
 import { conversationService } from '../services/conversation';
+import {
+  streamExplorationResponse,
+  validateApiKey,
+} from '../services/ai-exploration';
 
 const router = Router();
 
@@ -147,6 +151,134 @@ router.post(
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to add message';
       res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+/**
+ * Stream AI response for a conversation session
+ * POST /api/conversations/:id/ai-stream
+ *
+ * This endpoint triggers AI response generation after a user message.
+ * It streams the response using Server-Sent Events (SSE).
+ */
+router.post(
+  '/:id/ai-stream',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Verify API key is configured
+      if (!validateApiKey()) {
+        res.status(503).json({ error: 'AI service not configured' });
+        return;
+      }
+
+      // Get the session
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Conversation session not found' });
+        return;
+      }
+
+      // Verify the user owns this session
+      if (session.userId !== userId) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      // Only trigger AI for exploration sessions (individual sessions)
+      const explorationSessionTypes = ['individual_a', 'individual_b'];
+      if (!explorationSessionTypes.includes(session.sessionType)) {
+        res.status(400).json({
+          error: 'AI responses only available for exploration sessions',
+        });
+        return;
+      }
+
+      // Set SSE headers
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+      // Send initial connection confirmation
+      res.write('data: {"type":"connected"}\n\n');
+
+      try {
+        // Get conversation history
+        const messages = session.messages || [];
+
+        // Prepare context
+        const context = {
+          userId,
+          sessionType: session.sessionType,
+          // TODO: Add intake data when available
+          intakeData: undefined,
+          relationshipContext: undefined,
+        };
+
+        let fullContent = '';
+
+        // Stream the AI response
+        const { fullContent: content, usage } =
+          await streamExplorationResponse(messages, context, (chunk) => {
+            fullContent += chunk;
+
+            // Send chunk via SSE
+            const data = JSON.stringify({
+              type: 'chunk',
+              content: chunk,
+            });
+            res.write(`data: ${data}\n\n`);
+          });
+
+        fullContent = content;
+
+        // Save AI response to conversation
+        await conversationService.addMessage(id, 'ai', fullContent);
+
+        // Send completion event with usage stats
+        const completionData = JSON.stringify({
+          type: 'complete',
+          usage: {
+            inputTokens: usage.inputTokens,
+            outputTokens: usage.outputTokens,
+            cost: usage.totalCost.toFixed(6),
+          },
+        });
+        res.write(`data: ${completionData}\n\n`);
+
+        // Send done event
+        res.write('data: {"type":"done"}\n\n');
+      } catch (error) {
+        console.error('Error streaming AI response:', error);
+
+        // Send error event
+        const errorData = JSON.stringify({
+          type: 'error',
+          error:
+            error instanceof Error ? error.message : 'Failed to generate AI response',
+        });
+        res.write(`data: ${errorData}\n\n`);
+      } finally {
+        // Close the connection
+        res.end();
+      }
+    } catch (error) {
+      console.error('Error in AI stream endpoint:', error);
+
+      // If headers not sent yet, send error response
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Internal server error' });
+      }
     }
   }
 );
