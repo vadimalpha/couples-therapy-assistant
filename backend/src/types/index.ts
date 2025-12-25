@@ -68,3 +68,25 @@ export interface ConversationSession {
   createdAt: string;
   finalizedAt?: string;
 }
+
+export type ConflictStatus =
+  | 'partner_a_chatting'
+  | 'pending_partner_b'
+  | 'partner_b_chatting'
+  | 'both_finalized';
+
+export type ConflictPrivacy = 'private' | 'shared';
+
+export interface Conflict {
+  id: string;
+  title: string;
+  privacy: ConflictPrivacy;
+  status: ConflictStatus;
+  partner_a_id: string;
+  partner_b_id?: string;
+  partner_a_session_id?: string;
+  partner_b_session_id?: string;
+  relationship_id: string;
+  created_at: string;
+  updated_at: string;
+}
