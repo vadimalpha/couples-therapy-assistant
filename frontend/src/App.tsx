@@ -6,7 +6,9 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import ConflictStartPage from './pages/ConflictStartPage';
 import GuidancePage from './pages/GuidancePage';
+import IntakePage from './pages/IntakePage';
 import { ExplorationChat } from './components/conflict';
+import { IntakeChat, IntakeSummary } from './components/intake';
 import './App.css';
 
 const HomePage: React.FC = () => {
@@ -91,6 +93,30 @@ function App() {
             element={
               <ProtectedRoute>
                 <GuidancePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/intake"
+            element={
+              <ProtectedRoute>
+                <IntakePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/intake/chat"
+            element={
+              <ProtectedRoute>
+                <IntakeChat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/intake/summary"
+            element={
+              <ProtectedRoute>
+                <IntakeSummary />
               </ProtectedRoute>
             }
           />
