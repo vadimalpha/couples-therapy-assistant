@@ -1,0 +1,304 @@
+/* Guidance Components Styling */
+
+/* Import base chat styles */
+@import '../chat/Chat.css';
+
+/* Guidance-specific color extensions */
+:root {
+  --guidance-bubble-bg: #E8F5E9;
+  --guidance-bubble-text: #1B5E20;
+  --status-pending: #FFA726;
+  --status-synthesizing: #5C6BC0;
+  --status-ready: #66BB6A;
+  --guidance-bg: #F1F8E9;
+}
+
+/* Guidance Page */
+.guidance-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  background-color: var(--background-color);
+}
+
+.guidance-container {
+  width: 100%;
+  max-width: 900px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.guidance-error {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.guidance-error p {
+  font-size: 16px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.guidance-loading {
+  text-align: center;
+  padding: 40px 20px;
+  font-size: 16px;
+  color: var(--text-muted);
+}
+
+/* Guidance Status Component */
+.guidance-status {
+  background-color: #FFFFFF;
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.guidance-status-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.guidance-status-pending .guidance-status-icon {
+  background-color: rgba(255, 167, 38, 0.1);
+  color: var(--status-pending);
+}
+
+.guidance-status-synthesizing .guidance-status-icon {
+  background-color: rgba(92, 107, 192, 0.1);
+  color: var(--status-synthesizing);
+}
+
+.guidance-status-ready .guidance-status-icon {
+  background-color: rgba(102, 187, 106, 0.1);
+  color: var(--status-ready);
+}
+
+.guidance-status-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.guidance-status-description {
+  margin: 0;
+  font-size: 16px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+/* Synthesis Progress Animation */
+.synthesis-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.synthesis-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(92, 107, 192, 0.2);
+  border-top-color: var(--status-synthesizing);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.synthesis-text {
+  font-size: 14px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+/* Guidance Chat Extensions */
+.chat-message-guidance .message-bubble {
+  background-color: var(--guidance-bubble-bg);
+  color: var(--guidance-bubble-text);
+  border-bottom-left-radius: 4px;
+}
+
+.guidance-initial-message {
+  padding: 20px;
+  background-color: var(--guidance-bg);
+  border-left: 4px solid var(--status-ready);
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.guidance-initial-title {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.guidance-initial-content {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+}
+
+/* Waiting States */
+.waiting-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  padding: 12px 16px;
+  background-color: rgba(255, 167, 38, 0.05);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.waiting-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.waiting-dots .dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--status-pending);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+
+.waiting-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.waiting-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.waiting-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .guidance-page {
+    padding: 12px;
+  }
+
+  .guidance-status {
+    padding: 24px 20px;
+  }
+
+  .guidance-status-title {
+    font-size: 20px;
+  }
+
+  .guidance-status-description {
+    font-size: 15px;
+  }
+
+  .guidance-status-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .guidance-initial-message {
+    padding: 16px;
+  }
+
+  .guidance-initial-title {
+    font-size: 16px;
+  }
+
+  .guidance-initial-content {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .guidance-status {
+    padding: 20px 16px;
+  }
+
+  .guidance-status-title {
+    font-size: 18px;
+  }
+
+  .guidance-status-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .synthesis-progress {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .guidance-status {
+    background-color: #2d3748;
+  }
+
+  .guidance-initial-message {
+    background-color: #1a202c;
+    border-left-color: var(--status-ready);
+  }
+
+  .waiting-indicator {
+    background-color: rgba(255, 167, 38, 0.1);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .guidance-status,
+  .synthesis-spinner,
+  .waiting-dots .dot {
+    animation: none;
+  }
+}

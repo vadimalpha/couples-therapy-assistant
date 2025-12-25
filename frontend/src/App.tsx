@@ -5,6 +5,7 @@ import authSystem from './auth/AuthSystem';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import ConflictStartPage from './pages/ConflictStartPage';
+import GuidancePage from './pages/GuidancePage';
 import { ExplorationChat } from './components/conflict';
 import './App.css';
 
@@ -82,6 +83,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ExplorationChat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conflicts/:id/guidance"
+            element={
+              <ProtectedRoute>
+                <GuidancePage />
               </ProtectedRoute>
             }
           />
