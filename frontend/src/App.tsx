@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import authSystem from './auth/AuthSystem';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
+import ConflictStartPage from './pages/ConflictStartPage';
+import { ExplorationChat } from './components/conflict';
 import './App.css';
 
 const HomePage: React.FC = () => {
@@ -64,6 +66,22 @@ function App() {
             element={
               <ProtectedRoute>
                 <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conflicts/new"
+            element={
+              <ProtectedRoute>
+                <ConflictStartPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conflicts/:id/explore"
+            element={
+              <ProtectedRoute>
+                <ExplorationChat />
               </ProtectedRoute>
             }
           />
