@@ -13,6 +13,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import { ExplorationChat } from './components/conflict';
 import { IntakeChat, IntakeSummary } from './components/intake';
 import { CrisisFooter } from './components/layout';
+import SharedRelationshipChat from './components/chat/SharedRelationshipChat';
 import './App.css';
 import './styles/accessibility.css';
 
@@ -106,6 +107,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <GuidancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/relationships/:id/shared"
+                element={
+                  <ProtectedRoute>
+                    <SharedRelationshipChat />
                   </ProtectedRoute>
                 }
               />
