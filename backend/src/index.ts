@@ -30,8 +30,28 @@ app.use(cors());
 app.use(express.json());
 
 // Health check endpoint (no rate limiting)
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (req: Request, res: Response) => {
+  const timestamp = new Date().toISOString();
+  let dbConnected = false;
+
+  try {
+    // Check database connectivity
+    const db = await import('./services/db').then(m => m.getDatabase());
+    await db.query('SELECT * FROM $auth LIMIT 1');
+    dbConnected = true;
+  } catch (error) {
+    console.error('Health check - DB connection failed:', error);
+  }
+
+  const status = dbConnected ? 'ok' : 'degraded';
+  const httpStatus = dbConnected ? 200 : 503;
+
+  res.status(httpStatus).json({
+    status,
+    timestamp,
+    dbConnected,
+    version: '1.0.0'
+  });
 });
 
 // API Routes with rate limiting
