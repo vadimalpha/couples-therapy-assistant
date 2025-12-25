@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { conversationService } from './conversation';
 import { ConversationSession, ConversationMessage, IntakeData } from '../types';
 import { getDatabase } from './db';
@@ -10,12 +10,12 @@ import { getDatabase } from './db';
  * Manages conversation flow, data extraction, and storage.
  */
 
-// Initialize Anthropic client for data extraction
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+// Initialize OpenAI client for data extraction
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-const EXTRACTION_MODEL = 'claude-sonnet-4-20250514';
+const EXTRACTION_MODEL = 'gpt-5.2';
 
 export class IntakeService {
   /**
@@ -81,11 +81,11 @@ export class IntakeService {
 
   /**
    * Extract structured intake data from conversation messages
-   * Uses Claude to analyze the conversation and extract key insights
+   * Uses OpenAI to analyze the conversation and extract key insights
    */
   async extractIntakeData(messages: ConversationMessage[]): Promise<IntakeData> {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      throw new Error('ANTHROPIC_API_KEY not configured');
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY not configured');
     }
 
     // Build conversation transcript
@@ -113,7 +113,7 @@ Conversation transcript:
 ${transcript}`;
 
     try {
-      const response = await anthropic.messages.create({
+      const response = await openai.chat.completions.create({
         model: EXTRACTION_MODEL,
         max_tokens: 2000,
         messages: [
@@ -122,13 +122,11 @@ ${transcript}`;
             content: extractionPrompt,
           },
         ],
+        response_format: { type: 'json_object' },
       });
 
       // Extract text content
-      const content = response.content
-        .filter((block) => block.type === 'text')
-        .map((block) => (block as any).text)
-        .join('\n');
+      const content = response.choices[0]?.message?.content || '{}';
 
       // Parse JSON response
       const extracted = JSON.parse(content);
