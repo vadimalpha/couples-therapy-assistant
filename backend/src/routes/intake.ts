@@ -4,6 +4,7 @@ import { authenticateUser } from '../middleware/auth';
 import { intakeService } from '../services/intake';
 import { conversationService } from '../services/conversation';
 import { streamIntakeResponse, validateApiKey } from '../services/ai-intake';
+import { contentFilter } from '../services/content-filter';
 
 const router = Router();
 
@@ -123,8 +124,38 @@ router.post(
 
         fullContent = content;
 
-        // Save AI response to conversation
-        await conversationService.addMessage(session.id, 'ai', fullContent);
+        // Content safety check before saving
+        const safetyCheck = await contentFilter.checkForHarmfulContent(fullContent);
+
+        if (!safetyCheck.isSafe) {
+          // Log the filtered content
+          await contentFilter.logFilteredContent(
+            fullContent,
+            safetyCheck.reason || 'Unknown',
+            safetyCheck.severity || 'unknown',
+            {
+              userId,
+              sessionId: session.id,
+            }
+          );
+
+          // Use fallback message instead
+          const fallbackMessage = contentFilter.getFallbackMessage();
+
+          // Save fallback message to conversation
+          await conversationService.addMessage(session.id, 'ai', fallbackMessage);
+
+          // Send fallback via SSE
+          const fallbackData = JSON.stringify({
+            type: 'filtered',
+            content: fallbackMessage,
+            reason: 'Content filtered for safety',
+          });
+          res.write(`data: ${fallbackData}\n\n`);
+        } else {
+          // Save AI response to conversation (safe content)
+          await conversationService.addMessage(session.id, 'ai', fullContent);
+        }
 
         // Send completion event with usage stats
         const completionData = JSON.stringify({
