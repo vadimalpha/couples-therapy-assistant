@@ -1,9 +1,10 @@
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
-import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { initializeFirebase } from './middleware/auth';
+import { getSecurityMiddleware } from './middleware/security';
+import { apiLimiter, authLimiter } from './middleware/rate-limit';
 import { initializeDatabase, closeDatabase } from './services/db';
 import { initializeWebSocket } from './websocket';
 import { initializeGuidanceWorker } from './queue/workers/guidance-worker';
@@ -14,6 +15,7 @@ import relationshipRoutes from './routes/relationships';
 import conversationRoutes from './routes/conversations';
 import conflictRoutes from './routes/conflicts';
 import intakeRoutes from './routes/intake';
+import moderationRoutes from './routes/moderation';
 
 // Load environment variables
 dotenv.config();
@@ -22,23 +24,24 @@ const app = express();
 const httpServer = createServer(app);
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(helmet());
+// Security Middleware
+app.use(getSecurityMiddleware());
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
+// Health check endpoint (no rate limiting)
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', usersRoutes);
-app.use('/api/relationships', relationshipRoutes);
-app.use('/api/conversations', conversationRoutes);
-app.use('/api/conflicts', conflictRoutes);
-app.use('/api/intake', intakeRoutes);
+// API Routes with rate limiting
+app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', apiLimiter, usersRoutes);
+app.use('/api/relationships', apiLimiter, relationshipRoutes);
+app.use('/api/conversations', apiLimiter, conversationRoutes);
+app.use('/api/conflicts', apiLimiter, conflictRoutes);
+app.use('/api/intake', apiLimiter, intakeRoutes);
+app.use('/api/moderation', moderationRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
