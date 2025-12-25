@@ -8,6 +8,8 @@ import {
 } from '../types';
 import { guidanceQueue } from '../queue';
 import { IndividualGuidanceJob, JointContextGuidanceJob } from '../queue/jobs';
+import { conflictService } from './conflict';
+import { getRelationship } from './relationship';
 
 export class ConversationService {
   /**
@@ -248,6 +250,59 @@ export class ConversationService {
     console.log(
       `Queued joint context guidance jobs for both partners in conflict ${conflict.id}`
     );
+  }
+
+  /**
+   * Verify user has access to a conversation session
+   * For relationship_shared sessions, verifies through conflict/relationship
+   * For other sessions, verifies through ownership
+   */
+  async verifyUserAccessToSession(
+    sessionId: string,
+    userId: string
+  ): Promise<boolean> {
+    try {
+      const session = await this.getSession(sessionId);
+
+      if (!session) {
+        return false;
+      }
+
+      // For relationship_shared sessions, verify through conflict
+      if (session.sessionType === 'relationship_shared') {
+        if (!session.conflictId) {
+          return false;
+        }
+
+        const conflict = await conflictService.getConflict(session.conflictId);
+        if (!conflict) {
+          return false;
+        }
+
+        // Verify user is part of the conflict
+        if (conflict.partner_a_id !== userId && conflict.partner_b_id !== userId) {
+          return false;
+        }
+
+        // Verify conflict belongs to user's relationship
+        const relationship = await getRelationship(userId);
+        if (!relationship) {
+          return false;
+        }
+
+        if (conflict.relationship_id !== relationship.id) {
+          return false;
+        }
+
+        return true;
+      }
+
+      // For other session types, verify ownership
+      return session.userId === userId;
+    } catch (error) {
+      console.error('Error verifying session access:', error);
+      return false;
+    }
   }
 
   /**

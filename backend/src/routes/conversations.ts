@@ -84,10 +84,23 @@ router.get(
         return;
       }
 
-      // Verify the user owns this session
-      if (session.userId !== userId) {
-        res.status(403).json({ error: 'Access denied' });
-        return;
+      // For relationship_shared sessions, verify access through conflict/relationship
+      if (session.sessionType === 'relationship_shared') {
+        const hasAccess = await conversationService.verifyUserAccessToSession(
+          id,
+          userId
+        );
+
+        if (!hasAccess) {
+          res.status(403).json({ error: 'Access denied' });
+          return;
+        }
+      } else {
+        // For other sessions, verify the user owns this session
+        if (session.userId !== userId) {
+          res.status(403).json({ error: 'Access denied' });
+          return;
+        }
       }
 
       res.json(session);
@@ -127,23 +140,38 @@ router.post(
         return;
       }
 
-      // Verify the user owns this session
+      // Verify the user has access to this session
       const session = await conversationService.getSession(id);
       if (!session) {
         res.status(404).json({ error: 'Conversation session not found' });
         return;
       }
 
-      if (session.userId !== userId) {
-        res.status(403).json({ error: 'Access denied' });
-        return;
+      // For relationship_shared sessions, verify access through conflict/relationship
+      if (session.sessionType === 'relationship_shared') {
+        const hasAccess = await conversationService.verifyUserAccessToSession(
+          id,
+          userId
+        );
+
+        if (!hasAccess) {
+          res.status(403).json({ error: 'Access denied' });
+          return;
+        }
+      } else {
+        // For other sessions, verify the user owns this session
+        if (session.userId !== userId) {
+          res.status(403).json({ error: 'Access denied' });
+          return;
+        }
       }
 
+      // Use senderId from request body or default to authenticated userId
       const message = await conversationService.addMessage(
         id,
         role,
         content,
-        senderId
+        senderId || userId
       );
 
       res.status(201).json(message);
