@@ -50,17 +50,24 @@ export async function initializeDb(): Promise<Surreal> {
     const db = new Surreal();
 
     // Connect to SurrealDB Cloud
-    await db.connect(config.url, {
-      // WebSocket connection options
-      namespace: config.namespace,
-      database: config.database,
-    });
+    await db.connect(config.url);
 
-    // Authenticate
-    await db.signin({
-      username: config.username,
-      password: config.password,
-    });
+    // Try root authentication for cloud instances
+    try {
+      await db.signin({
+        username: config.username,
+        password: config.password,
+      });
+    } catch (authError) {
+      // If root auth fails, try namespace/database auth
+      console.log('Root auth failed, trying namespace/database auth...');
+      await db.signin({
+        namespace: config.namespace,
+        database: config.database,
+        username: config.username,
+        password: config.password,
+      });
+    }
 
     // Use the namespace and database (creates if not exists)
     await db.use({
