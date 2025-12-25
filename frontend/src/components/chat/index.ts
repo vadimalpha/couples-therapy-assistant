@@ -14,3 +14,9 @@ export { default as TypingIndicator } from './TypingIndicator';
 export type { TypingIndicatorProps } from './TypingIndicator';
 
 export { default as StreamingMessage } from './StreamingMessage';
+
+export { default as SharedRelationshipChat } from './SharedRelationshipChat';
+export type { SharedRelationshipChatProps } from './SharedRelationshipChat';
+
+export { default as ParticipantBadge } from './ParticipantBadge';
+export type { ParticipantBadgeProps } from './ParticipantBadge';
