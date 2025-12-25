@@ -100,16 +100,16 @@ const ProfilePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="conflict-start-page">
+      <main id="main-content" className="conflict-start-page">
         <div className="conflict-start-container">
           <p>Loading profile...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="conflict-start-page">
+    <main id="main-content" className="conflict-start-page">
       <div className="conflict-start-container">
         <h1 className="conflict-start-title">Your Profile</h1>
 
@@ -247,7 +247,7 @@ const ProfilePage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

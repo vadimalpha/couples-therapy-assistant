@@ -86,42 +86,43 @@ const GuidancePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="guidance-page">
+      <main id="main-content" className="guidance-page">
         <div className="guidance-loading">
           <p>Loading guidance...</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (error || !conflict) {
     return (
-      <div className="guidance-page">
+      <main id="main-content" className="guidance-page">
         <div className="guidance-error">
           <p>{error || 'Conflict not found'}</p>
           <button
             onClick={() => navigate('/')}
             className="back-button"
+            aria-label="Return to home page"
           >
             Return Home
           </button>
         </div>
-      </div>
+      </main>
     );
   }
 
   if (!guidanceSession) {
     return (
-      <div className="guidance-page">
+      <main id="main-content" className="guidance-page">
         <div className="guidance-error">
           <p>Guidance session not found</p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="guidance-page">
+    <main id="main-content" className="guidance-page">
       <div className="guidance-container">
         {guidanceSession.status === 'ready' && guidanceSession.id ? (
           <GuidanceChat
@@ -136,7 +137,7 @@ const GuidancePage: React.FC = () => {
           />
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

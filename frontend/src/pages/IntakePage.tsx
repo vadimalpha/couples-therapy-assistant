@@ -52,15 +52,15 @@ const IntakePage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="intake-page intake-page-loading">
+      <main id="main-content" className="intake-page intake-page-loading">
         <div className="intake-loading-spinner"></div>
         <p>Loading...</p>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="intake-page">
+    <main id="main-content" className="intake-page">
       <div className="intake-welcome-container">
         <div className="intake-welcome-icon">
           <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" strokeWidth="2">
@@ -123,7 +123,7 @@ const IntakePage: React.FC = () => {
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 };
 

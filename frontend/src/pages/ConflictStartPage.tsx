@@ -57,7 +57,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
   };
 
   return (
-    <div className="conflict-start-page">
+    <main id="main-content" className="conflict-start-page">
       <div className="conflict-start-container">
         <h1 className="conflict-start-title">Start a New Conversation</h1>
         <p className="conflict-start-subtitle">
@@ -138,7 +138,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
           Back to Home
         </button>
       </div>
-    </div>
+    </main>
   );
 };
 
