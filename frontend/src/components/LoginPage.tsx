@@ -78,7 +78,7 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="login-page">
+    <main id="main-content" className="login-page">
       <div className="login-container">
         <h1>Sign In</h1>
 
@@ -149,7 +149,7 @@ const LoginPage: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 

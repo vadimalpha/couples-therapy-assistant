@@ -92,7 +92,7 @@ const SignupPage: React.FC = () => {
   };
 
   return (
-    <div className="signup-page">
+    <main id="main-content" className="signup-page">
       <div className="signup-container">
         <h1>Create Account</h1>
 
@@ -176,7 +176,7 @@ const SignupPage: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+    </main>
   );
 };
 
