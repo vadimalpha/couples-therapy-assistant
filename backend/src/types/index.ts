@@ -11,6 +11,7 @@ export interface User {
   email: string;
   displayName: string;
   relationshipId?: string;
+  intakeData?: IntakeData;
   createdAt: string;
   updatedAt: string;
 }
@@ -89,4 +90,17 @@ export interface Conflict {
   relationship_id: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface IntakeData {
+  name: string;
+  relationship_duration: string;
+  living_situation: string;
+  communication_style_summary: string;
+  conflict_triggers: string[];
+  previous_patterns: string;
+  relationship_goals: string[];
+  intake_conversation_id: string;
+  completed_at: Date;
+  last_updated: Date;
 }
