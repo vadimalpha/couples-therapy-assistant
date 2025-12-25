@@ -17,11 +17,9 @@ export class ConversationService {
     conflictId?: string
   ): Promise<ConversationSession> {
     const db = getDatabase();
-    const sessionId = `conversation:${uuidv4()}`;
     const now = new Date().toISOString();
 
-    const session: ConversationSession = {
-      id: sessionId,
+    const sessionData = {
       userId,
       sessionType,
       conflictId,
@@ -30,13 +28,16 @@ export class ConversationService {
       createdAt: now,
     };
 
-    const result = await db.create(sessionId, session);
+    const result = await db.query(
+      'CREATE conversation CONTENT $data',
+      { data: sessionData }
+    );
 
-    if (!result || Array.isArray(result) && result.length === 0) {
+    if (!result || result.length === 0 || !(result[0] as any).result || (result[0] as any).result.length === 0) {
       throw new Error('Failed to create conversation session');
     }
 
-    return Array.isArray(result) ? result[0] : result;
+    return (result[0] as any).result[0];
   }
 
   /**
@@ -50,13 +51,16 @@ export class ConversationService {
       ? sessionId
       : `conversation:${sessionId}`;
 
-    const result = await db.select<ConversationSession>(fullId);
+    const result = await db.query(
+      'SELECT * FROM $sessionId',
+      { sessionId: fullId }
+    );
 
-    if (!result || Array.isArray(result) && result.length === 0) {
+    if (!result || result.length === 0 || !(result[0] as any).result || (result[0] as any).result.length === 0) {
       return null;
     }
 
-    return Array.isArray(result) ? result[0] : result;
+    return (result[0] as any).result[0];
   }
 
   /**
@@ -95,8 +99,8 @@ export class ConversationService {
       : `conversation:${sessionId}`;
 
     await db.query(
-      `UPDATE ${fullId} SET messages += $message`,
-      { message }
+      'UPDATE $sessionId SET messages += $message',
+      { sessionId: fullId, message }
     );
 
     return message;
@@ -136,15 +140,15 @@ export class ConversationService {
       : `conversation:${sessionId}`;
 
     const result = await db.query(
-      `UPDATE ${fullId} SET status = 'finalized', finalizedAt = $now`,
-      { now: new Date().toISOString() }
+      'UPDATE $sessionId SET status = $status, finalizedAt = $finalizedAt',
+      { sessionId: fullId, status: 'finalized', finalizedAt: new Date().toISOString() }
     );
 
-    if (!result || result.length === 0) {
+    if (!result || result.length === 0 || !(result[0] as any).result) {
       throw new Error('Failed to finalize conversation session');
     }
 
-    const updated = result[0]?.result;
+    const updated = (result[0] as any).result;
     return Array.isArray(updated) ? updated[0] : updated;
   }
 
@@ -154,16 +158,16 @@ export class ConversationService {
   async getUserSessions(userId: string): Promise<ConversationSession[]> {
     const db = getDatabase();
 
-    const result = await db.query<ConversationSession[]>(
+    const result = await db.query(
       'SELECT * FROM conversation WHERE userId = $userId ORDER BY createdAt DESC',
       { userId }
     );
 
-    if (!result || result.length === 0) {
+    if (!result || result.length === 0 || !(result[0] as any).result) {
       return [];
     }
 
-    return result[0]?.result || [];
+    return (result[0] as any).result || [];
   }
 }
 
