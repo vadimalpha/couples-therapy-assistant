@@ -839,7 +839,8 @@
 
     <h2>Onboarding</h2>
     <a href="#intake-start" onclick="showScreen('intake-start')">Intake - Start</a>
-    <a href="#intake-questions" onclick="showScreen('intake-questions')">Intake - Questions</a>
+    <a href="#intake-chat" onclick="showScreen('intake-chat')">Intake - Chat</a>
+    <a href="#intake-summary" onclick="showScreen('intake-summary')">Intake - Summary</a>
     <a href="#intake-complete" onclick="showScreen('intake-complete')">Intake - Complete</a>
     <a href="#invite-partner" onclick="showScreen('invite-partner')">Invite Partner</a>
 
@@ -1018,102 +1019,219 @@
       </div>
     </section>
 
-    <!-- INTAKE SURVEY - START -->
+    <!-- INTAKE INTERVIEW - START -->
     <section id="intake-start" class="screen">
       <div class="screen-container">
         <div style="text-align: center; padding: var(--space-12) 0;">
-          <div style="font-size: 64px; margin-bottom: var(--space-6);">🌱</div>
+          <div style="font-size: 64px; margin-bottom: var(--space-6);">💬</div>
           <h1 class="heading-2" style="margin-bottom: var(--space-4);">Let's get to know you</h1>
-          <p class="body-large" style="margin-bottom: var(--space-8); max-width: 360px; margin-left: auto; margin-right: auto;">
-            This brief survey helps us personalize guidance for your unique relationship. It takes about 5-7 minutes.
+          <p class="body-large" style="margin-bottom: var(--space-8); max-width: 400px; margin-left: auto; margin-right: auto;">
+            Before we begin, I'd like to learn more about you and your relationship through a brief conversation. This helps me provide personalized guidance.
           </p>
 
-          <div style="text-align: left; max-width: 300px; margin: 0 auto var(--space-8);">
+          <div style="text-align: left; max-width: 320px; margin: 0 auto var(--space-8);">
             <div class="feature-check">
               <span>✓</span>
-              <span>Your answers are private</span>
+              <span>A natural conversation, not a form</span>
             </div>
             <div class="feature-check">
               <span>✓</span>
-              <span>You can update anytime</span>
+              <span>Takes about 10-15 minutes</span>
             </div>
             <div class="feature-check">
               <span>✓</span>
-              <span>Helps AI understand your needs</span>
+              <span>Your answers are completely private</span>
+            </div>
+            <div class="feature-check">
+              <span>✓</span>
+              <span>You can save and continue later</span>
             </div>
           </div>
 
-          <button class="btn btn-primary btn-lg">
-            Begin Survey
+          <button class="btn btn-primary btn-lg" onclick="showScreen('intake-chat')">
+            Start Conversation
           </button>
         </div>
       </div>
     </section>
 
-    <!-- INTAKE SURVEY - QUESTIONS -->
-    <section id="intake-questions" class="screen">
-      <div class="screen-container">
-        <div class="survey-header">
-          <div class="survey-progress-text">
-            <span>Question 5 of 18</span>
-            <span>28%</span>
+    <!-- INTAKE INTERVIEW - CHAT -->
+    <section id="intake-chat" class="screen">
+      <div class="app-header">
+        <a href="#intake-start" class="btn btn-ghost btn-sm">← Exit</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Getting to Know You</span>
+        <span class="badge badge-primary" style="font-size: 10px;">Intake</span>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" style="max-width: 680px; margin: 0 auto;">
+          <!-- AI greeting -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Hi there! I'm so glad you're here. Before we dive into any specific topics, I'd love to get to know you a bit better.</p>
+              <p><em>First, what's your name, and how are you feeling about starting this process?</em></p>
+            </div>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" style="width: 28%;"></div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              I'm Sarah. I'm feeling a little nervous but also hopeful. We've been having some communication issues lately and I'm hoping this can help.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>It's lovely to meet you, Sarah. That mix of nervous and hopeful is completely normal—it shows you care about making things better.</p>
+              <p><em>Can you tell me a bit about your relationship? How long have you been together, and what stage would you say you're at?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              We've been together for 3 years, living together for about 18 months. I'd say we're in a pretty committed stage—we've talked about the future, but lately things feel... stuck.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Three years together with shared living space—that's a meaningful commitment. "Stuck" is an interesting word. Many couples hit that feeling when the initial excitement settles and real-life patterns emerge.</p>
+              <p><em>When conflicts come up, how do you typically respond? Do you tend to talk it out right away, need space first, or maybe something else?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              I usually want to talk about things right away. I don't like leaving things unresolved—it makes me anxious. But James tends to shut down when I bring things up, which makes me push harder.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>That's really insightful self-awareness. What you're describing sounds like a pursue-withdraw pattern—one of the most common dynamics in relationships.</p>
+              <p>The more you pursue resolution, the more he may feel overwhelmed and withdraw. Neither of you is wrong—you just have different nervous system responses.</p>
+              <p><em>What topics tend to trigger these moments? What kinds of situations cause tension between you?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              Mostly household stuff—chores, responsibilities. Also time management—he works long hours and sometimes I feel like I'm not a priority. And decisions about the future, like whether to get married or have kids.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Those are common but important areas. Household responsibilities often represent deeper feelings about being seen and valued. Time together speaks to connection and priorities. And future decisions touch on your deepest hopes and fears.</p>
+              <p>I'm getting a clearer picture now.</p>
+              <p><em>Last question: What's your biggest hope for this process? What would feel like success to you?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              I want us to be able to talk about hard things without it turning into a fight. I want to feel heard, and I want to understand his perspective better too.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>That's a beautiful and achievable goal. Communication that doesn't become combat, mutual understanding—these are skills that can absolutely be developed.</p>
+              <p>I feel like I have a good sense of who you are now. When you're ready, we can wrap up and I'll summarize what I've learned.</p>
+            </div>
           </div>
         </div>
 
-        <div class="survey-question">
-          <div class="survey-question-number">Question 5</div>
-          <div class="survey-question-text">What's your primary communication style during disagreements?</div>
-
-          <div class="option-group">
-            <div class="option-item">
-              <div class="option-radio"></div>
-              <div>
-                <div class="option-label">Direct</div>
-                <div class="option-hint">I express my feelings and needs openly</div>
-              </div>
-            </div>
-            <div class="option-item selected">
-              <div class="option-radio"></div>
-              <div>
-                <div class="option-label">Indirect</div>
-                <div class="option-hint">I hint at issues rather than stating them directly</div>
-              </div>
-            </div>
-            <div class="option-item">
-              <div class="option-radio"></div>
-              <div>
-                <div class="option-label">Avoidant</div>
-                <div class="option-hint">I tend to withdraw or avoid conflict</div>
-              </div>
-            </div>
-            <div class="option-item">
-              <div class="option-radio"></div>
-              <div>
-                <div class="option-label">Assertive</div>
-                <div class="option-hint">I stand firm while respecting others</div>
-              </div>
-            </div>
-          </div>
+        <div class="ready-button-container">
+          <button class="ready-button" onclick="showScreen('intake-summary')">
+            ✓ I'm Ready to Continue
+          </button>
+          <p class="ready-hint">Click when you feel you've shared enough</p>
         </div>
 
-        <div class="flex justify-between" style="margin-top: var(--space-8);">
-          <button class="btn btn-ghost">← Back</button>
-          <button class="btn btn-primary">Continue →</button>
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Type your message..." rows="1"></textarea>
+            <button class="chat-send-btn">→</button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- INTAKE SURVEY - COMPLETE -->
+    <!-- INTAKE INTERVIEW - SUMMARY -->
+    <section id="intake-summary" class="screen">
+      <div class="app-header">
+        <a href="#intake-chat" class="btn btn-ghost btn-sm">← Back to Chat</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Getting to Know You</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="conflict-start-container">
+        <div style="font-size: 64px; margin-bottom: var(--space-6);">📝</div>
+        <h1 class="heading-2" style="margin-bottom: var(--space-3);">Here's what I learned</h1>
+        <p style="color: var(--text-tertiary); margin-bottom: var(--space-6); max-width: 400px;">
+          Does this summary feel accurate? Let me know if I missed anything important.
+        </p>
+
+        <div class="card" style="max-width: 480px; text-align: left; margin-bottom: var(--space-6);">
+          <div class="card-body">
+            <div style="margin-bottom: var(--space-4);">
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">ABOUT YOU</div>
+              <p style="color: var(--text-secondary);">Sarah, in a 3-year committed relationship, living together for 18 months</p>
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">COMMUNICATION STYLE</div>
+              <p style="color: var(--text-secondary);">You prefer to address issues immediately and feel anxious with unresolved conflict. You tend to pursue when your partner withdraws.</p>
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">COMMON TRIGGERS</div>
+              <p style="color: var(--text-secondary);">Household responsibilities, feeling deprioritized due to work hours, decisions about future (marriage, children)</p>
+            </div>
+            <div>
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">YOUR GOALS</div>
+              <p style="color: var(--text-secondary);">Have difficult conversations without fighting, feel heard, and better understand your partner's perspective</p>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg" onclick="showScreen('intake-complete')">
+          Confirm & Continue
+        </button>
+
+        <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-4);">
+          <a href="#intake-chat" style="color: var(--accent-300);">← Add more details</a> if I missed something
+        </p>
+      </div>
+    </section>
+
+    <!-- INTAKE INTERVIEW - COMPLETE -->
     <section id="intake-complete" class="screen">
       <div class="screen-container">
         <div style="text-align: center; padding: var(--space-12) 0;">
           <div style="font-size: 64px; margin-bottom: var(--space-6);">✨</div>
-          <h1 class="heading-2" style="margin-bottom: var(--space-4);">Survey complete</h1>
+          <h1 class="heading-2" style="margin-bottom: var(--space-4);">All set!</h1>
           <p class="body-large" style="margin-bottom: var(--space-8); max-width: 360px; margin-left: auto; margin-right: auto;">
-            We now have a better understanding of your relationship dynamics. This will help us provide more personalized guidance.
+            I now have a much better understanding of who you are and what you're hoping to achieve. This will help me provide more personalized guidance.
           </p>
 
           <div class="card" style="text-align: left; margin-bottom: var(--space-8);">
@@ -1125,7 +1243,7 @@
               </div>
               <div class="flex items-center gap-4 mb-4">
                 <span class="badge badge-neutral">2</span>
-                <span style="color: var(--text-secondary);">They complete their own survey</span>
+                <span style="color: var(--text-secondary);">They'll have their own intake conversation</span>
               </div>
               <div class="flex items-center gap-4">
                 <span class="badge badge-neutral">3</span>
@@ -1134,7 +1252,7 @@
             </div>
           </div>
 
-          <button class="btn btn-primary btn-lg">
+          <button class="btn btn-primary btn-lg" onclick="showScreen('invite-partner')">
             Invite Your Partner
           </button>
         </div>
@@ -1172,7 +1290,7 @@
         <div class="alert alert-info" style="margin-top: var(--space-6);">
           <div>
             <strong style="color: var(--text-primary);">Note</strong>
-            <p style="margin-top: var(--space-1);">Your partner will need to create their own account and complete their intake survey before you can start using the app together.</p>
+            <p style="margin-top: var(--space-1);">Your partner will need to create their own account and complete their intake conversation before you can start using the app together.</p>
           </div>
         </div>
       </div>
