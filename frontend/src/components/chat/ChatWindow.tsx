@@ -50,7 +50,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
     <div className="chat-window">
       <ChatHeader title={title} status={status} participants={participants} />
 
-      <div ref={messagesContainerRef} className="chat-messages">
+      <div
+        ref={messagesContainerRef}
+        className="chat-messages"
+        role="log"
+        aria-live="polite"
+        aria-label="Chat messages"
+      >
         {messages.map((message) => (
           <ChatMessage
             key={message.id}

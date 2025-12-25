@@ -87,17 +87,17 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
 
   if (!conflictId || !sessionId) {
     return (
-      <div className="exploration-chat-error">
+      <main id="main-content" className="exploration-chat-error">
         <p>Invalid conversation. Please start a new conversation.</p>
-        <button onClick={() => navigate('/')} className="back-button">
+        <button onClick={() => navigate('/')} className="back-button" aria-label="Return to home page">
           Go Home
         </button>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="exploration-chat-page">
+    <main id="main-content" className="exploration-chat-page">
       <div className="exploration-chat-container">
         <ChatWindow
           messages={messages}
@@ -124,7 +124,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
 
         {isFinalized && <ConversationLock />}
       </div>
-    </div>
+    </main>
   );
 };
 
