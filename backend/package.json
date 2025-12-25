@@ -12,11 +12,13 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",
     "@types/socket.io": "^3.0.1",
+    "bullmq": "^5.66.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "firebase-admin": "^12.0.0",
     "helmet": "^7.1.0",
+    "ioredis": "^5.8.2",
     "socket.io": "^4.8.3",
     "surrealdb.js": "^0.11.1",
     "uuid": "^9.0.1"
