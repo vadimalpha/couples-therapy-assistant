@@ -520,6 +520,305 @@
       color: var(--text-primary);
       margin-bottom: var(--space-2);
     }
+
+    /* Chat Interface */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - 60px);
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: var(--space-4);
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-4);
+    }
+
+    .chat-message {
+      display: flex;
+      gap: var(--space-3);
+      max-width: 85%;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .chat-message.ai {
+      align-self: flex-start;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--text-sm);
+      flex-shrink: 0;
+    }
+
+    .chat-avatar.user {
+      background: var(--accent-100);
+      color: var(--accent-300);
+    }
+
+    .chat-avatar.ai {
+      background: linear-gradient(135deg, var(--accent-400), var(--accent-500));
+      box-shadow: var(--shadow-glow);
+    }
+
+    .chat-bubble {
+      padding: var(--space-3) var(--space-4);
+      border-radius: var(--radius-xl);
+      line-height: 1.5;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: var(--accent-300);
+      color: var(--bg-primary);
+      border-bottom-right-radius: var(--radius-sm);
+    }
+
+    .chat-message.ai .chat-bubble {
+      background: var(--bg-tertiary);
+      color: var(--text-primary);
+      border: 1px solid var(--border-subtle);
+      border-bottom-left-radius: var(--radius-sm);
+    }
+
+    .chat-bubble p {
+      margin-bottom: var(--space-3);
+    }
+
+    .chat-bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .chat-bubble em {
+      color: var(--text-tertiary);
+      font-style: italic;
+    }
+
+    .chat-bubble strong {
+      color: var(--accent-300);
+      font-weight: var(--font-medium);
+    }
+
+    /* Streaming indicator */
+    .streaming-indicator {
+      display: flex;
+      gap: 4px;
+      padding: var(--space-2);
+    }
+
+    .streaming-indicator span {
+      width: 6px;
+      height: 6px;
+      background: var(--accent-300);
+      border-radius: var(--radius-full);
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    .streaming-indicator span:nth-child(2) { animation-delay: 0.2s; }
+    .streaming-indicator span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Chat Input */
+    .chat-input-container {
+      padding: var(--space-4);
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      gap: var(--space-3);
+      align-items: flex-end;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: var(--space-3) var(--space-4);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      color: var(--text-primary);
+      font-size: var(--text-base);
+      resize: none;
+      min-height: 44px;
+      max-height: 120px;
+      transition: border-color var(--transition-fast);
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent-300);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    .chat-send-btn {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-full);
+      background: var(--accent-300);
+      border: none;
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .chat-send-btn:hover {
+      background: var(--accent-400);
+      transform: scale(1.05);
+    }
+
+    .chat-send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* Ready Button */
+    .ready-button-container {
+      padding: var(--space-4);
+      text-align: center;
+      background: linear-gradient(to top, var(--bg-secondary), transparent);
+    }
+
+    .ready-button {
+      padding: var(--space-3) var(--space-6);
+      background: var(--sage-300);
+      color: var(--bg-primary);
+      border: none;
+      border-radius: var(--radius-xl);
+      font-weight: var(--font-medium);
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .ready-button:hover {
+      background: var(--sage-400);
+      transform: translateY(-2px);
+    }
+
+    .ready-hint {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-top: var(--space-2);
+    }
+
+    /* Shared Chat Indicators */
+    .shared-chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-3);
+      padding: var(--space-3);
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .participant-badge {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      padding: var(--space-1) var(--space-3);
+      background: var(--bg-secondary);
+      border-radius: var(--radius-full);
+      font-size: var(--text-sm);
+    }
+
+    .participant-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: var(--radius-full);
+    }
+
+    .participant-dot.online {
+      background: var(--success);
+    }
+
+    .participant-dot.partner-a {
+      background: var(--accent-300);
+    }
+
+    .participant-dot.partner-b {
+      background: var(--warm-300);
+    }
+
+    /* Chat message variations for shared chat */
+    .chat-message.partner-a .chat-bubble {
+      background: var(--accent-100);
+      border-color: var(--accent-200);
+    }
+
+    .chat-message.partner-b .chat-bubble {
+      background: var(--warm-100);
+      border-color: var(--warm-200);
+    }
+
+    .chat-message .partner-label {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      margin-bottom: var(--space-1);
+    }
+
+    /* Conflict Start Screen */
+    .conflict-start-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: calc(100vh - 60px);
+      padding: var(--space-8);
+      text-align: center;
+    }
+
+    .conflict-topic-input {
+      width: 100%;
+      max-width: 400px;
+      padding: var(--space-4);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-xl);
+      color: var(--text-primary);
+      font-size: var(--text-lg);
+      text-align: center;
+      transition: border-color var(--transition-fast);
+    }
+
+    .conflict-topic-input:focus {
+      outline: none;
+      border-color: var(--accent-300);
+    }
+
+    .conflict-topic-input::placeholder {
+      color: var(--text-tertiary);
+    }
   </style>
 </head>
 <body>
@@ -550,11 +849,13 @@
     <a href="#dashboard-pending" onclick="showScreen('dashboard-pending')">Partner B View</a>
 
     <h2>Conflict Flow</h2>
-    <a href="#create-conflict" onclick="showScreen('create-conflict')">Create Conflict</a>
-    <a href="#conflict-waiting" onclick="showScreen('conflict-waiting')">Waiting for Partner</a>
-    <a href="#respond-conflict" onclick="showScreen('respond-conflict')">Respond (Blind)</a>
-    <a href="#guidance-individual" onclick="showScreen('guidance-individual')">Individual Guidance</a>
-    <a href="#guidance-full" onclick="showScreen('guidance-full')">Full Guidance</a>
+    <a href="#conflict-start" onclick="showScreen('conflict-start')">Start Conflict</a>
+    <a href="#exploration-chat" onclick="showScreen('exploration-chat')">Exploration Chat</a>
+    <a href="#exploration-ready" onclick="showScreen('exploration-ready')">Ready to Continue</a>
+    <a href="#partner-waiting" onclick="showScreen('partner-waiting')">Waiting for Partner</a>
+    <a href="#partner-b-chat" onclick="showScreen('partner-b-chat')">Partner B Chat</a>
+    <a href="#guidance-chat" onclick="showScreen('guidance-chat')">Guidance (Chat)</a>
+    <a href="#shared-chat" onclick="showScreen('shared-chat')">Shared Relationship Chat</a>
 
     <h2>States</h2>
     <a href="#loading" onclick="showScreen('loading')">Loading</a>
@@ -1005,357 +1306,473 @@
       </div>
     </section>
 
-    <!-- CREATE CONFLICT -->
-    <section id="create-conflict" class="screen">
+    <!-- CONFLICT START -->
+    <section id="conflict-start" class="screen">
       <div class="app-header">
         <a href="#dashboard" class="btn btn-ghost btn-sm">← Back</a>
         <span style="font-weight: var(--font-medium); color: var(--text-primary);">New Conflict</span>
         <div style="width: 60px;"></div>
       </div>
 
-      <div class="screen-container">
-        <h1 class="heading-2" style="margin-bottom: var(--space-2);">Describe the conflict</h1>
-        <p style="color: var(--text-tertiary); margin-bottom: var(--space-6);">
-          Share your perspective. Your partner will respond separately before seeing your description.
+      <div class="conflict-start-container">
+        <div style="font-size: 64px; margin-bottom: var(--space-6);">💭</div>
+        <h1 class="heading-2" style="margin-bottom: var(--space-3);">What's on your mind?</h1>
+        <p style="color: var(--text-tertiary); margin-bottom: var(--space-8); max-width: 360px;">
+          Give this topic a short name. You'll chat with me about it next.
         </p>
 
-        <form class="flex flex-col gap-6">
-          <div class="form-group">
-            <label class="form-label">Title</label>
-            <input type="text" class="form-input" placeholder="e.g., Household Chores" value="Household Chores">
-            <span class="form-hint">A short name for this conflict</span>
-          </div>
+        <input type="text" class="conflict-topic-input" placeholder="e.g., Household responsibilities" value="">
 
-          <div class="form-group">
-            <label class="form-label">Your Perspective</label>
-            <textarea class="form-input form-textarea" style="min-height: 160px;" placeholder="Describe the situation from your point of view...">I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done. I've mentioned this before but nothing seems to change. It makes me feel unappreciated and exhausted.</textarea>
-            <span class="form-hint">Minimum 100 characters • 247 / 100</span>
-          </div>
-
-          <div class="form-group">
-            <label class="form-label">Guidance Style</label>
-            <select class="form-input">
-              <option>Structured (organized sections)</option>
-              <option>Conversational (flowing text)</option>
-            </select>
-          </div>
-
-          <div class="visibility-toggle">
-            <span class="visibility-icon">👁️</span>
-            <div class="visibility-text">
-              <div class="visibility-label">Share with partner</div>
-              <div class="visibility-hint">Your partner will see your description after they respond</div>
-            </div>
-            <div class="toggle active">
-              <div class="toggle-switch"></div>
-            </div>
-          </div>
-
-          <button type="submit" class="btn btn-primary btn-lg btn-block">
-            Submit & Get Guidance
+        <div style="margin-top: var(--space-8);">
+          <button class="btn btn-primary btn-lg">
+            Start Conversation
           </button>
-        </form>
+        </div>
+
+        <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-6); max-width: 320px;">
+          Your partner will have their own private conversation about this topic before either of you see each other's responses.
+        </p>
       </div>
     </section>
 
-    <!-- CONFLICT - WAITING FOR PARTNER -->
-    <section id="conflict-waiting" class="screen">
+    <!-- EXPLORATION CHAT - Partner A chatting with AI -->
+    <section id="exploration-chat" class="screen">
       <div class="app-header">
-        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Exit</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
+        <span class="badge badge-primary" style="font-size: 10px;">Exploration</span>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" style="max-width: 680px; margin: 0 auto;">
+          <!-- AI greeting -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Hi there. I understand you want to talk about <strong>household chores</strong>.</p>
+              <p>I'm here to help you explore your feelings and perspective. This conversation is private—your partner won't see what we discuss here.</p>
+              <p><em>What's been on your mind about this topic?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>That sounds exhausting—coming home after work and facing more work. It makes sense that would be draining.</p>
+              <p>When you see the dishes piled up, what feelings come up for you? And have you talked to your partner about this before?</p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              I've mentioned it before but nothing seems to change. It makes me feel unappreciated and exhausted. Like my efforts don't matter.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Feeling unappreciated is really hard, especially when you've already tried to communicate about it. That sense of your efforts not mattering can be deeply lonely.</p>
+              <p>I'm hearing a few things:</p>
+              <p>• <strong>Frustration</strong> about the imbalance<br>• <strong>Exhaustion</strong> from carrying extra weight<br>• A need to feel <strong>seen and valued</strong></p>
+              <p><em>Does that resonate with you? Is there anything else underneath those feelings?</em></p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">S</div>
+            <div class="chat-bubble">
+              Yes, exactly. I think part of it is that I feel like I'm the only one who notices when things need to be done. It's not just doing the chores—it's the mental load of always being the one who has to notice and initiate.
+            </div>
+          </div>
+
+          <!-- AI response with streaming indicator -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>The mental load—that's such an important distinction. It's exhausting to be the "manager" of the household even when you're also doing the work.</p>
+              <p>It sounds like what you really need is a <strong>true partner</strong> in this—someone who notices and acts without being asked.</p>
+              <p>When you're ready, let me know and we can wrap up this exploration. I'll use what you've shared to help create personalized guidance once your partner has also had their conversation.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ready button appears after sufficient exploration -->
+        <div class="ready-button-container">
+          <button class="ready-button" onclick="showScreen('exploration-ready')">
+            ✓ I'm Ready to Continue
+          </button>
+          <p class="ready-hint">Click when you feel you've shared enough about your perspective</p>
+        </div>
+
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Type your message..." rows="1"></textarea>
+            <button class="chat-send-btn">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPLORATION READY - Confirmation -->
+    <section id="exploration-ready" class="screen">
+      <div class="app-header">
+        <a href="#exploration-chat" class="btn btn-ghost btn-sm">← Back to Chat</a>
         <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
         <div style="width: 60px;"></div>
       </div>
 
-      <div class="screen-container">
-        <div class="partner-perspective partner-a">
-          <div class="partner-label">Your Perspective</div>
-          <p>I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done. I've mentioned this before but nothing seems to change. It makes me feel unappreciated and exhausted.</p>
-        </div>
-
-        <div class="card guidance-card individual" style="margin-bottom: var(--space-6);">
-          <div class="card-header">
-            <h3 class="heading-4">Your Individual Guidance</h3>
-            <p class="caption" style="margin-top: var(--space-1);">Based on your perspective only</p>
-          </div>
-          <div class="card-body">
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>💭</span> Emotions I'm Noticing
-              </div>
-              <div class="guidance-section-content">
-                <p><strong style="color: var(--text-primary);">Primary:</strong> Frustration, Exhaustion</p>
-                <p><strong style="color: var(--text-primary);">Underlying:</strong> Feeling unappreciated, Loneliness</p>
-                <p class="body-small" style="margin-top: var(--space-3);">
-                  It sounds like you're carrying a heavy load, both physically and emotionally. The exhaustion you're feeling may be compounded by not feeling seen or valued for your contributions.
-                </p>
-              </div>
-            </div>
-
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>❤️</span> Your Underlying Needs
-              </div>
-              <div class="guidance-section-content">
-                <ul style="margin-left: var(--space-4); color: var(--text-secondary);">
-                  <li>To feel appreciated for your contributions</li>
-                  <li>To share responsibilities more equally</li>
-                  <li>To have rest and recovery time</li>
-                </ul>
-              </div>
-            </div>
-
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>💬</span> Conversation Starter
-              </div>
-              <div class="guidance-section-content">
-                <div class="conversation-starter">
-                  <div class="conversation-starter-label">Try saying:</div>
-                  <p>"When I come home and see dishes in the sink, I feel exhausted because I need some time to decompress. Could we talk about how to divide this more evenly?"</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="alert alert-info">
-          <div>
-            <strong style="color: var(--text-primary);">Waiting for your partner...</strong>
-            <p style="margin-top: var(--space-1);">Once they share their perspective, you'll both receive additional personalized guidance.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- RESPOND TO CONFLICT (BLIND INPUT) -->
-    <section id="respond-conflict" class="screen">
-      <div class="app-header">
-        <a href="#dashboard-pending" class="btn btn-ghost btn-sm">← Back</a>
-        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Respond</span>
-        <div style="width: 60px;"></div>
-      </div>
-
-      <div class="screen-container">
-        <h1 class="heading-2" style="margin-bottom: var(--space-2);">Household Chores</h1>
-        <p style="color: var(--text-tertiary); margin-bottom: var(--space-6);">
-          Sarah has described this conflict. Share your perspective before seeing theirs.
+      <div class="conflict-start-container">
+        <div style="font-size: 64px; margin-bottom: var(--space-6);">✨</div>
+        <h1 class="heading-2" style="margin-bottom: var(--space-3);">Exploration complete</h1>
+        <p style="color: var(--text-tertiary); margin-bottom: var(--space-6); max-width: 400px;">
+          Thank you for sharing your perspective. Here's a summary of what I understood:
         </p>
 
-        <div class="alert alert-info" style="margin-bottom: var(--space-6);">
-          <div>
-            <strong style="color: var(--text-primary);">Why can't I see Sarah's description?</strong>
-            <p style="margin-top: var(--space-1);">To ensure your perspective is authentic and unbiased, you'll share your thoughts first. You'll see Sarah's view after submitting.</p>
+        <div class="card" style="max-width: 440px; text-align: left; margin-bottom: var(--space-6);">
+          <div class="card-body">
+            <div style="margin-bottom: var(--space-4);">
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">CORE FEELINGS</div>
+              <p style="color: var(--text-secondary);">Frustration, exhaustion, feeling unappreciated</p>
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">UNDERLYING NEED</div>
+              <p style="color: var(--text-secondary);">To feel seen, valued, and have a true partner in household management</p>
+            </div>
+            <div>
+              <div style="font-size: var(--text-xs); color: var(--accent-300); font-weight: var(--font-medium); margin-bottom: var(--space-1);">KEY CONCERN</div>
+              <p style="color: var(--text-secondary);">The mental load of always having to notice and initiate</p>
+            </div>
           </div>
         </div>
 
-        <form class="flex flex-col gap-6">
-          <div class="form-group">
-            <label class="form-label">Your Perspective</label>
-            <textarea class="form-input form-textarea" style="min-height: 160px;" placeholder="Describe this situation from your point of view..."></textarea>
-            <span class="form-hint">Minimum 100 characters</span>
+        <button class="btn btn-primary btn-lg" onclick="showScreen('partner-waiting')">
+          Confirm & Notify Partner
+        </button>
+
+        <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-4);">
+          <a href="#exploration-chat" style="color: var(--accent-300);">← Continue chatting</a> if you want to add more
+        </p>
+      </div>
+    </section>
+
+    <!-- WAITING FOR PARTNER -->
+    <section id="partner-waiting" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
+        <div style="width: 60px;"></div>
+      </div>
+
+      <div class="conflict-start-container">
+        <div class="spinner spinner-lg" style="margin-bottom: var(--space-6);"></div>
+        <h1 class="heading-2" style="margin-bottom: var(--space-3);">Waiting for your partner</h1>
+        <p style="color: var(--text-tertiary); margin-bottom: var(--space-6); max-width: 360px;">
+          We've notified James about this topic. Once they complete their exploration, you'll both receive personalized guidance.
+        </p>
+
+        <div class="card" style="max-width: 400px; text-align: left;">
+          <div class="card-body">
+            <div style="display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3);">
+              <div style="width: 12px; height: 12px; background: var(--success); border-radius: var(--radius-full);"></div>
+              <span style="color: var(--text-secondary);">Your exploration: Complete</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <div style="width: 12px; height: 12px; background: var(--warning); border-radius: var(--radius-full);"></div>
+              <span style="color: var(--text-secondary);">James's exploration: Pending</span>
+            </div>
+          </div>
+        </div>
+
+        <p style="font-size: var(--text-sm); color: var(--text-tertiary); margin-top: var(--space-6);">
+          We'll notify you when guidance is ready
+        </p>
+      </div>
+    </section>
+
+    <!-- PARTNER B EXPLORATION CHAT (Blind Input) -->
+    <section id="partner-b-chat" class="screen">
+      <div class="app-header">
+        <a href="#dashboard-pending" class="btn btn-ghost btn-sm">← Exit</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
+        <span class="badge badge-warning" style="font-size: 10px;">Your Turn</span>
+      </div>
+
+      <div class="chat-container">
+        <div class="chat-messages" style="max-width: 680px; margin: 0 auto;">
+          <!-- AI greeting for Partner B -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Hi James. Sarah has started a conversation about <strong>household chores</strong>.</p>
+              <p>Before you see what Sarah shared, I'd like to hear your perspective. This helps ensure your thoughts are authentic and not influenced by their view.</p>
+              <p><em>What comes to mind when you think about this topic?</em></p>
+            </div>
           </div>
 
-          <div class="visibility-toggle">
-            <span class="visibility-icon">👁️</span>
-            <div class="visibility-text">
-              <div class="visibility-label">Share with partner</div>
-              <div class="visibility-hint">Sarah will see your description after you submit</div>
-            </div>
-            <div class="toggle active">
-              <div class="toggle-switch"></div>
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">J</div>
+            <div class="chat-bubble">
+              I know the house gets messy sometimes, but I've been really stressed with work lately. There's a big project I'm leading and it's been consuming all my energy.
             </div>
           </div>
 
-          <button type="submit" class="btn btn-primary btn-lg btn-block">
-            Submit My Perspective
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>That sounds like a lot of pressure. When work takes over like that, it can be hard to have energy for anything else.</p>
+              <p>How do you feel about the household situation? And how do you think Sarah might be experiencing this?</p>
+            </div>
+          </div>
+
+          <!-- User message -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">J</div>
+            <div class="chat-bubble">
+              Honestly, I try to help on weekends but it never seems like enough. I feel guilty about it, but I'm also frustrated because it feels like my work stress isn't being acknowledged.
+            </div>
+          </div>
+
+          <!-- AI response -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>I hear both guilt and frustration there—that's a difficult combination. You're trying to contribute while also needing your own challenges to be seen.</p>
+              <p>It sounds like you might be experiencing:</p>
+              <p>• <strong>Guilt</strong> about not doing more<br>• <strong>Frustration</strong> that your stress isn't recognized<br>• A desire for <strong>mutual understanding</strong></p>
+              <p><em>When you're ready, we can wrap up and I'll help create guidance for both of you.</em></p>
+            </div>
+          </div>
+        </div>
+
+        <div class="ready-button-container">
+          <button class="ready-button" onclick="showScreen('guidance-chat')">
+            ✓ I'm Ready to Continue
           </button>
-        </form>
-      </div>
-    </section>
+          <p class="ready-hint">Click when you feel you've shared enough about your perspective</p>
+        </div>
 
-    <!-- INDIVIDUAL GUIDANCE ONLY -->
-    <section id="guidance-individual" class="screen">
-      <div class="app-header">
-        <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
-        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
-        <div style="width: 60px;"></div>
-      </div>
-
-      <div class="screen-container">
-        <div class="card guidance-card individual">
-          <div class="card-header">
-            <div class="flex justify-between items-center">
-              <div>
-                <h3 class="heading-4">Your Individual Guidance</h3>
-                <p class="caption" style="margin-top: var(--space-1);">Phase 1: Understanding your perspective</p>
-              </div>
-              <span class="badge badge-primary">Individual</span>
-            </div>
-          </div>
-          <div class="card-body">
-            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">Based on what you've shared, here's what I'm noticing about your experience with this conflict...</p>
-
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>💭</span> Emotions Identified
-              </div>
-              <div class="guidance-section-content">
-                <p>You seem to be experiencing <strong style="color: var(--text-primary);">frustration</strong> and <strong style="color: var(--text-primary);">feeling unappreciated</strong>. These feelings are valid given the situation you've described.</p>
-              </div>
-            </div>
-          </div>
-          <div class="card-footer">
-            <button class="btn btn-ghost btn-sm" style="color: var(--error);">⚠️ Report this advice</button>
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Type your message..." rows="1"></textarea>
+            <button class="chat-send-btn">→</button>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- FULL GUIDANCE (ALL PHASES) -->
-    <section id="guidance-full" class="screen">
+    <!-- GUIDANCE CHAT - AI delivers guidance as chat -->
+    <section id="guidance-chat" class="screen">
       <div class="app-header">
         <a href="#dashboard" class="btn btn-ghost btn-sm">← Dashboard</a>
         <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
-        <div style="width: 60px;"></div>
+        <span class="badge" style="background: var(--sage-100); color: var(--sage-300); font-size: 10px;">Guidance</span>
       </div>
 
-      <div class="screen-container" style="max-width: 680px;">
-        <h1 class="heading-2" style="margin-bottom: var(--space-6);">Household Chores</h1>
-
-        <div class="partner-perspective partner-a" style="margin-bottom: var(--space-3);">
-          <div class="partner-label">Sarah's Perspective</div>
-          <p>I feel like I'm doing most of the housework, especially during the week. When I come home from work, the dishes are piled up and laundry isn't done...</p>
-        </div>
-
-        <div class="partner-perspective partner-b" style="margin-bottom: var(--space-6);">
-          <div class="partner-label">Your Perspective</div>
-          <p>I know the house gets messy, but I've been really stressed with the project at work. I try to help on weekends but it never seems like enough...</p>
-        </div>
-
-        <!-- Individual Guidance -->
-        <div class="card guidance-card individual" style="margin-bottom: var(--space-4);">
-          <div class="card-header">
-            <div class="flex justify-between items-center">
-              <div>
-                <h3 class="heading-4">Your Individual Guidance</h3>
-                <p class="caption" style="margin-top: var(--space-1);">Phase 1</p>
-              </div>
-              <span class="badge badge-primary">Individual</span>
+      <div class="chat-container">
+        <div class="chat-messages" style="max-width: 680px; margin: 0 auto;">
+          <!-- AI introduction -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Thank you both for sharing your perspectives. I've reviewed what each of you shared, and I want to help you understand each other better.</p>
+              <p><em>This guidance is personalized for you, James. Sarah is receiving her own version.</em></p>
             </div>
           </div>
-          <div class="card-body">
-            <p style="color: var(--text-secondary);">You're experiencing stress from work that may be affecting your capacity for household tasks. It's understandable to feel overwhelmed when multiple demands compete for your energy.</p>
-          </div>
-          <div class="card-footer">
-            <button class="btn btn-ghost btn-sm" style="color: var(--error);">⚠️ Report</button>
-          </div>
-        </div>
 
-        <!-- Joint Context Guidance -->
-        <div class="card guidance-card joint" style="margin-bottom: var(--space-4);">
-          <div class="card-header">
-            <div class="flex justify-between items-center">
-              <div>
-                <h3 class="heading-4">Personalized Guidance for You</h3>
-                <p class="caption" style="margin-top: var(--space-1);">Phase 2: Understanding both perspectives</p>
-              </div>
-              <span class="badge" style="background: var(--sage-100); color: var(--sage-300);">Joint Context</span>
+          <!-- Guidance message 1 -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p><strong>What Sarah shared:</strong></p>
+              <p>Sarah is feeling exhausted and unappreciated. The core issue isn't just the physical chores—it's the <strong>mental load</strong> of always being the one to notice what needs to be done and initiate action.</p>
+              <p>When she sees dishes piled up, she experiences it as evidence that her efforts aren't valued.</p>
             </div>
           </div>
-          <div class="card-body">
-            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">Now that I understand both perspectives, here's guidance specifically for you:</p>
 
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>🔍</span> What Sarah May Be Experiencing
-              </div>
-              <div class="guidance-section-content">
-                <p>Sarah's frustration likely stems from feeling unseen in her daily efforts. When she mentions "nothing seems to change," she may be expressing a deeper need to feel heard and valued.</p>
-              </div>
-            </div>
-
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>🌉</span> Bridging the Gap
-              </div>
-              <div class="guidance-section-content">
-                <p>Consider acknowledging Sarah's feelings before explaining your work stress. Try: "I see how much you've been doing, and I'm sorry it's felt unbalanced."</p>
-              </div>
-            </div>
-
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>💬</span> Conversation Starter for You
-              </div>
-              <div class="guidance-section-content">
-                <div class="conversation-starter">
-                  <p>"I want you to know I see how much you've been handling at home. Work has been overwhelming lately, but that's not an excuse. Can we talk about how to make this feel more fair for both of us?"</p>
-                </div>
-              </div>
+          <!-- Guidance message 2 -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p><strong>What you might not realize:</strong></p>
+              <p>Sarah's frustration when you say "just ask me to help" comes from the exhaustion of being the household manager. She needs a partner who notices and acts—not an assistant who waits for instructions.</p>
             </div>
           </div>
-          <div class="card-footer">
-            <button class="btn btn-ghost btn-sm" style="color: var(--error);">⚠️ Report</button>
+
+          <!-- Guidance message 3 -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p><strong>Bridging the gap:</strong></p>
+              <p>Your work stress is real and valid. But here's the thing: Sarah's home stress is equally real. The challenge is that your stressors have become invisible to each other.</p>
+              <p>Consider acknowledging her experience <em>before</em> explaining your work situation. Try:</p>
+              <p style="background: var(--accent-50); padding: var(--space-3); border-radius: var(--radius-lg); margin-top: var(--space-2);">
+                <em>"I see how much you've been handling at home, and I'm sorry it's felt unbalanced. Work has been overwhelming, but that's not an excuse. Can we figure out a better system together?"</em>
+              </p>
+            </div>
+          </div>
+
+          <!-- User can respond -->
+          <div class="chat-message user">
+            <div class="chat-avatar user">J</div>
+            <div class="chat-bubble">
+              That makes sense. I didn't realize it was about the mental load specifically. What are some concrete things I can do differently?
+            </div>
+          </div>
+
+          <!-- AI continues guidance -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Great question. Here are some practical steps:</p>
+              <p>1. <strong>Claim ownership</strong> of specific tasks entirely—not "I'll help with laundry" but "Laundry is mine"</p>
+              <p>2. <strong>Notice proactively</strong>—look around each evening and pick one thing to handle without being asked</p>
+              <p>3. <strong>Schedule a weekly check-in</strong>—10 minutes to discuss what's working and adjust</p>
+              <p>Would you like to move to a shared conversation where you and Sarah can discuss this together with my help?</p>
+            </div>
           </div>
         </div>
 
-        <!-- Relationship Guidance -->
-        <div class="card guidance-card relationship" style="margin-bottom: var(--space-6);">
-          <div class="card-header">
-            <div class="flex justify-between items-center">
-              <div>
-                <h3 class="heading-4">Relationship Guidance</h3>
-                <p class="caption" style="margin-top: var(--space-1);">Phase 3: For both of you together</p>
-              </div>
-              <span class="badge" style="background: var(--warm-100); color: var(--warm-300);">Shared</span>
+        <div class="ready-button-container">
+          <button class="ready-button" onclick="showScreen('shared-chat')">
+            Join Shared Conversation
+          </button>
+          <p class="ready-hint">Sarah is also ready to join</p>
+        </div>
+
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Ask follow-up questions..." rows="1"></textarea>
+            <button class="chat-send-btn">→</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHARED RELATIONSHIP CHAT -->
+    <section id="shared-chat" class="screen">
+      <div class="app-header">
+        <a href="#dashboard" class="btn btn-ghost btn-sm">← Exit</a>
+        <span style="font-weight: var(--font-medium); color: var(--text-primary);">Household Chores</span>
+        <span class="badge" style="background: var(--warm-100); color: var(--warm-300); font-size: 10px;">Shared</span>
+      </div>
+
+      <div class="shared-chat-header">
+        <div class="participant-badge">
+          <span class="participant-dot partner-a"></span>
+          <span style="color: var(--text-secondary);">Sarah</span>
+        </div>
+        <div class="participant-badge">
+          <span class="participant-dot partner-b"></span>
+          <span style="color: var(--text-secondary);">James</span>
+        </div>
+        <div class="participant-badge">
+          <span class="participant-dot online"></span>
+          <span style="color: var(--text-secondary);">AI Therapist</span>
+        </div>
+      </div>
+
+      <div class="chat-container" style="height: calc(100vh - 120px);">
+        <div class="chat-messages" style="max-width: 680px; margin: 0 auto;">
+          <!-- AI welcome -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>Welcome to your shared conversation. You've both done the important work of exploring your individual perspectives.</p>
+              <p>This is a space for both of you to discuss together. I'm here to help facilitate and offer guidance when needed.</p>
             </div>
           </div>
-          <div class="card-body">
-            <p style="margin-bottom: var(--space-4); color: var(--text-secondary);">This guidance is the same for both of you, designed to help you work together:</p>
 
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>🎯</span> The Core Dynamic
-              </div>
-              <div class="guidance-section-content">
-                <p>You're both feeling stretched thin—Sarah at home, and you at work. Neither of you is wrong; you're both dealing with real stress. The challenge is that your stressors have become invisible to each other.</p>
-              </div>
+          <!-- AI summary -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p><strong>What I've learned:</strong></p>
+              <p>You're both feeling stretched thin—Sarah at home, James at work. Neither of you is wrong. The challenge is that your stressors have become invisible to each other.</p>
+              <p><em>Sarah, would you like to start by sharing what feels most important to you?</em></p>
             </div>
+          </div>
 
-            <div class="guidance-section">
-              <div class="guidance-section-title">
-                <span>✅</span> Suggested Next Steps
-              </div>
-              <div class="guidance-section-content">
-                <ol style="margin-left: var(--space-4); color: var(--text-secondary);">
-                  <li style="margin-bottom: var(--space-2);">Schedule a calm time to talk (not when exhausted)</li>
-                  <li style="margin-bottom: var(--space-2);">Each share what's been hardest lately</li>
-                  <li style="margin-bottom: var(--space-2);">Create a trial chore schedule for one week</li>
-                  <li>Check in after the trial to adjust</li>
-                </ol>
+          <!-- Partner A message -->
+          <div class="chat-message partner-a">
+            <div class="chat-avatar" style="background: var(--accent-100); color: var(--accent-300);">S</div>
+            <div>
+              <div class="partner-label">Sarah</div>
+              <div class="chat-bubble">
+                I want you to know it's not about the chores themselves. It's that I feel like I'm the only one who sees what needs to be done. The mental load of managing everything is exhausting.
               </div>
             </div>
           </div>
-          <div class="card-footer">
-            <button class="btn btn-ghost btn-sm" style="color: var(--error);">⚠️ Report</button>
+
+          <!-- Partner B message -->
+          <div class="chat-message partner-b">
+            <div class="chat-avatar" style="background: var(--warm-100); color: var(--warm-300);">J</div>
+            <div>
+              <div class="partner-label">James</div>
+              <div class="chat-bubble">
+                I hear you. I honestly didn't realize how much you were carrying beyond just the physical tasks. I've been so wrapped up in work that I wasn't seeing the full picture.
+              </div>
+            </div>
+          </div>
+
+          <!-- AI facilitation -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>James, that acknowledgment is really meaningful. Sarah, how does it feel to hear that?</p>
+            </div>
+          </div>
+
+          <!-- Partner A response -->
+          <div class="chat-message partner-a">
+            <div class="chat-avatar" style="background: var(--accent-100); color: var(--accent-300);">S</div>
+            <div>
+              <div class="partner-label">Sarah</div>
+              <div class="chat-bubble">
+                It helps. I also want to acknowledge that your work stress is real. I think I've been dismissing it because I feel so overwhelmed myself.
+              </div>
+            </div>
+          </div>
+
+          <!-- AI guidance -->
+          <div class="chat-message ai">
+            <div class="chat-avatar ai">🤖</div>
+            <div class="chat-bubble">
+              <p>This is beautiful—you're both making space for each other's experiences. That's the foundation for finding a solution.</p>
+              <p><strong>A suggestion:</strong> What if you each "claimed" specific household responsibilities entirely? Not "helping" with tasks, but owning them. Would you like to try mapping this out together?</p>
+            </div>
           </div>
         </div>
 
-        <div class="page-footer">
-          <div class="crisis-footer">
-            <div class="crisis-footer-title">🆘 In Crisis?</div>
-            <div class="crisis-footer-content">
-              <p>If you're experiencing thoughts of self-harm or are in an unsafe situation:</p>
-              <ul style="margin-left: var(--space-4); margin-top: var(--space-2);">
-                <li><span class="crisis-hotline">988</span> - Suicide Prevention Lifeline</li>
-                <li><span class="crisis-hotline">1-800-799-7233</span> - Domestic Violence Hotline</li>
-                <li>Text <span class="crisis-hotline">HOME</span> to 741741 - Crisis Text Line</li>
-              </ul>
-            </div>
+        <div class="chat-input-container">
+          <div class="chat-input-wrapper">
+            <textarea class="chat-input" placeholder="Share with your partner..." rows="1"></textarea>
+            <button class="chat-send-btn">→</button>
           </div>
+        </div>
+      </div>
 
-          <div class="disclaimer">
-            This app is not a substitute for professional mental health care. If you're in crisis, please contact emergency services or a licensed therapist.
+      <!-- Crisis footer for shared chat -->
+      <div style="padding: var(--space-4); background: var(--bg-secondary); border-top: 1px solid var(--border-subtle);">
+        <div style="max-width: 680px; margin: 0 auto;">
+          <div class="crisis-footer" style="font-size: var(--text-xs);">
+            <span style="color: var(--error);">🆘 Crisis?</span>
+            <span style="color: var(--text-tertiary);">988 (Suicide Prevention) • 1-800-799-7233 (DV Hotline)</span>
           </div>
         </div>
       </div>
