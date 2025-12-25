@@ -6,6 +6,7 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import ConflictStartPage from './pages/ConflictStartPage';
 import GuidancePage from './pages/GuidancePage';
+import ProfilePage from './pages/ProfilePage';
 import IntakePage from './pages/IntakePage';
 import { ExplorationChat } from './components/conflict';
 import { IntakeChat, IntakeSummary } from './components/intake';
@@ -117,6 +118,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <IntakeSummary />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
