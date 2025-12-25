@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import { initializeFirebase } from './middleware/auth';
 import { initializeDatabase, closeDatabase } from './services/db';
 import { initializeWebSocket } from './websocket';
+import { initializeGuidanceWorker } from './queue/workers/guidance-worker';
+import { closeQueues } from './queue';
 import authRoutes from './routes/auth';
 import relationshipRoutes from './routes/relationships';
 import conversationRoutes from './routes/conversations';
@@ -57,6 +59,9 @@ async function startServer() {
     // Initialize WebSocket server
     initializeWebSocket(httpServer);
 
+    // Initialize guidance worker
+    initializeGuidanceWorker();
+
     // Start listening
     httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
@@ -72,12 +77,14 @@ async function startServer() {
 // Graceful shutdown
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, closing server...');
+  await closeQueues();
   await closeDatabase();
   process.exit(0);
 });
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, closing server...');
+  await closeQueues();
   await closeDatabase();
   process.exit(0);
 });
