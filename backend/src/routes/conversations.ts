@@ -5,7 +5,7 @@ import { conversationService } from '../services/conversation';
 import {
   streamExplorationResponse,
   validateApiKey,
-} from '../services/ai-exploration';
+} from '../services/chat-ai';
 import { contentFilter } from '../services/content-filter';
 
 const router = Router();
