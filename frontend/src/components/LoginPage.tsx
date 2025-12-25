@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FirebaseError } from 'firebase/app';
 import authSystem from '../auth/AuthSystem';
 import { useAuth } from '../auth/AuthContext';
+import './Auth.css';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
