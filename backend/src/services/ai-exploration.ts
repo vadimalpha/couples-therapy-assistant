@@ -1,7 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { ConversationMessage } from '../types';
+import { buildPrompt } from './prompt-builder';
 
 /**
  * AI Exploration Service
@@ -15,12 +14,6 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
 
-// Load system prompt from file
-const SYSTEM_PROMPT = readFileSync(
-  join(__dirname, '../prompts/exploration-system-prompt.txt'),
-  'utf-8'
-);
-
 // Model configuration
 const MODEL = 'claude-sonnet-4-20250514';
 const MAX_TOKENS = 1024;
@@ -33,6 +26,7 @@ export interface TokenUsage {
 
 export interface ExplorationContext {
   userId: string;
+  conflictId?: string;
   sessionType: string;
   intakeData?: any; // User's intake form data if available
   relationshipContext?: any; // Additional relationship context
@@ -51,8 +45,28 @@ export async function generateExplorationResponse(
   }
 
   try {
-    // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(context);
+    // Build system prompt with RAG context if available
+    let systemPrompt: string;
+    if (context.conflictId) {
+      systemPrompt = await buildPrompt('exploration-system-prompt.txt', {
+        conflictId: context.conflictId,
+        userId: context.userId,
+        sessionType: context.sessionType as any,
+        includeRAG: true,
+        includePatterns: false,
+      });
+    } else {
+      systemPrompt = await buildPrompt('exploration-system-prompt.txt', {
+        conflictId: '',
+        userId: context.userId,
+        sessionType: context.sessionType as any,
+        includeRAG: false,
+        includePatterns: false,
+      });
+    }
+
+    // Add additional context
+    systemPrompt = buildSystemPromptWithContext(systemPrompt, context);
 
     // Convert messages to Anthropic format
     const anthropicMessages = convertMessages(messages);
@@ -104,8 +118,28 @@ export async function streamExplorationResponse(
   }
 
   try {
-    // Build system prompt with context
-    const systemPrompt = buildSystemPrompt(context);
+    // Build system prompt with RAG context if available
+    let systemPrompt: string;
+    if (context.conflictId) {
+      systemPrompt = await buildPrompt('exploration-system-prompt.txt', {
+        conflictId: context.conflictId,
+        userId: context.userId,
+        sessionType: context.sessionType as any,
+        includeRAG: true,
+        includePatterns: false,
+      });
+    } else {
+      systemPrompt = await buildPrompt('exploration-system-prompt.txt', {
+        conflictId: '',
+        userId: context.userId,
+        sessionType: context.sessionType as any,
+        includeRAG: false,
+        includePatterns: false,
+      });
+    }
+
+    // Add additional context
+    systemPrompt = buildSystemPromptWithContext(systemPrompt, context);
 
     // Convert messages to Anthropic format
     const anthropicMessages = convertMessages(messages);
@@ -156,9 +190,10 @@ export async function streamExplorationResponse(
 
 /**
  * Build system prompt with user context
+ * Adds intake data and relationship context to the base prompt
  */
-function buildSystemPrompt(context: ExplorationContext): string {
-  let prompt = SYSTEM_PROMPT;
+function buildSystemPromptWithContext(basePrompt: string, context: ExplorationContext): string {
+  let prompt = basePrompt;
 
   // Add intake data context if available
   if (context.intakeData) {

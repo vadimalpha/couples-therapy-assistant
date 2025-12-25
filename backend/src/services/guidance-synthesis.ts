@@ -1,10 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { ConversationMessage, ConversationSession } from '../types';
 import { conversationService } from './conversation';
 import { conflictService } from './conflict';
 import { getUserById } from './user';
+import { buildPrompt } from './prompt-builder';
 
 /**
  * Guidance Synthesis Service
@@ -17,17 +16,6 @@ import { getUserById } from './user';
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || '',
 });
-
-// Load prompts from files
-const INDIVIDUAL_GUIDANCE_PROMPT = readFileSync(
-  join(__dirname, '../prompts/individual-guidance-prompt.txt'),
-  'utf-8'
-);
-
-const JOINT_CONTEXT_SYNTHESIS_PROMPT = readFileSync(
-  join(__dirname, '../prompts/joint-context-synthesis.txt'),
-  'utf-8'
-);
 
 // Model configuration
 const MODEL = 'claude-sonnet-4-20250514';
@@ -76,6 +64,15 @@ export async function synthesizeIndividualGuidance(
     const user = await getUserById(explorationSession.userId);
     const intakeData = await getIntakeData(explorationSession.userId);
 
+    // Build system prompt with RAG context
+    const systemPrompt = await buildPrompt('individual-guidance-prompt.txt', {
+      conflictId: explorationSession.conflictId || '',
+      userId: explorationSession.userId,
+      sessionType: explorationSession.sessionType,
+      includeRAG: !!explorationSession.conflictId,
+      includePatterns: false,
+    });
+
     // Build context for synthesis
     const context = buildIndividualContext(
       explorationSession.messages,
@@ -87,7 +84,7 @@ export async function synthesizeIndividualGuidance(
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: INDIVIDUAL_MAX_TOKENS,
-      system: INDIVIDUAL_GUIDANCE_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
@@ -200,6 +197,15 @@ export async function synthesizeJointContextGuidance(
     const requestingIntakeData = await getIntakeData(partnerId);
     const otherIntakeData = otherUserId ? await getIntakeData(otherUserId) : null;
 
+    // Build system prompt with RAG and pattern context
+    const systemPrompt = await buildPrompt('joint-context-synthesis.txt', {
+      conflictId,
+      userId: partnerId,
+      sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
+      includeRAG: true,
+      includePatterns: true,
+    });
+
     // Build context for joint synthesis
     const context = buildJointContext(
       requestingPartner.messages,
@@ -214,7 +220,7 @@ export async function synthesizeJointContextGuidance(
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: JOINT_CONTEXT_MAX_TOKENS,
-      system: JOINT_CONTEXT_SYNTHESIS_PROMPT,
+      system: systemPrompt,
       messages: [
         {
           role: 'user',
