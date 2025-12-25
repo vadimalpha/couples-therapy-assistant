@@ -1,7 +1,16 @@
 import { Server } from 'socket.io';
 import { AuthenticatedSocket } from './index';
 import { conversationService } from '../services/conversation';
+import { conflictService } from '../services/conflict';
+import { getRelationship } from '../services/relationship';
 import { MessageRole } from '../types';
+import {
+  verifyMultiUserAccess,
+  handleUserJoin,
+  handleUserLeave,
+  broadcastTyping,
+  clearUserTyping,
+} from './multi-user-room';
 
 /**
  * Handle new WebSocket connection
@@ -25,22 +34,56 @@ export function handleConnection(socket: AuthenticatedSocket, io: Server): void 
         return;
       }
 
-      if (session.userId !== socket.userId) {
-        socket.emit('error', { message: 'Access denied' });
-        return;
+      // For relationship_shared sessions, verify multi-user access
+      if (session.sessionType === 'relationship_shared') {
+        const accessCheck = await verifyMultiUserAccess(
+          sessionId,
+          socket.userId!,
+          conversationService.getSession.bind(conversationService),
+          conflictService.getConflict.bind(conflictService),
+          getRelationship
+        );
+
+        if (!accessCheck.allowed) {
+          socket.emit('error', { message: accessCheck.reason || 'Access denied' });
+          return;
+        }
+
+        // Join the room
+        socket.sessionId = sessionId;
+        socket.join(sessionId);
+
+        // Handle multi-user room join (presence tracking)
+        handleUserJoin(socket, io, sessionId, socket.userId!);
+
+        // Send confirmation
+        socket.emit('joined', {
+          sessionId,
+          session,
+          isMultiUser: true,
+        });
+
+        console.log(`User ${socket.userId} joined multi-user session ${sessionId}`);
+      } else {
+        // For single-user sessions, verify ownership
+        if (session.userId !== socket.userId) {
+          socket.emit('error', { message: 'Access denied' });
+          return;
+        }
+
+        // Join the room
+        socket.sessionId = sessionId;
+        socket.join(sessionId);
+
+        // Send confirmation and current session state
+        socket.emit('joined', {
+          sessionId,
+          session,
+          isMultiUser: false,
+        });
+
+        console.log(`User ${socket.userId} joined session ${sessionId}`);
       }
-
-      // Join the room
-      socket.sessionId = sessionId;
-      socket.join(sessionId);
-
-      // Send confirmation and current session state
-      socket.emit('joined', {
-        sessionId,
-        session,
-      });
-
-      console.log(`User ${socket.userId} joined session ${sessionId}`);
     } catch (error) {
       console.error('Error joining session:', error);
       socket.emit('error', { message: 'Failed to join conversation session' });
@@ -78,6 +121,18 @@ export async function handleMessage(
       senderId || socket.userId
     );
 
+    // Clear typing indicator for this user
+    if (socket.userId) {
+      clearUserTyping(socket.sessionId, socket.userId);
+
+      // Broadcast typing update to clear indicator
+      socket.to(socket.sessionId).emit('typing_update', {
+        userId: socket.userId,
+        isTyping: false,
+        typingUsers: [],
+      });
+    }
+
     // Broadcast message to all users in the room
     io.to(socket.sessionId).emit('message', message);
 
@@ -102,17 +157,14 @@ export function handleTyping(
   data: { isTyping: boolean }
 ): void {
   try {
-    if (!socket.sessionId) {
+    if (!socket.sessionId || !socket.userId) {
       return;
     }
 
     const { isTyping } = data;
 
-    // Broadcast to all users in the room except sender
-    socket.to(socket.sessionId).emit('typing', {
-      userId: socket.userId,
-      isTyping,
-    });
+    // Use multi-user room typing broadcast
+    broadcastTyping(socket, socket.sessionId, socket.userId, isTyping);
   } catch (error) {
     console.error('Error handling typing indicator:', error);
   }
@@ -129,11 +181,9 @@ export function handleDisconnect(
   try {
     console.log(`Client disconnected: ${socket.id}, User: ${socket.userId}`);
 
-    if (socket.sessionId) {
-      // Notify other users in the room
-      socket.to(socket.sessionId).emit('user_left', {
-        userId: socket.userId,
-      });
+    if (socket.sessionId && socket.userId) {
+      // Handle multi-user room leave (presence tracking)
+      handleUserLeave(io, socket.sessionId, socket.userId);
 
       // Leave the room
       socket.leave(socket.sessionId);
