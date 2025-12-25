@@ -5,9 +5,9 @@ import {
   GoogleAuthProvider,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  User,
-  UserCredential,
-  Unsubscribe
+  type User,
+  type UserCredential,
+  type Unsubscribe
 } from 'firebase/auth';
 import { auth } from './firebase-config';
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './auth/AuthContext';
+import authSystem from './auth/AuthSystem';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import './App.css';
@@ -18,7 +19,6 @@ const HomePage: React.FC = () => {
       <p>You are signed in as: {user.email}</p>
       <button
         onClick={async () => {
-          const authSystem = (await import('./auth/AuthSystem')).default;
           await authSystem.signOut();
         }}
         style={{
@@ -39,7 +39,7 @@ const HomePage: React.FC = () => {
 };
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
