@@ -1,19 +1,19 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { ConversationMessage } from '../types';
-import { TokenUsage } from './ai-exploration';
+import { TokenUsage } from './chat-ai';
 
 /**
  * AI Intake Service
  *
- * Handles AI-powered intake interview using Claude API.
+ * Handles AI-powered intake interview using OpenAI GPT-5.2.
  * Generates warm, conversational responses for intake sessions.
  */
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
 // Load system prompt from file
@@ -23,7 +23,7 @@ const SYSTEM_PROMPT = readFileSync(
 );
 
 // Model configuration
-const MODEL = 'claude-sonnet-4-20250514';
+const MODEL = 'gpt-5.2';
 const MAX_TOKENS = 1024;
 
 export interface IntakeContext {
@@ -41,51 +41,52 @@ export async function streamIntakeResponse(
   context: IntakeContext,
   onChunk: (chunk: string) => void
 ): Promise<{ fullContent: string; usage: TokenUsage }> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
     // Build system prompt with context
     const systemPrompt = buildSystemPrompt(context);
 
-    // Convert messages to Anthropic format
-    const anthropicMessages = convertMessages(messages);
+    // Convert messages to OpenAI format
+    const openaiMessages = convertMessages(messages);
 
-    // Call Claude API with streaming
-    const stream = await anthropic.messages.stream({
+    // Call OpenAI API with streaming
+    const stream = await openai.chat.completions.create({
       model: MODEL,
       max_tokens: MAX_TOKENS,
-      system: systemPrompt,
-      messages: anthropicMessages,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...openaiMessages,
+      ],
+      stream: true,
+      stream_options: { include_usage: true },
     });
 
     let fullContent = '';
+    let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalCost: 0 };
 
     // Process stream
     for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta.type === 'text_delta'
-      ) {
-        const text = chunk.delta.text;
-        fullContent += text;
-        onChunk(text);
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        onChunk(delta);
+      }
+
+      // Capture usage from final chunk
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens || 0,
+          outputTokens: chunk.usage.completion_tokens || 0,
+          totalCost: calculateCost(
+            chunk.usage.prompt_tokens || 0,
+            chunk.usage.completion_tokens || 0
+          ),
+        };
       }
     }
-
-    // Get final message with usage
-    const finalMessage = await stream.finalMessage();
-
-    // Calculate token usage and cost
-    const usage: TokenUsage = {
-      inputTokens: finalMessage.usage.input_tokens,
-      outputTokens: finalMessage.usage.output_tokens,
-      totalCost: calculateCost(
-        finalMessage.usage.input_tokens,
-        finalMessage.usage.output_tokens
-      ),
-    };
 
     return { fullContent, usage };
   } catch (error) {
@@ -117,7 +118,7 @@ function buildSystemPrompt(context: IntakeContext): string {
 }
 
 /**
- * Convert ConversationMessage[] to Anthropic message format
+ * Convert ConversationMessage[] to OpenAI message format
  * Only include user and AI messages
  */
 function convertMessages(
@@ -133,13 +134,13 @@ function convertMessages(
 
 /**
  * Calculate cost based on token usage
- * Pricing for Claude Sonnet 4 (as of Dec 2024):
- * - Input: $3 per million tokens
- * - Output: $15 per million tokens
+ * Pricing for GPT-5.2 (estimated):
+ * - Input: $2.50 per million tokens
+ * - Output: $10 per million tokens
  */
 function calculateCost(inputTokens: number, outputTokens: number): number {
-  const INPUT_COST_PER_MILLION = 3.0;
-  const OUTPUT_COST_PER_MILLION = 15.0;
+  const INPUT_COST_PER_MILLION = 2.5;
+  const OUTPUT_COST_PER_MILLION = 10.0;
 
   const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION;
   const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION;
@@ -151,5 +152,5 @@ function calculateCost(inputTokens: number, outputTokens: number): number {
  * Validate that API key is configured
  */
 export function validateApiKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!process.env.OPENAI_API_KEY;
 }
