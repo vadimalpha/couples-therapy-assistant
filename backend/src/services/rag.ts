@@ -1,33 +1,6 @@
 import { getDatabase } from './db';
 import { Conflict, IntakeData } from '../types';
-import { generateEmbedding, cosineSimilarity } from './embeddings';
-
-// Make cosineSimilarity available - it's currently not exported
-// We'll use SurrealDB's vector functions instead
-function calculateCosineSimilarity(a: number[], b: number[]): number {
-  if (a.length !== b.length) {
-    throw new Error('Vectors must have the same length');
-  }
-
-  let dotProduct = 0;
-  let magnitudeA = 0;
-  let magnitudeB = 0;
-
-  for (let i = 0; i < a.length; i++) {
-    dotProduct += a[i] * b[i];
-    magnitudeA += a[i] * a[i];
-    magnitudeB += b[i] * b[i];
-  }
-
-  magnitudeA = Math.sqrt(magnitudeA);
-  magnitudeB = Math.sqrt(magnitudeB);
-
-  if (magnitudeA === 0 || magnitudeB === 0) {
-    return 0;
-  }
-
-  return dotProduct / (magnitudeA * magnitudeB);
-}
+import { generateEmbedding } from './embeddings';
 
 export interface RAGContext {
   recentConflicts: Conflict[];
@@ -37,6 +10,7 @@ export interface RAGContext {
 
 /**
  * Get similar conflicts using vector similarity search
+ * Uses SurrealDB's vector::similarity::cosine for efficient similarity search
  * Excludes the current conflict and filters by relationship_id
  */
 export async function getSimilarConflicts(
@@ -46,7 +20,7 @@ export async function getSimilarConflicts(
   const db = getDatabase();
 
   try {
-    // First, get the current conflict to get its relationship_id and embedding
+    // First, get the current conflict to get its relationship_id and generate query embedding
     const fullConflictId = conflictId.startsWith('conflict:')
       ? conflictId
       : `conflict:${conflictId}`;
@@ -87,59 +61,95 @@ export async function getSimilarConflicts(
 
     const queryEmbedding = (embeddingResult[0] as any).result[0].embedding;
 
-    // Get all conflicts from the same relationship (excluding current)
-    const allConflictsResult = await db.query(
-      `SELECT * FROM conflict WHERE relationship_id = $relationshipId AND id != $conflictId ORDER BY created_at DESC`,
+    // Use SurrealDB's vector similarity to find similar conflicts
+    // Join with conflict table to get full conflict details and filter by relationship
+    const similarConflictsResult = await db.query(
+      `SELECT
+        conflict.* AS conflict,
+        vector::similarity::cosine(embedding.embedding, $queryEmbedding) AS similarity
+      FROM embedding
+      INNER JOIN conflict ON embedding.metadata.sourceId = conflict.id
+      WHERE embedding.metadata.type = 'conflict'
+        AND conflict.relationship_id = $relationshipId
+        AND conflict.id != $conflictId
+      ORDER BY similarity DESC
+      LIMIT $limit`,
       {
+        queryEmbedding,
         relationshipId,
         conflictId: fullConflictId,
+        limit,
       }
     );
 
     if (
-      !allConflictsResult ||
-      allConflictsResult.length === 0 ||
-      !(allConflictsResult[0] as any).result
+      !similarConflictsResult ||
+      similarConflictsResult.length === 0 ||
+      !(similarConflictsResult[0] as any).result
     ) {
       return [];
     }
 
-    const allConflicts = (allConflictsResult[0] as any).result || [];
-
-    // For each conflict, get its embedding and calculate similarity
-    const conflictsWithSimilarity = await Promise.all(
-      allConflicts.map(async (conflict: Conflict) => {
-        const embResult = await db.query(
-          `SELECT embedding FROM embedding WHERE metadata.type = 'conflict' AND metadata.sourceId = $conflictId`,
-          { conflictId: conflict.id }
-        );
-
-        let similarity = 0;
-        if (
-          embResult &&
-          embResult.length > 0 &&
-          (embResult[0] as any).result &&
-          (embResult[0] as any).result.length > 0
-        ) {
-          const conflictEmbedding = (embResult[0] as any).result[0].embedding;
-          similarity = calculateCosineSimilarity(queryEmbedding, conflictEmbedding);
-        }
-
-        return {
-          conflict,
-          similarity,
-        };
-      })
-    );
-
-    // Sort by similarity (highest first) and take top N
-    return conflictsWithSimilarity
-      .filter(item => item.similarity > 0)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, limit)
-      .map(item => item.conflict);
+    const results = (similarConflictsResult[0] as any).result || [];
+    return results
+      .filter((item: any) => item.similarity > 0)
+      .map((item: any) => item.conflict);
   } catch (error) {
     console.error('Error fetching similar conflicts:', error);
+    // Fall back to recent conflicts if vector search fails
+    return getRecentConflicts(conflictId, limit);
+  }
+}
+
+/**
+ * Fallback: Get recent conflicts when vector search is unavailable
+ */
+async function getRecentConflicts(
+  conflictId: string,
+  limit: number = 5
+): Promise<Conflict[]> {
+  const db = getDatabase();
+
+  try {
+    const fullConflictId = conflictId.startsWith('conflict:')
+      ? conflictId
+      : `conflict:${conflictId}`;
+
+    const conflictResult = await db.query(
+      'SELECT relationship_id FROM $conflictId',
+      { conflictId: fullConflictId }
+    );
+
+    if (
+      !conflictResult ||
+      conflictResult.length === 0 ||
+      !(conflictResult[0] as any).result ||
+      (conflictResult[0] as any).result.length === 0
+    ) {
+      return [];
+    }
+
+    const relationshipId = (conflictResult[0] as any).result[0].relationship_id;
+
+    const recentResult = await db.query(
+      `SELECT * FROM conflict
+       WHERE relationship_id = $relationshipId AND id != $conflictId
+       ORDER BY created_at DESC
+       LIMIT $limit`,
+      { relationshipId, conflictId: fullConflictId, limit }
+    );
+
+    if (
+      !recentResult ||
+      recentResult.length === 0 ||
+      !(recentResult[0] as any).result
+    ) {
+      return [];
+    }
+
+    return (recentResult[0] as any).result || [];
+  } catch (error) {
+    console.error('Error fetching recent conflicts:', error);
     return [];
   }
 }

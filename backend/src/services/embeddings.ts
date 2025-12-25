@@ -1,24 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
-import OpenAI from 'openai';
+import openai from './openai-client';
 import { getDatabase } from './db';
-
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
-// Initialize OpenAI client for embeddings
-let openai: OpenAI | null = null;
-try {
-  if (process.env.OPENAI_API_KEY) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
-  } else {
-    console.warn('OPENAI_API_KEY not set - embeddings will use fallback pseudo-embeddings');
-  }
-} catch (error) {
-  console.error('Failed to initialize OpenAI client:', error);
-}
 
 export interface EmbeddingDocument {
   id: string;
@@ -33,7 +14,7 @@ export interface EmbeddingDocument {
 }
 
 /**
- * Generate text embedding using OpenAI's text-embedding-ada-002 model
+ * Generate text embedding using OpenAI's text-embedding-3-small model
  * Falls back to pseudo-embedding if OpenAI is not available
  */
 export async function generateEmbedding(text: string): Promise<number[]> {
@@ -41,27 +22,34 @@ export async function generateEmbedding(text: string): Promise<number[]> {
     throw new Error('Cannot generate embedding for empty text');
   }
 
-  // Use OpenAI if available
-  if (openai) {
-    try {
-      const response = await openai.embeddings.create({
-        model: 'text-embedding-ada-002',
-        input: text.trim(),
-      });
-
-      if (!response.data || response.data.length === 0) {
-        throw new Error('No embedding returned from OpenAI');
-      }
-
-      return response.data[0].embedding;
-    } catch (error) {
-      console.error('OpenAI embedding generation failed, falling back to pseudo-embedding:', error);
-      // Fall through to pseudo-embedding
-    }
+  // Check if OpenAI API key is configured
+  if (!process.env.OPENAI_API_KEY) {
+    console.warn('OPENAI_API_KEY not set - using fallback pseudo-embeddings');
+    return generatePseudoEmbedding(text);
   }
 
-  // Fallback: Simple hash-based pseudo-embedding for testing
-  // This produces 1536-dimensional embeddings to match OpenAI's ada-002
+  try {
+    const response = await openai.embeddings.create({
+      model: 'text-embedding-3-small',
+      input: text.trim(),
+    });
+
+    if (!response.data || response.data.length === 0) {
+      throw new Error('No embedding returned from OpenAI');
+    }
+
+    return response.data[0].embedding;
+  } catch (error) {
+    console.error('OpenAI embedding generation failed, falling back to pseudo-embedding:', error);
+    return generatePseudoEmbedding(text);
+  }
+}
+
+/**
+ * Generate pseudo-embedding for testing/fallback
+ * Produces 1536-dimensional embeddings to match text-embedding-3-small
+ */
+function generatePseudoEmbedding(text: string): number[] {
   const normalized = text.toLowerCase().trim();
   const embedding = new Array(1536).fill(0);
 
@@ -179,9 +167,107 @@ export async function searchSimilar(
 }
 
 /**
- * Calculate cosine similarity between two vectors
+ * Store text with embedding in vector database
+ * Generic function for storing any type of embedded content
  */
-function cosineSimilarity(a: number[], b: number[]): number {
+export async function embedAndStore(
+  text: string,
+  metadata: {
+    type: 'intake' | 'conversation' | 'conflict';
+    referenceId: string;
+    userId: string;
+  }
+): Promise<void> {
+  if (!text || text.trim().length === 0) {
+    throw new Error('Cannot embed empty text');
+  }
+
+  const db = getDatabase();
+  const embedding = await generateEmbedding(text);
+
+  try {
+    await db.query(
+      `CREATE embedding CONTENT {
+        userId: $userId,
+        content: $content,
+        embedding: $embedding,
+        metadata: {
+          type: $type,
+          sourceId: $sourceId,
+          createdAt: $createdAt
+        }
+      }`,
+      {
+        userId: metadata.userId,
+        content: text.trim(),
+        embedding,
+        type: metadata.type,
+        sourceId: metadata.referenceId,
+        createdAt: new Date().toISOString(),
+      }
+    );
+  } catch (error) {
+    console.error('Error storing embedding:', error);
+    throw error;
+  }
+}
+
+/**
+ * Find similar context using vector similarity search
+ * Uses SurrealDB's built-in vector::similarity::cosine function
+ */
+export async function findSimilarContext(
+  queryText: string,
+  type?: string,
+  limit: number = 5
+): Promise<Array<{ text: string; score: number; metadata: any }>> {
+  if (!queryText || queryText.trim().length === 0) {
+    throw new Error('Cannot search with empty query');
+  }
+
+  const db = getDatabase();
+  const queryEmbedding = await generateEmbedding(queryText);
+
+  try {
+    // Build query with optional type filter
+    const typeFilter = type ? `AND metadata.type = $type` : '';
+
+    const result = await db.query<any[]>(
+      `SELECT
+        content,
+        metadata,
+        vector::similarity::cosine(embedding, $queryEmbedding) AS score
+      FROM embedding
+      WHERE 1=1 ${typeFilter}
+      ORDER BY score DESC
+      LIMIT $limit`,
+      {
+        queryEmbedding,
+        type,
+        limit,
+      }
+    );
+
+    if (!result || result.length === 0 || !result[0].result) {
+      return [];
+    }
+
+    return result[0].result.map((item: any) => ({
+      text: item.content,
+      score: item.score,
+      metadata: item.metadata,
+    }));
+  } catch (error) {
+    console.error('Error finding similar context:', error);
+    throw error;
+  }
+}
+
+/**
+ * Calculate cosine similarity between two vectors
+ * Used as fallback when SurrealDB vector functions are not available
+ */
+export function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length) {
     throw new Error('Vectors must have the same length');
   }
