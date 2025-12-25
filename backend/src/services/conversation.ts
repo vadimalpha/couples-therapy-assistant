@@ -6,6 +6,8 @@ import {
   SessionType,
   MessageRole,
 } from '../types';
+import { guidanceQueue } from '../queue';
+import { IndividualGuidanceJob, JointContextGuidanceJob } from '../queue/jobs';
 
 export class ConversationService {
   /**
@@ -149,7 +151,103 @@ export class ConversationService {
     }
 
     const updated = (result[0] as any).result;
-    return Array.isArray(updated) ? updated[0] : updated;
+    const finalizedSession = Array.isArray(updated) ? updated[0] : updated;
+
+    // Queue guidance synthesis jobs for exploration sessions
+    if (
+      finalizedSession.sessionType === 'individual_a' ||
+      finalizedSession.sessionType === 'individual_b'
+    ) {
+      const isPartnerA = finalizedSession.sessionType === 'individual_a';
+      const partnerId = isPartnerA ? 'a' : 'b';
+
+      // Queue individual guidance job
+      if (finalizedSession.conflictId) {
+        const individualJob: IndividualGuidanceJob = {
+          type: 'individual_guidance',
+          sessionId: finalizedSession.id,
+          conflictId: finalizedSession.conflictId,
+          partnerId,
+        };
+
+        await guidanceQueue.add('individual_guidance', individualJob);
+        console.log(
+          `Queued individual guidance job for session ${finalizedSession.id}`
+        );
+
+        // Check if both partners have finalized - if so, queue joint context jobs
+        await this.checkAndQueueJointContextGuidance(finalizedSession.conflictId);
+      }
+    }
+
+    return finalizedSession;
+  }
+
+  /**
+   * Check if both partners have finalized and queue joint context guidance jobs
+   */
+  private async checkAndQueueJointContextGuidance(
+    conflictId: string
+  ): Promise<void> {
+    const db = getDatabase();
+
+    // Get conflict to check if both partners have finalized
+    const fullConflictId = conflictId.startsWith('conflict:')
+      ? conflictId
+      : `conflict:${conflictId}`;
+
+    const conflictResult = await db.query('SELECT * FROM $conflictId', {
+      conflictId: fullConflictId,
+    });
+
+    if (
+      !conflictResult ||
+      conflictResult.length === 0 ||
+      !(conflictResult[0] as any).result ||
+      (conflictResult[0] as any).result.length === 0
+    ) {
+      return;
+    }
+
+    const conflict = (conflictResult[0] as any).result[0];
+
+    // Check if both partners have sessions
+    if (!conflict.partner_a_session_id || !conflict.partner_b_session_id) {
+      return;
+    }
+
+    // Check if both sessions are finalized
+    const partnerASession = await this.getSession(conflict.partner_a_session_id);
+    const partnerBSession = await this.getSession(conflict.partner_b_session_id);
+
+    if (
+      !partnerASession ||
+      !partnerBSession ||
+      partnerASession.status !== 'finalized' ||
+      partnerBSession.status !== 'finalized'
+    ) {
+      return;
+    }
+
+    // Both partners finalized - queue joint context jobs for both
+    const jobA: JointContextGuidanceJob = {
+      type: 'joint_context_guidance',
+      conflictId: conflict.id,
+      partnerId: conflict.partner_a_id,
+    };
+
+    const jobB: JointContextGuidanceJob = {
+      type: 'joint_context_guidance',
+      conflictId: conflict.id,
+      partnerId: conflict.partner_b_id,
+    };
+
+    await guidanceQueue.add('joint_context_guidance', jobA);
+    await guidanceQueue.add('joint_context_guidance', jobB);
+
+    console.log(
+      `Queued joint context guidance jobs for both partners in conflict ${conflict.id}`
+    );
   }
 
   /**
