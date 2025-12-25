@@ -8,8 +8,11 @@ import ConflictStartPage from './pages/ConflictStartPage';
 import GuidancePage from './pages/GuidancePage';
 import ProfilePage from './pages/ProfilePage';
 import IntakePage from './pages/IntakePage';
+import TermsPage from './pages/TermsPage';
+import PrivacyPage from './pages/PrivacyPage';
 import { ExplorationChat } from './components/conflict';
 import { IntakeChat, IntakeSummary } from './components/intake';
+import { CrisisFooter } from './components/layout';
 import './App.css';
 import './styles/accessibility.css';
 
@@ -64,77 +67,84 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <a href="#main-content" className="skip-to-content">
-          Skip to main content
-        </a>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <HomePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/conflicts/new"
-            element={
-              <ProtectedRoute>
-                <ConflictStartPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/conflicts/:id/explore"
-            element={
-              <ProtectedRoute>
-                <ExplorationChat />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/conflicts/:id/guidance"
-            element={
-              <ProtectedRoute>
-                <GuidancePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/intake"
-            element={
-              <ProtectedRoute>
-                <IntakePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/intake/chat"
-            element={
-              <ProtectedRoute>
-                <IntakeChat />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/intake/summary"
-            element={
-              <ProtectedRoute>
-                <IntakeSummary />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+          <a href="#main-content" className="skip-to-content">
+            Skip to main content
+          </a>
+          <div style={{ flex: '1 0 auto' }}>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/signup" element={<SignupPage />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conflicts/new"
+                element={
+                  <ProtectedRoute>
+                    <ConflictStartPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conflicts/:id/explore"
+                element={
+                  <ProtectedRoute>
+                    <ExplorationChat />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/conflicts/:id/guidance"
+                element={
+                  <ProtectedRoute>
+                    <GuidancePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/intake"
+                element={
+                  <ProtectedRoute>
+                    <IntakePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/intake/chat"
+                element={
+                  <ProtectedRoute>
+                    <IntakeChat />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/intake/summary"
+                element={
+                  <ProtectedRoute>
+                    <IntakeSummary />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+          <CrisisFooter />
+        </div>
       </AuthProvider>
     </Router>
   );
