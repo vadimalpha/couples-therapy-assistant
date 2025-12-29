@@ -433,3 +433,53 @@ export async function getRelationshipById(relationshipId: string): Promise<Relat
     throw error;
   }
 }
+
+/**
+ * Get invitation by ID
+ */
+export async function getInvitationById(invitationId: string): Promise<Invitation | null> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query(
+      'SELECT * FROM $invitationId',
+      { invitationId }
+    );
+
+    const result = extractQueryResult<Invitation>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting invitation by ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Refresh invitation expiry (extend by 72 hours from now)
+ */
+export async function refreshInvitationExpiry(invitationId: string): Promise<Invitation> {
+  const db = getDatabase();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + INVITATION_EXPIRY_HOURS * 60 * 60 * 1000);
+
+  try {
+    const resultRaw = await db.query(
+      'UPDATE $invitationId SET expiresAt = $expiresAt RETURN AFTER',
+      { invitationId, expiresAt: expiresAt.toISOString() }
+    );
+
+    const result = extractQueryResult<Invitation>(resultRaw);
+    if (result.length === 0) {
+      throw new Error('Failed to refresh invitation');
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Error refreshing invitation expiry:', error);
+    throw error;
+  }
+}

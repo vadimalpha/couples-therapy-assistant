@@ -11,6 +11,8 @@ import {
   unpair,
   getPendingInvitations,
   getSentInvitations,
+  getInvitationById,
+  refreshInvitationExpiry,
 } from '../services/relationship';
 import { getPatternInsights } from '../services/prompt-builder';
 import { sendInvitationEmail } from '../services/email';
@@ -67,6 +69,68 @@ router.post('/invite', authenticateUser, async (req: AuthenticatedRequest, res: 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to create invitation';
     console.error('Error creating invitation:', error);
+    res.status(400).json({ error: errorMessage });
+  }
+});
+
+// Resend invitation email
+router.post('/resend/:invitationId', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const currentUser = await getUserByFirebaseUid(req.user.uid);
+    if (!currentUser) {
+      res.status(404).json({ error: 'User not found. Please sync your profile first.' });
+      return;
+    }
+
+    const { invitationId } = req.params;
+    const invitation = await getInvitationById(invitationId);
+
+    if (!invitation) {
+      res.status(404).json({ error: 'Invitation not found' });
+      return;
+    }
+
+    // Verify current user is the inviter
+    if (invitation.inviterId !== currentUser.id) {
+      res.status(403).json({ error: 'You can only resend your own invitations' });
+      return;
+    }
+
+    // Verify invitation is still pending
+    if (invitation.status !== 'pending') {
+      res.status(400).json({ error: 'Invitation has already been accepted or expired' });
+      return;
+    }
+
+    // Refresh the expiry time (extend by 72 hours)
+    const updatedInvitation = await refreshInvitationExpiry(invitationId);
+
+    // Resend the email
+    try {
+      await sendInvitationEmail({
+        to: invitation.partnerEmail,
+        inviterName: currentUser.displayName || currentUser.email,
+        inviterEmail: currentUser.email,
+        token: invitation.inviteToken,
+        relationshipType: invitation.relationshipType || 'partner',
+      });
+      res.json({
+        success: true,
+        message: 'Invitation email resent successfully',
+        invitation: updatedInvitation
+      });
+    } catch (emailError) {
+      console.error('Failed to resend invitation email:', emailError);
+      res.status(500).json({ error: 'Failed to send email. Please try again.' });
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to resend invitation';
+    console.error('Error resending invitation:', error);
     res.status(400).json({ error: errorMessage });
   }
 });
