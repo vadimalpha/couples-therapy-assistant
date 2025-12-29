@@ -55,7 +55,7 @@ export function useSharedConversation(
   const socketRef = useRef<Socket | null>(null);
   const messageQueueRef = useRef<QueuedMessage[]>([]);
   const reconnectAttemptRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getReconnectDelay = useCallback(() => {
     const delay = Math.min(

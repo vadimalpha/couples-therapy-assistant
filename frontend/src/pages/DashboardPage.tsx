@@ -509,7 +509,6 @@ export const DashboardPage: React.FC = () => {
   );
   const hasConflicts = conflicts.length > 0;
   const hasPartner = relationships.some(r => r.type === 'partner');
-  const primaryPartner = relationships.find(r => r.isPrimary && r.type === 'partner');
 
   return (
     <main id="main-content" className="dashboard-container">

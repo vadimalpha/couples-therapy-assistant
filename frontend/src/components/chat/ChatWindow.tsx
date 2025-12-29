@@ -25,6 +25,7 @@ export interface ChatWindowProps {
   participants?: Participant[];
   disabled?: boolean;
   onTyping?: (isTyping: boolean) => void;
+  placeholder?: string;
 }
 
 const ChatWindow: React.FC<ChatWindowProps> = ({
@@ -36,7 +37,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
   status,
   participants = [],
   disabled = false,
-  onTyping
+  onTyping,
+  placeholder
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -79,7 +81,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
         onSend={onSend}
         onTyping={onTyping}
         disabled={disabled || status === 'finalized'}
-        placeholder={status === 'finalized' ? 'This conversation is finalized' : 'Type a message...'}
+        placeholder={status === 'finalized' ? 'This conversation is finalized' : (placeholder || 'Type a message...')}
       />
     </div>
   );

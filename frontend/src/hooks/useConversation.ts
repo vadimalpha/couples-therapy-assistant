@@ -41,7 +41,7 @@ export function useConversation(sessionId: string): UseConversationReturn {
   const socketRef = useRef<Socket | null>(null);
   const messageQueueRef = useRef<QueuedMessage[]>([]);
   const reconnectAttemptRef = useRef(0);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isConnectingRef = useRef(false); // Prevent duplicate connections
 
   // Refs to track state without causing dependency cycles in callbacks
@@ -350,7 +350,7 @@ export function useConversation(sessionId: string): UseConversationReturn {
   // Track the sessionId we're currently connected to
   const connectedSessionIdRef = useRef<string>('');
   // Track the cleanup timeout (for cancellation on remount)
-  const cleanupTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const cleanupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Effect 1: Handle connection logic
   useEffect(() => {

@@ -29,7 +29,7 @@ interface IntakeSession {
   messageCount: number;
 }
 
-const IntakeChat: React.FC<IntakeChatProps> = ({ sessionId: providedSessionId }) => {
+const IntakeChat: React.FC<IntakeChatProps> = ({ sessionId: _providedSessionId }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [session, setSession] = useState<IntakeSession | null>(null);

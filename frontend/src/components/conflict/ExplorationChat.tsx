@@ -32,7 +32,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
   const [isLoadingConflict, setIsLoadingConflict] = useState(!sessionId);
 
   const [conflictTitle, setConflictTitle] = useState('Exploration Chat');
-  const [showReadyConfirmation, setShowReadyConfirmation] = useState(false);
+  const [, setShowReadyConfirmation] = useState(false);
 
   const {
     messages: rawMessages,

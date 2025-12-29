@@ -36,7 +36,7 @@ const IntakeSummary: React.FC = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:3001/api/intake/summary?userId=${user.id}${sessionId ? `&sessionId=${sessionId}` : ''}`,
+          `http://localhost:3001/api/intake/summary?userId=${user.uid}${sessionId ? `&sessionId=${sessionId}` : ''}`,
           {
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`
@@ -70,7 +70,7 @@ const IntakeSummary: React.FC = () => {
           'Authorization': `Bearer ${await user!.getIdToken()}`
         },
         body: JSON.stringify({
-          userId: user!.id,
+          userId: user!.uid,
           sessionId
         })
       });

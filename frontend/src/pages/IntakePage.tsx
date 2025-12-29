@@ -21,7 +21,7 @@ const IntakePage: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:3001/api/intake/status?userId=${user.id}`, {
+        const response = await fetch(`http://localhost:3001/api/intake/status?userId=${user.uid}`, {
           headers: {
             'Authorization': `Bearer ${await user.getIdToken()}`
           }
