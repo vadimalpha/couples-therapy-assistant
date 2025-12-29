@@ -1,4 +1,5 @@
 /* Intake Components Styling */
+@import '../chat/Chat.css';
 
 /* Use existing color palette from Chat.css */
 :root {
@@ -205,14 +206,15 @@
   line-height: 1.5;
 }
 
-/* ===== IntakeChat Styles ===== */
+/* ===== IntakeChat Styles - ChatGPT-style dark theme ===== */
 
 .intake-chat-page {
-  min-height: 100vh;
-  background: var(--intake-bg);
+  height: 100vh;
+  width: 100%;
+  background: var(--chat-bg-primary, #212121);
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  overflow: hidden;
 }
 
 .intake-chat-loading,
@@ -223,6 +225,7 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
+  color: var(--chat-text-secondary, #b4b4b4);
 }
 
 .intake-error-icon {
@@ -231,57 +234,54 @@
 
 .intake-chat-header {
   text-align: center;
-  margin-bottom: 24px;
-  animation: fadeIn 0.5s ease-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--chat-border-color, #424242);
 }
 
 .intake-chat-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: var(--intake-text-primary);
-  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+  margin: 0 0 4px 0;
 }
 
 .intake-chat-subtitle {
-  font-size: 15px;
-  color: var(--intake-text-muted);
+  font-size: 14px;
+  color: var(--chat-text-secondary, #b4b4b4);
   margin: 0;
 }
 
 .intake-chat-container {
   flex: 1;
-  max-width: 900px;
   width: 100%;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.intake-chat-container .chat-window {
+  flex: 1;
+  min-height: 0;
+  height: auto;
 }
 
 .intake-chat-actions {
-  max-width: 900px;
+  max-width: 720px;
   width: 100%;
-  margin: 24px auto 0;
+  margin: 0 auto;
+  padding: 16px 24px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  border-top: 1px solid var(--chat-border-color, #424242);
 }
 
 .intake-ready-section {
-  background: var(--intake-card-bg);
+  background: var(--chat-bg-secondary, #171717);
   border-radius: 12px;
-  padding: 20px;
-  box-shadow: var(--intake-shadow-sm);
+  padding: 16px 20px;
+  border: 1px solid var(--chat-border-color, #424242);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -293,7 +293,7 @@
   align-items: center;
   gap: 12px;
   font-size: 15px;
-  color: var(--intake-text-primary);
+  color: var(--chat-text-primary, #ececec);
   cursor: pointer;
   user-select: none;
 }
@@ -302,7 +302,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: var(--intake-primary);
+  accent-color: var(--chat-accent-color, #10a37f);
 }
 
 .intake-help-text {
@@ -312,7 +312,7 @@
 
 .intake-help-text p {
   font-size: 14px;
-  color: var(--intake-text-muted);
+  color: var(--chat-text-secondary, #b4b4b4);
   margin: 0;
   line-height: 1.5;
 }

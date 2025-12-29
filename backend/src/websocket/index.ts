@@ -6,6 +6,7 @@ import {
   handleMessage,
   handleTyping,
   handleDisconnect,
+  handleFinalize,
 } from './handlers';
 
 export interface AuthenticatedSocket extends Socket {
@@ -58,6 +59,9 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
 
     // Handle typing events
     socket.on('typing', (data) => handleTyping(socket, io, data));
+
+    // Handle finalize intake session
+    socket.on('finalize', (data, callback) => handleFinalize(socket, io, data, callback));
 
     // Handle disconnect
     socket.on('disconnect', () => handleDisconnect(socket, io));

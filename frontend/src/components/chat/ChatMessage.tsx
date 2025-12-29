@@ -1,4 +1,5 @@
 import React from 'react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 export type MessageRole = 'user' | 'assistant' | 'partner-a' | 'partner-b';
 
@@ -11,6 +12,7 @@ export interface ChatMessageProps {
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, timestamp, senderName }) => {
   const isUser = role === 'user';
+  const isAI = role === 'assistant';
   const messageClass = `chat-message chat-message-${role}`;
 
   const formatTimestamp = (date: Date): string => {
@@ -35,7 +37,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ role, content, timestamp, sen
         {!isUser && displayName && (
           <div className="message-sender">{displayName}</div>
         )}
-        <div className="message-content">{content}</div>
+        <div className="message-content">
+          {isAI ? (
+            <MarkdownRenderer content={content} />
+          ) : (
+            content
+          )}
+        </div>
         <div className="message-timestamp">{formatTimestamp(timestamp)}</div>
       </div>
     </div>

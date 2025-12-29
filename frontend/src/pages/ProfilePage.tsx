@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import '../components/conflict/Conflict.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface IntakeData {
   name: string;
   relationship_duration: string;
@@ -32,7 +34,7 @@ const ProfilePage: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch('/api/users/me/intake', {
+      const response = await fetch(`${API_URL}/api/users/me/intake`, {
         headers: {
           'Authorization': `Bearer ${await user?.getIdToken()}`
         }
@@ -63,7 +65,7 @@ const ProfilePage: React.FC = () => {
       setRefreshing(true);
       setError(null);
 
-      const response = await fetch('/api/users/me/intake-refresh', {
+      const response = await fetch(`${API_URL}/api/users/me/intake-refresh`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${await user?.getIdToken()}`
@@ -74,13 +76,8 @@ const ProfilePage: React.FC = () => {
         throw new Error('Failed to refresh intake');
       }
 
-      const data = await response.json();
-
-      // Show message to user
-      alert(data.message + '\n\n' + data.note);
-
-      // In the future, this would navigate to a new intake conversation
-      // navigate('/intake/new');
+      // Navigate to intake chat to complete new interview
+      navigate('/intake/chat');
     } catch (err) {
       console.error('Error refreshing intake:', err);
       setError(err instanceof Error ? err.message : 'Failed to refresh intake');

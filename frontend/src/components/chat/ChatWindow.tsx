@@ -1,8 +1,11 @@
 import React, { useEffect, useRef } from 'react';
-import ChatHeader, { SessionStatus, Participant } from './ChatHeader';
-import ChatMessage, { MessageRole } from './ChatMessage';
+import ChatHeader from './ChatHeader';
+import type { SessionStatus, Participant } from './ChatHeader';
+import ChatMessage from './ChatMessage';
+import type { MessageRole } from './ChatMessage';
 import ChatInput from './ChatInput';
 import TypingIndicator from './TypingIndicator';
+import './Chat.css';
 
 export interface Message {
   id: string;

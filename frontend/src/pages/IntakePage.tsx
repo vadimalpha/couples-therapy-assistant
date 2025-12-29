@@ -5,11 +5,14 @@ import '../components/intake/Intake.css';
 
 const IntakePage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [hasIntake, setHasIntake] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for auth to finish loading
+    if (authLoading) return;
+
     // Check if user already has intake data
     const checkIntakeStatus = async () => {
       if (!user) {
@@ -36,7 +39,7 @@ const IntakePage: React.FC = () => {
     };
 
     checkIntakeStatus();
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   const handleStartIntake = () => {
     navigate('/intake/chat');
@@ -50,7 +53,7 @@ const IntakePage: React.FC = () => {
     navigate('/intake/chat');
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <main id="main-content" className="intake-page intake-page-loading">
         <div className="intake-loading-spinner"></div>

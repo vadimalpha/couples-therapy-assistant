@@ -4,6 +4,7 @@ import { buildPrompt } from './prompt-builder';
 import { conversationService } from './conversation';
 import { conflictService } from './conflict';
 import { getUserById } from './user';
+import { logPrompt } from './prompt-logger';
 
 /**
  * Chat AI Service
@@ -19,11 +20,11 @@ const openai = new OpenAI({
 
 // Model configuration for GPT-5.2
 const MODEL = 'gpt-5.2';
-const EXPLORATION_MAX_TOKENS = 1024;
-const GUIDANCE_MAX_TOKENS = 2048;
-const JOINT_CONTEXT_MAX_TOKENS = 3072;
-const RELATIONSHIP_MAX_TOKENS = 1536;
-const SYNTHESIS_MAX_TOKENS = 2048;
+const EXPLORATION_MAX_COMPLETION_TOKENS = 1024;
+const GUIDANCE_MAX_COMPLETION_TOKENS = 2048;
+const JOINT_CONTEXT_MAX_COMPLETION_TOKENS = 3072;
+const RELATIONSHIP_MAX_COMPLETION_TOKENS = 1536;
+const SYNTHESIS_MAX_COMPLETION_TOKENS = 2048;
 
 export interface TokenUsage {
   inputTokens: number;
@@ -37,6 +38,7 @@ export interface ExplorationContext {
   sessionType: string;
   intakeData?: any;
   relationshipContext?: any;
+  guidanceMode?: 'structured' | 'conversational' | 'test';
 }
 
 export interface RelationshipContext {
@@ -65,12 +67,28 @@ export async function generateExplorationResponse(
   }
 
   try {
-    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', context);
+    // Get user and conflict info first (needed for guidanceMode and logging)
+    const user = await getUserById(context.userId);
+    const conflict = context.conflictId
+      ? await conflictService.getConflict(context.conflictId)
+      : null;
+
+    // Set guidanceMode from conflict if not already set in context
+    const enrichedContext = {
+      ...context,
+      guidanceMode: context.guidanceMode || conflict?.guidance_mode || 'conversational',
+    };
+
+    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
     const openaiMessages = convertMessagesToOpenAI(messages);
+
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
 
     const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: EXPLORATION_MAX_TOKENS,
+      max_completion_tokens: EXPLORATION_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         ...openaiMessages,
@@ -79,6 +97,24 @@ export async function generateExplorationResponse(
 
     const content = response.choices[0]?.message?.content || '';
     const usage = calculateUsageFromResponse(response);
+
+    // Log the prompt
+    logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict?.title,
+      sessionType: context.sessionType as SessionType,
+      logType: 'exploration',
+      guidanceMode: enrichedContext.guidanceMode,
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: content,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     return { content, usage };
   } catch (error) {
@@ -102,12 +138,28 @@ export async function streamExplorationResponse(
   }
 
   try {
-    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', context);
+    // Get user and conflict info first (needed for guidanceMode and logging)
+    const user = await getUserById(context.userId);
+    const conflict = context.conflictId
+      ? await conflictService.getConflict(context.conflictId)
+      : null;
+
+    // Set guidanceMode from conflict if not already set in context
+    const enrichedContext = {
+      ...context,
+      guidanceMode: context.guidanceMode || conflict?.guidance_mode || 'conversational',
+    };
+
+    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
     const openaiMessages = convertMessagesToOpenAI(messages);
+
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
 
     const stream = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: EXPLORATION_MAX_TOKENS,
+      max_completion_tokens: EXPLORATION_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         ...openaiMessages,
@@ -138,6 +190,24 @@ export async function streamExplorationResponse(
         };
       }
     }
+
+    // Log the prompt
+    logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict?.title,
+      sessionType: context.sessionType as SessionType,
+      logType: 'exploration',
+      guidanceMode: enrichedContext.guidanceMode,
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     return { fullContent, usage };
   } catch (error) {
@@ -174,12 +244,18 @@ export async function synthesizeIndividualGuidance(
     const user = await getUserById(explorationSession.userId);
     const intakeData = await getIntakeData(explorationSession.userId);
 
+    // Get conflict to determine guidance mode
+    const conflict = explorationSession.conflictId
+      ? await conflictService.getConflict(explorationSession.conflictId)
+      : null;
+
     const systemPrompt = await buildPrompt('individual-guidance-prompt.txt', {
       conflictId: explorationSession.conflictId || '',
       userId: explorationSession.userId,
       sessionType: explorationSession.sessionType,
       includeRAG: !!explorationSession.conflictId,
       includePatterns: false,
+      guidanceMode: conflict?.guidance_mode || 'conversational',
     });
 
     const context = buildIndividualContext(
@@ -190,7 +266,7 @@ export async function synthesizeIndividualGuidance(
 
     const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: GUIDANCE_MAX_TOKENS,
+      max_completion_tokens: GUIDANCE_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: context },
@@ -203,6 +279,25 @@ export async function synthesizeIndividualGuidance(
     console.log(
       `Individual guidance synthesis - User: \${explorationSession.userId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    logPrompt({
+      userId: explorationSession.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      conflictId: explorationSession.conflictId,
+      conflictTitle: conflict?.title,
+      sessionId: explorationSessionId,
+      sessionType: explorationSession.sessionType,
+      logType: 'individual_guidance',
+      guidanceMode: conflict?.guidance_mode,
+      systemPrompt,
+      userMessage: context,
+      aiResponse: guidance,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     const jointContextSession = await conversationService.createSession(
       explorationSession.userId,
@@ -277,6 +372,7 @@ export async function synthesizeJointContextGuidance(
       sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
       includeRAG: true,
       includePatterns: true,
+      guidanceMode: conflict.guidance_mode || 'conversational',
     });
 
     const context = buildJointContext(
@@ -290,7 +386,7 @@ export async function synthesizeJointContextGuidance(
 
     const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: JOINT_CONTEXT_MAX_TOKENS,
+      max_completion_tokens: JOINT_CONTEXT_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: context },
@@ -303,6 +399,24 @@ export async function synthesizeJointContextGuidance(
     console.log(
       `Joint-context guidance synthesis - Conflict: \${conflictId}, Partner: \${partnerId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    logPrompt({
+      userId: partnerId,
+      userEmail: requestingUser?.email,
+      userName: requestingUser?.displayName,
+      conflictId,
+      conflictTitle: conflict.title,
+      sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
+      logType: 'joint_context_guidance',
+      guidanceMode: conflict.guidance_mode,
+      systemPrompt,
+      userMessage: context,
+      aiResponse: guidance,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     const jointContextSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
     const existingSessions = await conversationService.getUserSessions(partnerId);
@@ -383,6 +497,7 @@ export async function generateRelationshipSynthesis(
       sessionType: 'relationship_shared',
       includeRAG: true,
       includePatterns: true,
+      guidanceMode: conflict.guidance_mode || 'conversational',
     });
 
     const synthesisContext = buildRelationshipSynthesisContext(
@@ -397,7 +512,7 @@ export async function generateRelationshipSynthesis(
 
     const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: SYNTHESIS_MAX_TOKENS,
+      max_completion_tokens: SYNTHESIS_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: synthesisContext },
@@ -410,6 +525,25 @@ export async function generateRelationshipSynthesis(
     console.log(
       `Relationship synthesis - Conflict: \${context.conflictId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    logPrompt({
+      userId: context.partnerAId,
+      userEmail: partnerAUser?.email,
+      userName: partnerAUser?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict.title,
+      sessionId: context.sessionId,
+      sessionType: 'relationship_shared',
+      logType: 'relationship_synthesis',
+      guidanceMode: conflict.guidance_mode,
+      systemPrompt,
+      userMessage: synthesisContext,
+      aiResponse: content,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     return { content, usage };
   } catch (error) {
@@ -434,6 +568,7 @@ export async function generateRelationshipResponse(
   try {
     const partnerAUser = await getUserById(context.partnerAId);
     const partnerBUser = await getUserById(context.partnerBId);
+    const conflict = await conflictService.getConflict(context.conflictId);
 
     const systemPrompt = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
@@ -457,9 +592,13 @@ export async function generateRelationshipResponse(
       partnerBUser?.displayName
     );
 
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
+
     const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: RELATIONSHIP_MAX_TOKENS,
+      max_completion_tokens: RELATIONSHIP_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: enrichedSystemPrompt },
         ...openaiMessages,
@@ -472,6 +611,27 @@ export async function generateRelationshipResponse(
     console.log(
       `Relationship chat - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    const senderId = context.senderId || context.partnerAId;
+    const senderUser = senderId === context.partnerAId ? partnerAUser : partnerBUser;
+    logPrompt({
+      userId: senderId,
+      userEmail: senderUser?.email,
+      userName: senderUser?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict?.title,
+      sessionId: context.sessionId,
+      sessionType: 'relationship_shared',
+      logType: 'relationship_chat',
+      guidanceMode: conflict?.guidance_mode,
+      systemPrompt: enrichedSystemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: content,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     return { content, usage };
   } catch (error) {
@@ -497,6 +657,7 @@ export async function streamRelationshipResponse(
   try {
     const partnerAUser = await getUserById(context.partnerAId);
     const partnerBUser = await getUserById(context.partnerBId);
+    const conflict = await conflictService.getConflict(context.conflictId);
 
     const systemPrompt = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
@@ -520,9 +681,13 @@ export async function streamRelationshipResponse(
       partnerBUser?.displayName
     );
 
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
+
     const stream = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: RELATIONSHIP_MAX_TOKENS,
+      max_completion_tokens: RELATIONSHIP_MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: enrichedSystemPrompt },
         ...openaiMessages,
@@ -557,6 +722,27 @@ export async function streamRelationshipResponse(
       `Relationship chat (stream) - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
     );
 
+    // Log the prompt
+    const senderId = context.senderId || context.partnerAId;
+    const senderUser = senderId === context.partnerAId ? partnerAUser : partnerBUser;
+    logPrompt({
+      userId: senderId,
+      userEmail: senderUser?.email,
+      userName: senderUser?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict?.title,
+      sessionId: context.sessionId,
+      sessionType: 'relationship_shared',
+      logType: 'relationship_chat',
+      guidanceMode: conflict?.guidance_mode,
+      systemPrompt: enrichedSystemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
+
     return { fullContent, usage };
   } catch (error) {
     console.error('Error streaming relationship response:', error);
@@ -580,6 +766,7 @@ async function buildSystemPrompt(
       sessionType: context.sessionType as any,
       includeRAG: true,
       includePatterns: false,
+      guidanceMode: context.guidanceMode,
     });
   } else {
     systemPrompt = await buildPrompt(promptFile, {
@@ -588,6 +775,7 @@ async function buildSystemPrompt(
       sessionType: context.sessionType as any,
       includeRAG: false,
       includePatterns: false,
+      guidanceMode: context.guidanceMode,
     });
   }
 
@@ -678,49 +866,49 @@ function buildJointContext(
 ): string {
   let context = '';
 
-  context += `This guidance is being prepared for: \${requestingPartnerName || 'Partner A'}\n\n`;
+  context += `This guidance is being prepared for: ${requestingPartnerName || 'Partner A'}\n\n`;
 
-  context += `--- \${requestingPartnerName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
+  context += `--- ${requestingPartnerName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
   requestingPartnerMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += `\${label}: \${msg.content}\n\n`;
+    context += `${label}: ${msg.content}\n\n`;
   });
 
   if (requestingIntakeData) {
-    context += `--- \${requestingPartnerName || 'PARTNER A'}'S BACKGROUND (from intake) ---\n\n`;
+    context += `--- ${requestingPartnerName || 'PARTNER A'}'S BACKGROUND (from intake) ---\n\n`;
     if (requestingIntakeData.relationshipLength) {
-      context += `Relationship length: \${requestingIntakeData.relationshipLength}\n`;
+      context += `Relationship length: ${requestingIntakeData.relationshipLength}\n`;
     }
     if (requestingIntakeData.mainConcerns) {
-      context += `Main concerns: \${requestingIntakeData.mainConcerns}\n`;
+      context += `Main concerns: ${requestingIntakeData.mainConcerns}\n`;
     }
     if (requestingIntakeData.goals) {
-      context += `Goals for therapy: \${requestingIntakeData.goals}\n`;
+      context += `Goals for therapy: ${requestingIntakeData.goals}\n`;
     }
     context += '\n';
   }
 
-  context += `--- \${otherPartnerName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
+  context += `--- ${otherPartnerName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
   otherPartnerMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += `\${label}: \${msg.content}\n\n`;
+    context += `${label}: ${msg.content}\n\n`;
   });
 
   if (otherIntakeData) {
-    context += `--- \${otherPartnerName || 'PARTNER B'}'S BACKGROUND (from intake) ---\n\n`;
+    context += `--- ${otherPartnerName || 'PARTNER B'}'S BACKGROUND (from intake) ---\n\n`;
     if (otherIntakeData.relationshipLength) {
-      context += `Relationship length: \${otherIntakeData.relationshipLength}\n`;
+      context += `Relationship length: ${otherIntakeData.relationshipLength}\n`;
     }
     if (otherIntakeData.mainConcerns) {
-      context += `Main concerns: \${otherIntakeData.mainConcerns}\n`;
+      context += `Main concerns: ${otherIntakeData.mainConcerns}\n`;
     }
     if (otherIntakeData.goals) {
-      context += `Goals for therapy: \${otherIntakeData.goals}\n`;
+      context += `Goals for therapy: ${otherIntakeData.goals}\n`;
     }
     context += '\n';
   }
 
-  context += `Please synthesize personalized guidance for \${requestingPartnerName || 'Partner A'} that incorporates both partners' perspectives. Identify patterns across both conversations, areas of alignment and difference, and provide insights that help this partner understand both their own experience and their partner's perspective. Suggest communication approaches that bridge the gap.`;
+  context += `Please synthesize personalized guidance for ${requestingPartnerName || 'Partner A'} that incorporates both partners' perspectives. Identify patterns across both conversations, areas of alignment and difference, and provide insights that help this partner understand both their own experience and their partner's perspective. Suggest communication approaches that bridge the gap.`;
 
   return context;
 }

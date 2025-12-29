@@ -81,31 +81,33 @@ const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="chat-input">
-      <label htmlFor="chat-message-input" className="sr-only">
-        Message
-      </label>
-      <textarea
-        id="chat-message-input"
-        ref={textareaRef}
-        value={message}
-        onChange={handleChange}
-        onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        disabled={disabled}
-        className="chat-input-textarea"
-        rows={1}
-        aria-label="Type your message"
-      />
-      <button
-        type="submit"
-        disabled={!message.trim() || disabled}
-        className="chat-input-button"
-        aria-label="Send message"
-      >
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-          <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-        </svg>
-      </button>
+      <div className="chat-input-container">
+        <label htmlFor="chat-message-input" className="sr-only">
+          Message
+        </label>
+        <textarea
+          id="chat-message-input"
+          ref={textareaRef}
+          value={message}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          className="chat-input-textarea"
+          rows={1}
+          aria-label="Type your message"
+        />
+        <button
+          type="submit"
+          disabled={!message.trim() || disabled}
+          className="chat-input-button"
+          aria-label="Send message"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
+        </button>
+      </div>
     </form>
   );
 };

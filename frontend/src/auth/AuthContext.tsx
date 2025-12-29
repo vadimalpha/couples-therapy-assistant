@@ -8,6 +8,7 @@ interface AuthContextType {
   loading: boolean;
   error: string | null;
   setError: (error: string | null) => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,11 +33,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => unsubscribe();
   }, []);
 
+  const handleSignOut = async () => {
+    await authSystem.signOut();
+  };
+
   const value: AuthContextType = {
     user,
     loading,
     error,
-    setError
+    setError,
+    signOut: handleSignOut
   };
 
   return (

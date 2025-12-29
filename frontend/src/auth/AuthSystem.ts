@@ -37,11 +37,42 @@ class AuthSystem {
         localStorage.setItem('firebaseToken', token);
         localStorage.setItem('userName', user.displayName || '');
         localStorage.setItem('userEmail', user.email || '');
+
+        // Auto-sync user to backend database
+        this.syncUserToBackend(token).catch((err) => {
+          console.error('Failed to sync user to backend:', err);
+        });
       } else {
         // User is signed out, clear localStorage
         this.clearLocalStorage();
       }
     });
+  }
+
+  /**
+   * Sync user to backend database
+   * This ensures the user exists in SurrealDB for relationships and other features
+   */
+  private async syncUserToBackend(token: string): Promise<void> {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+    try {
+      const response = await fetch(`${API_URL}/api/auth/sync`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok && response.status !== 429) {
+        // Log but don't throw for non-critical sync failures (except rate limiting)
+        const errorData = await response.json().catch(() => ({}));
+        console.warn('User sync response:', response.status, errorData);
+      }
+    } catch (err) {
+      // Network error - log but don't throw
+      console.warn('User sync network error:', err);
+    }
   }
 
   /**

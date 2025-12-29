@@ -1,9 +1,10 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { ConversationMessage, ConversationSession } from '../types';
 import { conversationService } from './conversation';
 import { conflictService } from './conflict';
 import { getUserById } from './user';
 import { buildPrompt } from './prompt-builder';
+import { logPrompt } from './prompt-logger';
 
 /**
  * Guidance Synthesis Service
@@ -12,13 +13,13 @@ import { buildPrompt } from './prompt-builder';
  * Supports both individual guidance (single partner) and joint-context guidance (both partners).
  */
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// Model configuration
-const MODEL = 'claude-sonnet-4-20250514';
+// Model configuration for GPT-5.2
+const MODEL = 'gpt-5.2';
 const INDIVIDUAL_MAX_TOKENS = 2048;
 const JOINT_CONTEXT_MAX_TOKENS = 3072;
 
@@ -41,8 +42,8 @@ export interface GuidanceSynthesisResult {
 export async function synthesizeIndividualGuidance(
   explorationSessionId: string
 ): Promise<GuidanceSynthesisResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
@@ -64,6 +65,11 @@ export async function synthesizeIndividualGuidance(
     const user = await getUserById(explorationSession.userId);
     const intakeData = await getIntakeData(explorationSession.userId);
 
+    // Get conflict to determine guidance mode
+    const conflict = explorationSession.conflictId
+      ? await conflictService.getConflict(explorationSession.conflictId)
+      : null;
+
     // Build system prompt with RAG context
     const systemPrompt = await buildPrompt('individual-guidance-prompt.txt', {
       conflictId: explorationSession.conflictId || '',
@@ -71,6 +77,7 @@ export async function synthesizeIndividualGuidance(
       sessionType: explorationSession.sessionType,
       includeRAG: !!explorationSession.conflictId,
       includePatterns: false,
+      guidanceMode: conflict?.guidance_mode || 'conversational',
     });
 
     // Build context for synthesis
@@ -80,32 +87,26 @@ export async function synthesizeIndividualGuidance(
       user?.displayName
     );
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
+    // Call OpenAI API
+    const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: INDIVIDUAL_MAX_TOKENS,
-      system: systemPrompt,
+      max_completion_tokens: INDIVIDUAL_MAX_TOKENS,
       messages: [
-        {
-          role: 'user',
-          content: context,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: context },
       ],
     });
 
     // Extract text content
-    const guidance = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as any).text)
-      .join('\n');
+    const guidance = response.choices[0]?.message?.content || '';
 
     // Calculate token usage
     const usage: TokenUsage = {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
       totalCost: calculateCost(
-        response.usage.input_tokens,
-        response.usage.output_tokens
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
       ),
     };
 
@@ -113,6 +114,25 @@ export async function synthesizeIndividualGuidance(
     console.log(
       `Individual guidance synthesis - User: ${explorationSession.userId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    logPrompt({
+      userId: explorationSession.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      conflictId: explorationSession.conflictId,
+      conflictTitle: conflict?.title,
+      sessionId: explorationSessionId,
+      sessionType: explorationSession.sessionType,
+      logType: 'individual_guidance',
+      guidanceMode: conflict?.guidance_mode,
+      systemPrompt,
+      userMessage: context,
+      aiResponse: guidance,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     // Create new joint_context session
     const jointContextSession = await conversationService.createSession(
@@ -149,8 +169,8 @@ export async function synthesizeJointContextGuidance(
   conflictId: string,
   partnerId: string
 ): Promise<GuidanceSynthesisResult> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
@@ -204,6 +224,7 @@ export async function synthesizeJointContextGuidance(
       sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
       includeRAG: true,
       includePatterns: true,
+      guidanceMode: conflict.guidance_mode || 'conversational',
     });
 
     // Build context for joint synthesis
@@ -216,32 +237,26 @@ export async function synthesizeJointContextGuidance(
       otherUser?.displayName
     );
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
+    // Call OpenAI API
+    const response = await openai.chat.completions.create({
       model: MODEL,
-      max_tokens: JOINT_CONTEXT_MAX_TOKENS,
-      system: systemPrompt,
+      max_completion_tokens: JOINT_CONTEXT_MAX_TOKENS,
       messages: [
-        {
-          role: 'user',
-          content: context,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: context },
       ],
     });
 
     // Extract text content
-    const guidance = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as any).text)
-      .join('\n');
+    const guidance = response.choices[0]?.message?.content || '';
 
     // Calculate token usage
     const usage: TokenUsage = {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
       totalCost: calculateCost(
-        response.usage.input_tokens,
-        response.usage.output_tokens
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
       ),
     };
 
@@ -249,6 +264,24 @@ export async function synthesizeJointContextGuidance(
     console.log(
       `Joint-context guidance synthesis - Conflict: ${conflictId}, Partner: ${partnerId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
+
+    // Log the prompt
+    logPrompt({
+      userId: partnerId,
+      userEmail: requestingUser?.email,
+      userName: requestingUser?.displayName,
+      conflictId,
+      conflictTitle: conflict.title,
+      sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
+      logType: 'joint_context_guidance',
+      guidanceMode: conflict.guidance_mode,
+      systemPrompt,
+      userMessage: context,
+      aiResponse: guidance,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
 
     // Find or create the requesting partner's joint_context session
     const jointContextSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
@@ -453,13 +486,13 @@ async function getIntakeData(userId: string): Promise<any | null> {
 
 /**
  * Calculate cost based on token usage
- * Pricing for Claude Sonnet 4 (as of Dec 2024):
- * - Input: $3 per million tokens
- * - Output: $15 per million tokens
+ * Pricing for GPT-5.2 (estimated):
+ * - Input: $2.50 per million tokens
+ * - Output: $10 per million tokens
  */
 function calculateCost(inputTokens: number, outputTokens: number): number {
-  const INPUT_COST_PER_MILLION = 3.0;
-  const OUTPUT_COST_PER_MILLION = 15.0;
+  const INPUT_COST_PER_MILLION = 2.5;
+  const OUTPUT_COST_PER_MILLION = 10.0;
 
   const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION;
   const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION;
@@ -471,5 +504,5 @@ function calculateCost(inputTokens: number, outputTokens: number): number {
  * Validate that API key is configured
  */
 export function validateApiKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!process.env.OPENAI_API_KEY;
 }

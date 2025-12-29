@@ -1,18 +1,55 @@
 import { v4 as uuidv4 } from 'uuid';
 import { getDatabase } from './db';
-import { Relationship, Invitation } from '../types';
-import { getUserById, updateUserRelationship } from './user';
+import { Relationship, Invitation, RelationshipType } from '../types';
+import { getUserById, updateUserRelationship, updateUserPrimaryRelationship } from './user';
 
 const INVITATION_EXPIRY_HOURS = 72;
 
+/**
+ * Normalize email by removing +alias part (vadim+test@example.com -> vadim@example.com)
+ */
+function normalizeEmail(email: string): string {
+  const [local, domain] = email.toLowerCase().split('@');
+  const normalizedLocal = local.split('+')[0];
+  return `${normalizedLocal}@${domain}`;
+}
+
+/**
+ * Helper to extract results from SurrealDB query response
+ * Supports both old format (result[0].result) and v1.x format (result[0] is array)
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+
+  // Check for old format: result[0].result
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+
+  // v1.x format: result[0] is directly an array or the item itself
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+
+  // Single item returned directly
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+
+  return [];
+}
+
 export async function createInvitation(
   userId: string,
-  partnerEmail: string
+  partnerEmail: string,
+  relationshipType: RelationshipType = 'partner'
 ): Promise<Invitation> {
   const db = getDatabase();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + INVITATION_EXPIRY_HOURS * 60 * 60 * 1000);
-  const token = uuidv4();
+  const inviteToken = uuidv4();
 
   try {
     // Get inviter details
@@ -21,56 +58,55 @@ export async function createInvitation(
       throw new Error('Inviter not found');
     }
 
-    // Check if user already has an active relationship
-    if (inviter.relationshipId) {
-      throw new Error('User already has an active relationship');
-    }
-
     // Check if invitation already exists for this email from this user
-    const existingInvitations = await db.query<Invitation[]>(
+    const existingInvitationsRaw = await db.query<Invitation[]>(
       'SELECT * FROM invitation WHERE inviterId = $inviterId AND partnerEmail = $partnerEmail AND status = "pending"',
       { inviterId: userId, partnerEmail }
     );
 
-    if (existingInvitations && existingInvitations.length > 0 && existingInvitations[0].result && existingInvitations[0].result.length > 0) {
+    const existingInvitations = extractQueryResult<Invitation>(existingInvitationsRaw);
+    if (existingInvitations.length > 0) {
       throw new Error('An invitation has already been sent to this email');
     }
 
     // Create invitation
-    const created = await db.query<Invitation[]>(
-      'CREATE invitation CONTENT { token: $token, inviterId: $inviterId, inviterEmail: $inviterEmail, partnerEmail: $partnerEmail, status: "pending", expiresAt: $expiresAt, createdAt: $createdAt }',
+    const createdRaw = await db.query<Invitation[]>(
+      'CREATE invitation CONTENT { inviteToken: $inviteToken, inviterId: $inviterId, inviterEmail: $inviterEmail, partnerEmail: $partnerEmail, relationshipType: $relationshipType, status: "pending", expiresAt: $expiresAt, createdAt: $createdAt }',
       {
-        token,
+        inviteToken,
         inviterId: userId,
         inviterEmail: inviter.email,
         partnerEmail,
+        relationshipType,
         expiresAt: expiresAt.toISOString(),
         createdAt: now.toISOString(),
       }
     );
 
-    if (!created || created.length === 0 || !created[0].result || created[0].result.length === 0) {
+    const created = extractQueryResult<Invitation>(createdRaw);
+    if (created.length === 0) {
       throw new Error('Failed to create invitation');
     }
 
-    return created[0].result[0];
+    return created[0];
   } catch (error) {
     console.error('Error creating invitation:', error);
     throw error;
   }
 }
 
-export async function getInvitationByToken(token: string): Promise<Invitation | null> {
+export async function getInvitationByToken(inviteToken: string): Promise<Invitation | null> {
   const db = getDatabase();
 
   try {
-    const result = await db.query<Invitation[]>(
-      'SELECT * FROM invitation WHERE token = $token',
-      { token }
+    const resultRaw = await db.query<Invitation[]>(
+      'SELECT * FROM invitation WHERE inviteToken = $inviteToken',
+      { inviteToken }
     );
 
-    if (result && result.length > 0 && result[0].result && result[0].result.length > 0) {
-      return result[0].result[0];
+    const result = extractQueryResult<Invitation>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
     }
 
     return null;
@@ -111,14 +147,9 @@ export async function acceptInvitation(token: string, userId: string): Promise<R
       throw new Error('User not found');
     }
 
-    // Verify email matches
-    if (acceptingUser.email !== invitation.partnerEmail) {
+    // Verify email matches (normalize to handle +alias variants)
+    if (normalizeEmail(acceptingUser.email) !== normalizeEmail(invitation.partnerEmail)) {
       throw new Error('Invitation is for a different email address');
-    }
-
-    // Check if accepting user already has a relationship
-    if (acceptingUser.relationshipId) {
-      throw new Error('User already has an active relationship');
     }
 
     // Get inviter
@@ -127,31 +158,51 @@ export async function acceptInvitation(token: string, userId: string): Promise<R
       throw new Error('Inviter not found');
     }
 
-    // Check if inviter already has a relationship (could have changed since invitation)
-    if (inviter.relationshipId) {
-      throw new Error('Inviter already has an active relationship');
+    // Check if a relationship already exists between these users
+    const existingRelationship = await getRelationshipBetweenUsers(invitation.inviterId, userId);
+    if (existingRelationship && existingRelationship.status === 'active') {
+      throw new Error('A relationship already exists between these users');
     }
 
+    // Get relationship type from invitation (default to 'partner' for legacy invitations)
+    const relationshipType = invitation.relationshipType || 'partner';
+
     // Create relationship
-    const created = await db.query<Relationship[]>(
-      'CREATE relationship CONTENT { user1Id: $user1Id, user2Id: $user2Id, status: "active", createdAt: $createdAt, updatedAt: $updatedAt }',
+    const createdRaw = await db.query<Relationship[]>(
+      'CREATE relationship CONTENT { user1Id: $user1Id, user2Id: $user2Id, type: $type, status: "active", createdAt: $createdAt, updatedAt: $updatedAt }',
       {
         user1Id: invitation.inviterId,
         user2Id: userId,
+        type: relationshipType,
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
       }
     );
 
-    if (!created || created.length === 0 || !created[0].result || created[0].result.length === 0) {
+    const created = extractQueryResult<Relationship>(createdRaw);
+    if (created.length === 0) {
       throw new Error('Failed to create relationship');
     }
 
-    const relationship = created[0].result[0];
+    const relationship = created[0];
 
-    // Update both users with relationship ID
-    await updateUserRelationship(invitation.inviterId, relationship.id);
-    await updateUserRelationship(userId, relationship.id);
+    // For partner type, set as primary if user doesn't have one
+    if (relationshipType === 'partner') {
+      if (!inviter.primaryRelationshipId) {
+        await updateUserPrimaryRelationship(invitation.inviterId, relationship.id);
+      }
+      if (!acceptingUser.primaryRelationshipId) {
+        await updateUserPrimaryRelationship(userId, relationship.id);
+      }
+    }
+
+    // Legacy support: update relationshipId for first relationship
+    if (!inviter.relationshipId) {
+      await updateUserRelationship(invitation.inviterId, relationship.id);
+    }
+    if (!acceptingUser.relationshipId) {
+      await updateUserRelationship(userId, relationship.id);
+    }
 
     // Mark invitation as accepted
     await db.query(
@@ -176,13 +227,14 @@ export async function getRelationship(userId: string): Promise<Relationship | nu
       return null;
     }
 
-    const result = await db.query<Relationship[]>(
+    const resultRaw = await db.query<Relationship[]>(
       'SELECT * FROM $relationshipId',
       { relationshipId: user.relationshipId }
     );
 
-    if (result && result.length > 0 && result[0].result && result[0].result.length > 0) {
-      return result[0].result[0];
+    const result = extractQueryResult<Relationship>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
     }
 
     return null;
@@ -198,16 +250,17 @@ export async function unpair(relationshipId: string, userId: string): Promise<vo
 
   try {
     // Get relationship
-    const result = await db.query<Relationship[]>(
+    const resultRaw = await db.query<Relationship[]>(
       'SELECT * FROM $relationshipId',
       { relationshipId }
     );
 
-    if (!result || result.length === 0 || !result[0].result || result[0].result.length === 0) {
+    const result = extractQueryResult<Relationship>(resultRaw);
+    if (result.length === 0) {
       throw new Error('Relationship not found');
     }
 
-    const relationship = result[0].result[0];
+    const relationship = result[0];
 
     // Verify user is part of this relationship
     if (relationship.user1Id !== userId && relationship.user2Id !== userId) {
@@ -238,18 +291,145 @@ export async function getPendingInvitations(userId: string): Promise<Invitation[
       throw new Error('User not found');
     }
 
-    const result = await db.query<Invitation[]>(
+    const resultRaw = await db.query<Invitation[]>(
       'SELECT * FROM invitation WHERE partnerEmail = $email AND status = "pending" ORDER BY createdAt DESC',
       { email: user.email }
     );
 
-    if (result && result.length > 0 && result[0].result) {
-      return result[0].result;
-    }
-
-    return [];
+    return extractQueryResult<Invitation>(resultRaw);
   } catch (error) {
     console.error('Error getting pending invitations:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get sent invitations (where user is the inviter)
+ */
+export async function getSentInvitations(userId: string): Promise<Invitation[]> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query<Invitation[]>(
+      'SELECT * FROM invitation WHERE inviterId = $userId AND status = "pending" ORDER BY createdAt DESC',
+      { userId }
+    );
+
+    return extractQueryResult<Invitation>(resultRaw);
+  } catch (error) {
+    console.error('Error getting sent invitations:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all relationships for a user (active ones)
+ */
+export async function getAllRelationships(userId: string): Promise<Relationship[]> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query<Relationship[]>(
+      'SELECT * FROM relationship WHERE (user1Id = $userId OR user2Id = $userId) AND status = "active" ORDER BY createdAt DESC',
+      { userId }
+    );
+
+    return extractQueryResult<Relationship>(resultRaw);
+  } catch (error) {
+    console.error('Error getting all relationships:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a specific relationship between two users
+ */
+export async function getRelationshipBetweenUsers(
+  user1Id: string,
+  user2Id: string
+): Promise<Relationship | null> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query<Relationship[]>(
+      'SELECT * FROM relationship WHERE ((user1Id = $user1Id AND user2Id = $user2Id) OR (user1Id = $user2Id AND user2Id = $user1Id))',
+      { user1Id, user2Id }
+    );
+
+    const result = extractQueryResult<Relationship>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting relationship between users:', error);
+    throw error;
+  }
+}
+
+/**
+ * Set a relationship as the primary relationship for a user
+ */
+export async function setPrimaryRelationship(
+  userId: string,
+  relationshipId: string
+): Promise<void> {
+  const db = getDatabase();
+
+  try {
+    // Verify the relationship exists and user is part of it
+    const resultRaw = await db.query<Relationship[]>(
+      'SELECT * FROM $relationshipId',
+      { relationshipId }
+    );
+
+    const result = extractQueryResult<Relationship>(resultRaw);
+    if (result.length === 0) {
+      throw new Error('Relationship not found');
+    }
+
+    const relationship = result[0];
+
+    if (relationship.user1Id !== userId && relationship.user2Id !== userId) {
+      throw new Error('User is not part of this relationship');
+    }
+
+    if (relationship.status !== 'active') {
+      throw new Error('Cannot set inactive relationship as primary');
+    }
+
+    // Update user's primary relationship
+    await updateUserPrimaryRelationship(userId, relationshipId);
+
+    // Also update legacy relationshipId for compatibility
+    await updateUserRelationship(userId, relationshipId);
+  } catch (error) {
+    console.error('Error setting primary relationship:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get relationship by ID
+ */
+export async function getRelationshipById(relationshipId: string): Promise<Relationship | null> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query<Relationship[]>(
+      'SELECT * FROM $relationshipId',
+      { relationshipId }
+    );
+
+    const result = extractQueryResult<Relationship>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting relationship by ID:', error);
     throw error;
   }
 }

@@ -15,7 +15,7 @@ router.post(
   authenticateUser,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { title, privacy, relationshipId } = req.body;
+      const { title, privacy, relationshipId, guidanceMode } = req.body;
       const userId = req.user?.uid;
 
       if (!userId) {
@@ -37,11 +37,23 @@ router.post(
         return;
       }
 
+      // Validate guidanceMode if provided, default to 'conversational'
+      const validGuidanceModes = ['structured', 'conversational', 'test'];
+      const mode = guidanceMode || 'conversational';
+
+      if (!validGuidanceModes.includes(mode)) {
+        res
+          .status(400)
+          .json({ error: 'guidanceMode must be "structured", "conversational", or "test"' });
+        return;
+      }
+
       const conflict = await conflictService.createConflict(
         userId,
         title,
         privacy,
-        relationshipId
+        relationshipId,
+        mode
       );
 
       res.status(201).json(conflict);
@@ -203,6 +215,71 @@ router.post(
 );
 
 /**
+ * Join a conflict as Partner B (creates their session)
+ * POST /api/conflicts/:id/join
+ */
+router.post(
+  '/:id/join',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const conflict = await conflictService.getConflict(id);
+
+      if (!conflict) {
+        res.status(404).json({ error: 'Conflict not found' });
+        return;
+      }
+
+      // User must be Partner B (via relationship) but not yet have a session
+      if (conflict.partner_a_id === userId) {
+        res.status(400).json({ error: 'Partner A cannot join their own conflict' });
+        return;
+      }
+
+      if (conflict.partner_b_session_id) {
+        // Session already exists, just return success
+        res.json({
+          conflict,
+          sessionId: conflict.partner_b_session_id,
+          message: 'Already joined'
+        });
+        return;
+      }
+
+      if (conflict.status !== 'pending_partner_b') {
+        res.status(400).json({
+          error: 'Cannot join conflict in current status',
+          status: conflict.status
+        });
+        return;
+      }
+
+      // Create Partner B's session by calling invitePartnerB with their userId
+      const updatedConflict = await conflictService.invitePartnerB(id, userId);
+
+      res.json({
+        conflict: updatedConflict,
+        sessionId: updatedConflict.partner_b_session_id,
+        message: 'Successfully joined conflict'
+      });
+    } catch (error) {
+      console.error('Error joining conflict:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to join conflict';
+      res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+/**
  * Update conflict status
  * POST /api/conflicts/:id/status
  */
@@ -265,6 +342,57 @@ router.post(
           ? error.message
           : 'Failed to update conflict status';
       res.status(500).json({ error: errorMessage });
+    }
+  }
+);
+
+/**
+ * Get the shared session for a conflict (for relationship guidance)
+ * GET /api/conflicts/:id/shared-session
+ */
+router.get(
+  '/:id/shared-session',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Verify user is part of this conflict
+      const conflict = await conflictService.getConflict(id);
+
+      if (!conflict) {
+        res.status(404).json({ error: 'Conflict not found' });
+        return;
+      }
+
+      if (conflict.partner_a_id !== userId && conflict.partner_b_id !== userId) {
+        res.status(403).json({ error: 'Access denied: User is not part of this conflict' });
+        return;
+      }
+
+      // Find the relationship_shared session for this conflict
+      const sessions = await conversationService.getSessionsByConflict(id);
+      const sharedSession = sessions.find(s => s.sessionType === 'relationship_shared');
+
+      if (!sharedSession) {
+        res.status(404).json({ error: 'Shared session not yet available' });
+        return;
+      }
+
+      res.json({
+        sessionId: sharedSession.id,
+        conflictId: id,
+        status: sharedSession.status,
+      });
+    } catch (error) {
+      console.error('Error fetching shared session:', error);
+      res.status(500).json({ error: 'Failed to fetch shared session' });
     }
   }
 );

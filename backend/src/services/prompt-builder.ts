@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import { getDatabase } from './db';
 import { searchSimilar } from './embeddings';
-import { SessionType } from '../types';
+import { SessionType, GuidanceMode } from '../types';
 
 /**
  * Prompt Builder Service
@@ -17,6 +17,7 @@ export interface PromptContext {
   sessionType: SessionType;
   includeRAG?: boolean;
   includePatterns?: boolean;
+  guidanceMode?: GuidanceMode;
 }
 
 export interface PatternInsight {
@@ -27,15 +28,47 @@ export interface PatternInsight {
 }
 
 /**
+ * Mode-aware templates that have separate versions for structured/conversational/test
+ */
+const MODE_AWARE_TEMPLATES = [
+  'exploration-system-prompt.txt',
+  'individual-guidance-prompt.txt',
+  'joint-context-synthesis.txt',
+  'relationship-synthesis.txt',
+];
+
+/**
+ * Get the appropriate template filename based on guidance mode
+ * Returns mode-specific template for mode-aware templates, original for others
+ */
+function getTemplateFileName(
+  baseTemplate: string,
+  guidanceMode: GuidanceMode = 'conversational'
+): string {
+  if (!MODE_AWARE_TEMPLATES.includes(baseTemplate)) {
+    return baseTemplate;
+  }
+
+  const baseName = baseTemplate.replace('.txt', '');
+  return `${baseName}-${guidanceMode}.txt`;
+}
+
+/**
  * Build prompt with RAG context and patterns injected
  */
 export async function buildPrompt(
   templatePath: string,
   context: PromptContext
 ): Promise<string> {
+  // Get mode-aware template filename
+  const actualTemplatePath = getTemplateFileName(
+    templatePath,
+    context.guidanceMode || 'conversational'
+  );
+
   // Load base template
   const template = readFileSync(
-    join(__dirname, '../prompts', templatePath),
+    join(__dirname, '../prompts', actualTemplatePath),
     'utf-8'
   );
 

@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import ChatWindow from '../chat/ChatWindow';
-import { Message } from '../chat/ChatWindow';
+import type { Message } from '../chat/ChatWindow';
 import { useConversation } from '../../hooks/useConversation';
 import ReadyButton from './ReadyButton';
 import ConversationLock from './ConversationLock';
+import { useAuth } from '../../auth/AuthContext';
 import './Conflict.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface ExplorationChatProps {
   conflictId?: string;
@@ -19,9 +22,14 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
   const { id: conflictIdParam } = useParams<{ id: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const conflictId = conflictIdProp || conflictIdParam;
-  const sessionId = sessionIdProp || location.state?.sessionId;
+  // Try to get sessionId from props, then location state, then we'll fetch it
+  const [sessionId, setSessionId] = useState<string | undefined>(
+    sessionIdProp || location.state?.sessionId
+  );
+  const [isLoadingConflict, setIsLoadingConflict] = useState(!sessionId);
 
   const [conflictTitle, setConflictTitle] = useState('Exploration Chat');
   const [showReadyConfirmation, setShowReadyConfirmation] = useState(false);
@@ -45,28 +53,89 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
     senderName: msg.role === 'ai' ? 'AI Therapist' : undefined
   }));
 
+  // Fetch conflict details to get sessionId and title
   useEffect(() => {
-    if (!conflictId || !sessionId) {
-      console.error('Missing conflictId or sessionId');
+    if (!conflictId) {
+      console.error('Missing conflictId');
       navigate('/');
       return;
     }
 
-    // Fetch conflict details to get the title
+    // If we already have sessionId, don't re-fetch - just mark as loaded
+    if (sessionId) {
+      setIsLoadingConflict(false);
+      return;
+    }
+
     const fetchConflictDetails = async () => {
+      if (!user) return;
+
       try {
-        const response = await fetch(`/api/conflicts/${conflictId}`);
+        setIsLoadingConflict(true);
+        const token = await user.getIdToken();
+        const response = await fetch(`${API_URL}/api/conflicts/${conflictId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         if (response.ok) {
           const data = await response.json();
-          setConflictTitle(data.title || 'Exploration Chat');
+          setConflictTitle(data.conflict?.title || 'Exploration Chat');
+
+          // Get sessionId from the conflict
+          if (data.conflict) {
+            // Determine which session based on current user
+            const isPartnerA = data.conflict.partner_a_id === user.uid;
+            const partnerASession = data.conflict.partner_a_session_id;
+            const partnerBSession = data.conflict.partner_b_session_id;
+
+            let userSession = isPartnerA ? partnerASession : partnerBSession;
+
+            // If Partner B doesn't have a session yet, join the conflict to create one
+            if (!userSession && !isPartnerA && data.conflict.status === 'pending_partner_b') {
+              console.log('Partner B joining conflict to create session...');
+              const joinResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/join`, {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              if (joinResponse.ok) {
+                const joinData = await joinResponse.json();
+                userSession = joinData.sessionId;
+                console.log('Partner B joined successfully, session:', userSession);
+              } else {
+                const errorData = await joinResponse.json();
+                console.error('Failed to join conflict:', errorData.error);
+                navigate('/');
+                return;
+              }
+            }
+
+            if (userSession) {
+              setSessionId(userSession);
+            } else {
+              console.error('No session found for this user in conflict');
+              navigate('/');
+              return;
+            }
+          }
+        } else {
+          console.error('Failed to fetch conflict details');
+          navigate('/');
+          return;
         }
       } catch (err) {
         console.error('Failed to fetch conflict details:', err);
+        navigate('/');
+      } finally {
+        setIsLoadingConflict(false);
       }
     };
 
     fetchConflictDetails();
-  }, [conflictId, sessionId, navigate]);
+  }, [conflictId, navigate, user]); // Removed sessionId - we return early if it exists
 
   const handleSendMessage = async (content: string) => {
     try {
@@ -84,6 +153,19 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
       console.error('Failed to finalize conversation:', err);
     }
   };
+
+  if (isLoadingConflict) {
+    return (
+      <main id="main-content" className="exploration-chat-page">
+        <div className="exploration-chat-container">
+          <div className="loading-state">
+            <div className="loading-spinner" />
+            <p>Loading conversation...</p>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   if (!conflictId || !sessionId) {
     return (

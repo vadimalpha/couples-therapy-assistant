@@ -11,10 +11,17 @@ import { TokenUsage } from './chat-ai';
  * Generates warm, conversational responses for intake sessions.
  */
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+// Lazy-initialized OpenAI client
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return openai;
+}
 
 // Load system prompt from file
 const SYSTEM_PROMPT = readFileSync(
@@ -24,7 +31,7 @@ const SYSTEM_PROMPT = readFileSync(
 
 // Model configuration
 const MODEL = 'gpt-5.2';
-const MAX_TOKENS = 1024;
+const MAX_COMPLETION_TOKENS = 1024;
 
 export interface IntakeContext {
   userId: string;
@@ -53,9 +60,9 @@ export async function streamIntakeResponse(
     const openaiMessages = convertMessages(messages);
 
     // Call OpenAI API with streaming
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
       messages: [
         { role: 'system', content: systemPrompt },
         ...openaiMessages,

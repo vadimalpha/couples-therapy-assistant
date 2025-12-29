@@ -1,7 +1,36 @@
 import { getDatabase } from './db';
 import { conversationService } from './conversation';
 import { generateConflictEmbedding } from './embeddings';
-import { Conflict, ConflictStatus, ConflictPrivacy } from '../types';
+import { getRelationshipById } from './relationship';
+import { getUserByFirebaseUid } from './user';
+import { Conflict, ConflictStatus, ConflictPrivacy, GuidanceMode } from '../types';
+
+/**
+ * Helper to extract results from SurrealDB query response
+ * Supports both old format (result[0].result) and v1.x format (result[0] is array)
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+
+  // Check for old format: result[0].result
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+
+  // v1.x format: result[0] is directly an array or the item itself
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+
+  // Single item returned directly
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+
+  return [];
+}
 
 export class ConflictService {
   /**
@@ -11,7 +40,8 @@ export class ConflictService {
     userId: string,
     title: string,
     privacy: ConflictPrivacy,
-    relationshipId: string
+    relationshipId: string,
+    guidanceMode: GuidanceMode = 'conversational'
   ): Promise<Conflict> {
     const db = getDatabase();
     const now = new Date().toISOString();
@@ -19,6 +49,7 @@ export class ConflictService {
     const conflictData = {
       title,
       privacy,
+      guidance_mode: guidanceMode,
       status: 'partner_a_chatting' as ConflictStatus,
       partner_a_id: userId,
       relationship_id: relationshipId,
@@ -30,16 +61,12 @@ export class ConflictService {
       data: conflictData,
     });
 
-    if (
-      !result ||
-      result.length === 0 ||
-      !(result[0] as any).result ||
-      (result[0] as any).result.length === 0
-    ) {
+    const conflicts = extractQueryResult<Conflict>(result);
+    if (conflicts.length === 0) {
       throw new Error('Failed to create conflict');
     }
 
-    const conflict = (result[0] as any).result[0];
+    const conflict = conflicts[0];
 
     // Automatically create Partner A's individual session
     const session = await conversationService.createSession(
@@ -88,16 +115,18 @@ export class ConflictService {
       conflictId: fullId,
     });
 
-    if (
-      !result ||
-      result.length === 0 ||
-      !(result[0] as any).result ||
-      (result[0] as any).result.length === 0
-    ) {
+    const conflicts = extractQueryResult<Conflict>(result);
+    if (conflicts.length === 0) {
       return null;
     }
 
-    return (result[0] as any).result[0];
+    // Ensure backward compatibility - default to 'conversational' for existing conflicts
+    const conflict = conflicts[0];
+    if (!conflict.guidance_mode) {
+      conflict.guidance_mode = 'conversational';
+    }
+
+    return conflict;
   }
 
   /**
@@ -118,16 +147,34 @@ export class ConflictService {
       return null;
     }
 
-    // Verify user is part of this conflict
-    if (
-      conflict.partner_a_id !== userId &&
-      conflict.partner_b_id !== userId
-    ) {
-      throw new Error('Access denied: User is not part of this conflict');
-    }
-
+    // Check if user is directly part of this conflict
     const isPartnerA = conflict.partner_a_id === userId;
     const isPartnerB = conflict.partner_b_id === userId;
+
+    // If user is not directly part, check if they're part of the relationship
+    // This allows Partner B to access the conflict before joining (to call /join)
+    if (!isPartnerA && !isPartnerB) {
+      // Check if user is part of the conflict's relationship
+      if (conflict.relationship_id) {
+        const relationship = await getRelationshipById(conflict.relationship_id);
+
+        // Get SurrealDB user ID from Firebase UID (userId param is Firebase UID)
+        const currentUser = await getUserByFirebaseUid(userId);
+        const surrealUserId = currentUser?.id;
+
+        const isInRelationship = relationship && surrealUserId && (
+          relationship.user1Id === surrealUserId ||
+          relationship.user2Id === surrealUserId
+        );
+
+        if (!isInRelationship) {
+          throw new Error('Access denied: User is not part of this conflict');
+        }
+        // User is Partner B through relationship but hasn't joined yet
+      } else {
+        throw new Error('Access denied: User is not part of this conflict');
+      }
+    }
 
     // Partner A can always see their own session
     // Partner B can always see their own session
@@ -183,20 +230,70 @@ export class ConflictService {
 
   /**
    * Get all conflicts for a user
+   * Includes conflicts where user is Partner A, Partner B, or part of the relationship
    */
   async getUserConflicts(userId: string): Promise<Conflict[]> {
     const db = getDatabase();
 
-    const result = await db.query(
+    // Get conflicts where user is directly Partner A or Partner B (userId is Firebase UID)
+    const directResult = await db.query(
       'SELECT * FROM conflict WHERE partner_a_id = $userId OR partner_b_id = $userId ORDER BY created_at DESC',
       { userId }
     );
+    const directConflicts = extractQueryResult<Conflict>(directResult);
 
-    if (!result || result.length === 0 || !(result[0] as any).result) {
-      return [];
+    // Get SurrealDB user ID from Firebase UID for relationship queries
+    const currentUser = await getUserByFirebaseUid(userId);
+    if (!currentUser) {
+      return directConflicts;
+    }
+    const surrealUserId = currentUser.id;
+
+    // Get relationships the user is part of (using SurrealDB user ID)
+    const relationshipResult = await db.query(
+      'SELECT id FROM relationship WHERE user1Id = $surrealUserId OR user2Id = $surrealUserId',
+      { surrealUserId }
+    );
+    const relationships = extractQueryResult<{ id: string }>(relationshipResult);
+
+    if (relationships.length === 0) {
+      return directConflicts;
     }
 
-    return (result[0] as any).result || [];
+    // Get conflicts from those relationships where user isn't Partner A (they're the potential Partner B)
+    const relationshipIds = relationships.map(r => r.id);
+    const relConflictResult = await db.query(
+      'SELECT * FROM conflict WHERE relationship_id IN $relationshipIds AND partner_a_id != $userId ORDER BY created_at DESC',
+      { relationshipIds, userId }
+    );
+    const relationshipConflicts = extractQueryResult<Conflict>(relConflictResult);
+
+    // Merge and deduplicate
+    const allConflicts = [...directConflicts];
+    for (const conflict of relationshipConflicts) {
+      if (!allConflicts.find(c => c.id === conflict.id)) {
+        allConflicts.push(conflict);
+      }
+    }
+
+    // Sort by created_at
+    allConflicts.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    return allConflicts;
+  }
+
+  /**
+   * Get all conflicts for a specific relationship
+   */
+  async getConflictsByRelationship(relationshipId: string): Promise<Conflict[]> {
+    const db = getDatabase();
+
+    const result = await db.query(
+      'SELECT * FROM conflict WHERE relationship_id = $relationshipId ORDER BY created_at DESC',
+      { relationshipId }
+    );
+
+    return extractQueryResult<Conflict>(result);
   }
 
   /**
@@ -246,12 +343,12 @@ export class ConflictService {
       }
     );
 
-    if (!updateResult || updateResult.length === 0 || !(updateResult[0] as any).result) {
+    const updated = extractQueryResult<Conflict>(updateResult);
+    if (updated.length === 0) {
       throw new Error('Failed to invite Partner B');
     }
 
-    const updated = (updateResult[0] as any).result;
-    return Array.isArray(updated) ? updated[0] : updated;
+    return updated[0];
   }
 
   /**
@@ -297,12 +394,12 @@ export class ConflictService {
       }
     );
 
-    if (!updateResult || updateResult.length === 0 || !(updateResult[0] as any).result) {
+    const updated = extractQueryResult<Conflict>(updateResult);
+    if (updated.length === 0) {
       throw new Error('Failed to update conflict status');
     }
 
-    const updated = (updateResult[0] as any).result;
-    return Array.isArray(updated) ? updated[0] : updated;
+    return updated[0];
   }
 }
 

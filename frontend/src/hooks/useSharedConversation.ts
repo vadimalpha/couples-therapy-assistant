@@ -176,34 +176,38 @@ export function useSharedConversation(
 
       socket.on('stream-chunk', (data: { content: string }) => {
         setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
+          const lastMessage = prev[prev.length - 1];
 
           if (lastMessage && lastMessage.isStreaming) {
-            lastMessage.content += data.content;
+            // Create new array with new message object to avoid mutation
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMessage, content: lastMessage.content + data.content }
+            ];
           } else {
-            updated.push({
+            return [...prev, {
               id: `stream-${Date.now()}`,
               role: 'ai',
               content: data.content,
               timestamp: new Date(),
               isStreaming: true
-            });
+            }];
           }
-
-          return updated;
         });
       });
 
       socket.on('stream-end', () => {
         setIsStreaming(false);
         setMessages(prev => {
-          const updated = [...prev];
-          const lastMessage = updated[updated.length - 1];
+          const lastMessage = prev[prev.length - 1];
           if (lastMessage && lastMessage.isStreaming) {
-            lastMessage.isStreaming = false;
+            // Create new array with new message object to avoid mutation
+            return [
+              ...prev.slice(0, -1),
+              { ...lastMessage, isStreaming: false }
+            ];
           }
-          return updated;
+          return prev;
         });
       });
 

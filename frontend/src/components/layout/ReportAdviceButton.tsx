@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Layout.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export interface ReportAdviceButtonProps {
   messageId?: string;
   conflictId?: string;
@@ -21,7 +23,7 @@ const ReportAdviceButton: React.FC<ReportAdviceButtonProps> = ({ messageId, conf
     setError(null);
 
     try {
-      const response = await fetch('/api/moderation/report', {
+      const response = await fetch(`${API_URL}/api/moderation/report`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

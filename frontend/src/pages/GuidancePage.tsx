@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import GuidanceChat from '../components/guidance/GuidanceChat';
 import GuidanceStatus, { GuidanceStatusType } from '../components/guidance/GuidanceStatus';
+import { useAuth } from '../auth/AuthContext';
 import '../components/guidance/Guidance.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface ConflictData {
   id: string;
@@ -22,6 +25,7 @@ interface GuidanceSession {
 const GuidancePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -36,34 +40,75 @@ const GuidancePage: React.FC = () => {
         return;
       }
 
+      if (!user) {
+        setError('Not authenticated');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
+        const token = await user.getIdToken();
+
         // Fetch conflict data
-        const conflictResponse = await fetch(`/api/conflicts/${id}`, {
-          credentials: 'include'
+        const conflictResponse = await fetch(`${API_URL}/api/conflicts/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
         });
 
         if (!conflictResponse.ok) {
           throw new Error('Failed to load conflict');
         }
 
-        const conflictData: ConflictData = await conflictResponse.json();
-        setConflict(conflictData);
+        const conflictData = await conflictResponse.json();
+        setConflict(conflictData.conflict || conflictData);
 
-        // Fetch guidance session if it exists
-        if (conflictData.guidanceSessionId) {
-          const sessionResponse = await fetch(`/api/guidance-sessions/${conflictData.guidanceSessionId}`, {
-            credentials: 'include'
-          });
-
-          if (!sessionResponse.ok) {
-            throw new Error('Failed to load guidance session');
+        // Look for user's joint context session for this conflict
+        const sessionsResponse = await fetch(`${API_URL}/api/conversations`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
+        });
 
-          const sessionData: GuidanceSession = await sessionResponse.json();
-          setGuidanceSession(sessionData);
+        if (sessionsResponse.ok) {
+          const sessions = await sessionsResponse.json();
+          const jointContextSession = sessions.find((s: any) =>
+            (s.sessionType === 'joint_context_a' || s.sessionType === 'joint_context_b') &&
+            s.conflictId === (conflictData.conflict?.id || id)
+          );
+
+          if (jointContextSession && jointContextSession.messages?.length > 0) {
+            // Found joint context session with guidance
+            const guidanceMessage = jointContextSession.messages.find((msg: any) => msg.role === 'ai');
+            setGuidanceSession({
+              id: jointContextSession.id,
+              status: 'ready',
+              initialGuidance: guidanceMessage?.content,
+              partnerACompleted: true,
+              partnerBCompleted: true
+            });
+          } else if (conflictData.conflict?.status === 'both_finalized') {
+            // Both finalized but no guidance yet - synthesizing
+            setGuidanceSession({
+              id: '',
+              status: 'synthesizing',
+              partnerACompleted: true,
+              partnerBCompleted: true
+            });
+          } else {
+            // Not all partners have finalized
+            const partnerADone = !!conflictData.partnerASession?.finalizedAt;
+            const partnerBDone = !!conflictData.partnerBSession?.finalizedAt;
+            setGuidanceSession({
+              id: '',
+              status: 'pending',
+              partnerACompleted: partnerADone,
+              partnerBCompleted: partnerBDone
+            });
+          }
         } else {
           // No guidance session yet - both partners haven't completed
           setGuidanceSession({
@@ -82,7 +127,7 @@ const GuidancePage: React.FC = () => {
     };
 
     fetchGuidanceData();
-  }, [id]);
+  }, [id, user]);
 
   if (loading) {
     return (

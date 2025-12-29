@@ -1,10 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import ChatWindow, { Message } from '../chat/ChatWindow';
+import ChatWindow from '../chat/ChatWindow';
+import type { Message } from '../chat/ChatWindow';
 import { useConversation } from '../../hooks/useConversation';
 import GuidanceStatus from './GuidanceStatus';
-import { PatternInsights, Pattern } from '../patterns';
+import { PatternInsights } from '../patterns';
+import type { Pattern } from '../patterns';
+import { MarkdownRenderer } from '../chat/MarkdownRenderer';
 import './Guidance.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 export interface GuidanceChatProps {
   conflictId: string;
@@ -39,7 +44,7 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
     // Fetch pattern insights and shared chat unlock status
     const fetchData = async () => {
       try {
-        const patternsResponse = await fetch('/api/relationships/patterns', {
+        const patternsResponse = await fetch(`${API_URL}/api/relationships/patterns`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
           },
@@ -52,7 +57,7 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
 
         // Check if shared chat is unlocked (both partners completed joint-context guidance)
         if (relationshipId) {
-          const unlockResponse = await fetch(`/api/relationships/${relationshipId}/shared-chat-status`, {
+          const unlockResponse = await fetch(`${API_URL}/api/relationships/${relationshipId}/shared-chat-status`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`,
             },
@@ -89,9 +94,7 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
   };
 
   const handleJoinSharedChat = () => {
-    if (relationshipId) {
-      navigate(`/relationships/${relationshipId}/shared`);
-    }
+    navigate(`/conflicts/${conflictId}/shared`);
   };
 
   // Show status while waiting for synthesis
@@ -123,7 +126,9 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
       {chatMessages.length > 0 && chatMessages[0].role === 'assistant' && (
         <div className="guidance-initial-message" aria-label="Initial guidance from AI therapist">
           <h3 className="guidance-initial-title">Your Personalized Guidance</h3>
-          <p className="guidance-initial-content">{chatMessages[0].content}</p>
+          <div className="guidance-initial-content">
+            <MarkdownRenderer content={chatMessages[0].content} />
+          </div>
         </div>
       )}
 
@@ -131,7 +136,7 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
         <PatternInsights patterns={patterns} />
       )}
 
-      {sharedChatUnlocked && relationshipId && (
+      {sharedChatUnlocked && (
         <div className="guidance-shared-chat-unlock">
           <div className="unlock-message">
             <h3>Ready for Joint Conversation</h3>

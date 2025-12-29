@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { MarkdownRenderer } from './MarkdownRenderer';
 
 interface StreamingMessageProps {
   streamingContent: string;
@@ -38,7 +39,7 @@ export const StreamingMessage: React.FC<StreamingMessageProps> = ({
   return (
     <div className="streaming-message">
       <div className="message-content">
-        {displayedContent}
+        <MarkdownRenderer content={displayedContent} />
         {!isComplete && (
           <span className={`cursor ${showCursor ? 'visible' : 'hidden'}`}>
             |

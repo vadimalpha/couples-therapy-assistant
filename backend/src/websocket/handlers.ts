@@ -3,6 +3,7 @@ import { AuthenticatedSocket } from './index';
 import { conversationService } from '../services/conversation';
 import { conflictService } from '../services/conflict';
 import { getRelationship } from '../services/relationship';
+import { intakeService } from '../services/intake';
 import { MessageRole } from '../types';
 import {
   verifyMultiUserAccess,
@@ -11,6 +12,14 @@ import {
   broadcastTyping,
   clearUserTyping,
 } from './multi-user-room';
+import {
+  streamExplorationResponse,
+  streamRelationshipResponse,
+  ExplorationContext,
+  RelationshipContext
+} from '../services/chat-ai';
+import { getUserById } from '../services/user';
+import { SessionType } from '../types';
 
 /**
  * Handle new WebSocket connection
@@ -139,11 +148,133 @@ export async function handleMessage(
     console.log(
       `Message sent in session ${socket.sessionId} by user ${socket.userId}`
     );
+
+    // Trigger AI response for user messages (not for AI messages)
+    if (role === 'user') {
+      await triggerAIResponse(socket, io, socket.sessionId, socket.userId!);
+    }
   } catch (error) {
     console.error('Error handling message:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to send message';
     socket.emit('error', { message: errorMessage });
+  }
+}
+
+/**
+ * Trigger AI response based on session type
+ */
+async function triggerAIResponse(
+  socket: AuthenticatedSocket,
+  io: Server,
+  sessionId: string,
+  userId: string
+): Promise<void> {
+  try {
+    // Get the session to determine type
+    const session = await conversationService.getSession(sessionId);
+    if (!session) {
+      console.error('Session not found for AI response:', sessionId);
+      return;
+    }
+
+    const sessionType = session.sessionType as SessionType;
+
+    // Only generate AI responses for exploration and relationship sessions
+    if (!['individual_a', 'individual_b', 'relationship_shared'].includes(sessionType)) {
+      return;
+    }
+
+    // For exploration sessions, emit directly to the socket to avoid duplicates
+    // from multiple socket connections (React Strict Mode can cause this)
+    // For relationship_shared, emit to room so both partners can see
+    const emitToClient = sessionType === 'relationship_shared'
+      ? (event: string, data?: any) => io.to(sessionId).emit(event, data)
+      : (event: string, data?: any) => socket.emit(event, data);
+
+    // Emit stream-start to notify clients
+    emitToClient('stream-start');
+
+    let fullContent = '';
+
+    if (sessionType === 'individual_a' || sessionType === 'individual_b') {
+      // Exploration chat - use streamExplorationResponse
+      const context: ExplorationContext = {
+        userId,
+        conflictId: session.conflictId,
+        sessionType,
+      };
+
+      const result = await streamExplorationResponse(
+        session.messages,
+        context,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI exploration response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
+    } else if (sessionType === 'relationship_shared') {
+      // Relationship shared chat - need conflict info for partner IDs
+      if (!session.conflictId) {
+        console.error('Relationship session missing conflictId:', sessionId);
+        emitToClient('stream-end');
+        return;
+      }
+
+      const conflict = await conflictService.getConflict(session.conflictId);
+      if (!conflict) {
+        console.error('Conflict not found for relationship session:', session.conflictId);
+        emitToClient('stream-end');
+        return;
+      }
+
+      const relationshipContext: RelationshipContext = {
+        sessionId,
+        conflictId: session.conflictId,
+        partnerAId: conflict.partner_a_id,
+        partnerBId: conflict.partner_b_id || '',
+        senderId: userId,
+      };
+
+      const result = await streamRelationshipResponse(
+        session.messages,
+        relationshipContext,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI relationship response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
+    }
+
+    // Save the AI message to the database (do this before stream-end so it's persisted)
+    if (fullContent) {
+      await conversationService.addMessage(
+        sessionId,
+        'ai',
+        fullContent
+      );
+      // Note: We don't emit 'message' event here because the frontend
+      // already has the content from streaming. The streamed message
+      // becomes the final message when stream-end is received.
+    }
+
+    // Emit stream-end to notify clients (this finalizes the streamed message)
+    emitToClient('stream-end');
+  } catch (error) {
+    console.error('Error triggering AI response:', error);
+    // Emit stream-end to clean up client state
+    socket.emit('stream-end');
+    socket.emit('error', {
+      message: `AI response failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    });
   }
 }
 
@@ -190,5 +321,98 @@ export function handleDisconnect(
     }
   } catch (error) {
     console.error('Error handling disconnect:', error);
+  }
+}
+
+/**
+ * Handle finalize session
+ * For intake: extracts intake data and saves to user profile
+ * For exploration (individual_a/individual_b): marks session finalized and updates conflict status
+ */
+export async function handleFinalize(
+  socket: AuthenticatedSocket,
+  io: Server,
+  data: { sessionId: string },
+  callback?: (response: { error?: string; success?: boolean }) => void
+): Promise<void> {
+  try {
+    const { sessionId } = data;
+
+    if (!sessionId) {
+      callback?.({ error: 'sessionId is required' });
+      return;
+    }
+
+    // Verify session exists and user has access
+    const session = await conversationService.getSession(sessionId);
+
+    if (!session) {
+      callback?.({ error: 'Session not found' });
+      return;
+    }
+
+    if (session.userId !== socket.userId) {
+      callback?.({ error: 'Access denied' });
+      return;
+    }
+
+    // Handle different session types
+    if (session.sessionType === 'intake') {
+      console.log(`Finalizing intake session ${sessionId} for user ${socket.userId}`);
+
+      // Finalize the intake session
+      const intakeData = await intakeService.finalizeIntake(sessionId);
+
+      console.log(`Intake finalized for user ${socket.userId}:`, intakeData);
+
+      // Notify client of successful finalization
+      socket.emit('finalized', { intakeData });
+
+      // Send success callback
+      callback?.({ success: true });
+    } else if (session.sessionType === 'individual_a' || session.sessionType === 'individual_b') {
+      console.log(`Finalizing exploration session ${sessionId} for user ${socket.userId}`);
+
+      if (!session.conflictId) {
+        callback?.({ error: 'Session has no associated conflict' });
+        return;
+      }
+
+      // Finalize the conversation session (marks as finalized, queues guidance jobs)
+      await conversationService.finalizeSession(sessionId);
+
+      // Update conflict status based on which partner finalized
+      const conflict = await conflictService.getConflict(session.conflictId);
+      if (!conflict) {
+        callback?.({ error: 'Associated conflict not found' });
+        return;
+      }
+
+      // Determine next status based on current status and which partner finalized
+      if (session.sessionType === 'individual_a' && conflict.status === 'partner_a_chatting') {
+        // Partner A finished exploring - wait for Partner B
+        await conflictService.updateStatus(session.conflictId, 'pending_partner_b');
+        console.log(`Conflict ${session.conflictId} status updated to pending_partner_b`);
+      } else if (session.sessionType === 'individual_b' && conflict.status === 'partner_b_chatting') {
+        // Partner B finished exploring - both are now finalized
+        await conflictService.updateStatus(session.conflictId, 'both_finalized');
+        console.log(`Conflict ${session.conflictId} status updated to both_finalized`);
+      }
+
+      console.log(`Exploration session finalized for user ${socket.userId}`);
+
+      // Notify client of successful finalization
+      socket.emit('finalized', { conflictId: session.conflictId });
+
+      // Send success callback
+      callback?.({ success: true });
+    } else {
+      callback?.({ error: `Cannot finalize session of type: ${session.sessionType}` });
+    }
+  } catch (error) {
+    console.error('Error finalizing session:', error);
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to finalize session';
+    callback?.({ error: errorMessage });
   }
 }

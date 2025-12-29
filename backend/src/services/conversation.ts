@@ -20,28 +20,61 @@ export class ConversationService {
     sessionType: SessionType,
     conflictId?: string
   ): Promise<ConversationSession> {
-    const db = getDatabase();
-    const now = new Date().toISOString();
+    try {
+      const db = getDatabase();
+      const now = new Date().toISOString();
 
-    const sessionData = {
-      userId,
-      sessionType,
-      conflictId,
-      status: 'active',
-      messages: [],
-      createdAt: now,
-    };
+      const sessionData = {
+        userId,
+        sessionType,
+        conflictId,
+        status: 'active',
+        messages: [],
+        createdAt: now,
+      };
 
-    const result = await db.query(
-      'CREATE conversation CONTENT $data',
-      { data: sessionData }
-    );
+      console.log('Creating session with data:', JSON.stringify(sessionData));
 
-    if (!result || result.length === 0 || !(result[0] as any).result || (result[0] as any).result.length === 0) {
-      throw new Error('Failed to create conversation session');
+      const result = await db.query(
+        'CREATE conversation CONTENT $data',
+        { data: sessionData }
+      );
+
+      console.log('Query result:', JSON.stringify(result, null, 2));
+
+      // SurrealDB SDK v0.11+ returns results directly as an array
+      // First element is the result of the first query
+      const queryResult = result[0];
+
+      // Handle both old and new SDK result structures
+      let session: ConversationSession | undefined;
+      if (Array.isArray(queryResult)) {
+        session = queryResult[0];
+      } else if (queryResult && typeof queryResult === 'object') {
+        // Could be the session directly, or old SDK format
+        if ((queryResult as any).id) {
+          // It's the session object itself
+          session = queryResult as ConversationSession;
+        } else if ((queryResult as any).result) {
+          // Old SDK format with .result property
+          const resultArray = (queryResult as any).result;
+          if (Array.isArray(resultArray)) {
+            session = resultArray[0];
+          }
+        }
+      }
+
+      if (!session) {
+        console.error('Failed to create session, result structure:', typeof queryResult, queryResult);
+        throw new Error('Failed to create conversation session');
+      }
+
+      console.log('Session created successfully:', session.id);
+      return session;
+    } catch (error) {
+      console.error('Error in createSession:', error);
+      throw error;
     }
-
-    return (result[0] as any).result[0];
   }
 
   /**
@@ -55,16 +88,32 @@ export class ConversationService {
       ? sessionId
       : `conversation:${sessionId}`;
 
+    // Use type::thing() to properly reference the record by ID
     const result = await db.query(
-      'SELECT * FROM $sessionId',
+      'SELECT * FROM type::thing($sessionId)',
       { sessionId: fullId }
     );
 
-    if (!result || result.length === 0 || !(result[0] as any).result || (result[0] as any).result.length === 0) {
-      return null;
+    console.log('getSession query result:', JSON.stringify(result, null, 2));
+
+    // Handle both old and new SurrealDB SDK result structures
+    const queryResult = result[0];
+    let session: ConversationSession | undefined;
+
+    if (Array.isArray(queryResult)) {
+      session = queryResult[0];
+    } else if (queryResult && typeof queryResult === 'object') {
+      if ((queryResult as any).id) {
+        session = queryResult as ConversationSession;
+      } else if ((queryResult as any).result) {
+        const resultArray = (queryResult as any).result;
+        if (Array.isArray(resultArray)) {
+          session = resultArray[0];
+        }
+      }
     }
 
-    return (result[0] as any).result[0];
+    return session || null;
   }
 
   /**
@@ -103,7 +152,7 @@ export class ConversationService {
       : `conversation:${sessionId}`;
 
     await db.query(
-      'UPDATE $sessionId SET messages += $message',
+      'UPDATE type::thing($sessionId) SET messages += $message',
       { sessionId: fullId, message }
     );
 
@@ -144,16 +193,28 @@ export class ConversationService {
       : `conversation:${sessionId}`;
 
     const result = await db.query(
-      'UPDATE $sessionId SET status = $status, finalizedAt = $finalizedAt',
+      'UPDATE type::thing($sessionId) SET status = $status, finalizedAt = $finalizedAt',
       { sessionId: fullId, status: 'finalized', finalizedAt: new Date().toISOString() }
     );
 
-    if (!result || result.length === 0 || !(result[0] as any).result) {
-      throw new Error('Failed to finalize conversation session');
+    // Handle both old and new SurrealDB SDK result structures
+    const queryResult = result[0];
+    let finalizedSession: ConversationSession | undefined;
+
+    if (Array.isArray(queryResult)) {
+      finalizedSession = queryResult[0];
+    } else if (queryResult && typeof queryResult === 'object') {
+      if ((queryResult as any).id) {
+        finalizedSession = queryResult as ConversationSession;
+      } else if ((queryResult as any).result) {
+        const resultArray = (queryResult as any).result;
+        finalizedSession = Array.isArray(resultArray) ? resultArray[0] : resultArray;
+      }
     }
 
-    const updated = (result[0] as any).result;
-    const finalizedSession = Array.isArray(updated) ? updated[0] : updated;
+    if (!finalizedSession) {
+      throw new Error('Failed to finalize conversation session');
+    }
 
     // Queue guidance synthesis jobs for exploration sessions
     if (
@@ -198,20 +259,28 @@ export class ConversationService {
       ? conflictId
       : `conflict:${conflictId}`;
 
-    const conflictResult = await db.query('SELECT * FROM $conflictId', {
+    const conflictResult = await db.query('SELECT * FROM type::thing($conflictId)', {
       conflictId: fullConflictId,
     });
 
-    if (
-      !conflictResult ||
-      conflictResult.length === 0 ||
-      !(conflictResult[0] as any).result ||
-      (conflictResult[0] as any).result.length === 0
-    ) {
-      return;
+    // Handle both old and new SurrealDB SDK result structures
+    const queryResult = conflictResult[0];
+    let conflict: any;
+
+    if (Array.isArray(queryResult)) {
+      conflict = queryResult[0];
+    } else if (queryResult && typeof queryResult === 'object') {
+      if ((queryResult as any).id) {
+        conflict = queryResult;
+      } else if ((queryResult as any).result) {
+        const resultArray = (queryResult as any).result;
+        conflict = Array.isArray(resultArray) ? resultArray[0] : resultArray;
+      }
     }
 
-    const conflict = (conflictResult[0] as any).result[0];
+    if (!conflict) {
+      return;
+    }
 
     // Check if both partners have sessions
     if (!conflict.partner_a_session_id || !conflict.partner_b_session_id) {
@@ -316,11 +385,43 @@ export class ConversationService {
       { userId }
     );
 
-    if (!result || result.length === 0 || !(result[0] as any).result) {
-      return [];
+    // Handle both old and new SurrealDB SDK result structures
+    const queryResult = result[0];
+
+    if (Array.isArray(queryResult)) {
+      return queryResult;
+    } else if (queryResult && typeof queryResult === 'object') {
+      if ((queryResult as any).result) {
+        return (queryResult as any).result || [];
+      }
     }
 
-    return (result[0] as any).result || [];
+    return [];
+  }
+
+  /**
+   * Get all sessions for a specific conflict
+   */
+  async getSessionsByConflict(conflictId: string): Promise<ConversationSession[]> {
+    const db = getDatabase();
+
+    const result = await db.query(
+      'SELECT * FROM conversation WHERE conflictId = $conflictId ORDER BY createdAt DESC',
+      { conflictId }
+    );
+
+    // Handle both old and new SurrealDB SDK result structures
+    const queryResult = result[0];
+
+    if (Array.isArray(queryResult)) {
+      return queryResult as ConversationSession[];
+    } else if (queryResult && typeof queryResult === 'object') {
+      if ((queryResult as any).result) {
+        return (queryResult as any).result || [];
+      }
+    }
+
+    return [];
   }
 }
 

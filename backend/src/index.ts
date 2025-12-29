@@ -1,7 +1,10 @@
+// Load environment variables FIRST before any other imports
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import { initializeFirebase } from './middleware/auth';
 import { getSecurityMiddleware } from './middleware/security';
 import { apiLimiter, authLimiter } from './middleware/rate-limit';
@@ -16,9 +19,7 @@ import conversationRoutes from './routes/conversations';
 import conflictRoutes from './routes/conflicts';
 import intakeRoutes from './routes/intake';
 import moderationRoutes from './routes/moderation';
-
-// Load environment variables
-dotenv.config();
+import adminRoutes from './routes/admin';
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,7 +27,26 @@ const PORT = process.env.PORT || 3001;
 
 // Security Middleware
 app.use(getSecurityMiddleware());
-app.use(cors());
+
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed.replace(/\/$/, '')))) {
+      return callback(null, true);
+    }
+    callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Health check endpoint (no rate limiting)
@@ -62,6 +82,7 @@ app.use('/api/conversations', apiLimiter, conversationRoutes);
 app.use('/api/conflicts', apiLimiter, conflictRoutes);
 app.use('/api/intake', apiLimiter, intakeRoutes);
 app.use('/api/moderation', moderationRoutes);
+app.use('/api/admin', apiLimiter, adminRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

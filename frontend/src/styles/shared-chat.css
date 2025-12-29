@@ -1,43 +1,43 @@
-/* Shared Relationship Chat Styles */
+/* Shared Relationship Chat Styles - ChatGPT-style dark theme */
+@import '../components/chat/Chat.css';
 
 .shared-relationship-chat {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
-  box-sizing: border-box;
+  width: 100%;
+  background-color: var(--chat-bg-primary, #212121);
+  overflow: hidden;
 }
 
 .shared-chat-header {
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #e5e7eb;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--chat-border-color, #424242);
+  background-color: var(--chat-bg-primary, #212121);
 }
 
 .shared-chat-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+  margin: 0 0 12px 0;
 }
 
 .shared-chat-participants {
   display: flex;
-  gap: 16px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
-/* Participant Badge */
+/* Participant Badge - Dark Theme */
 .participant-badge {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background-color: #f9fafb;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--chat-bg-secondary, #171717);
+  border: 1px solid var(--chat-border-color, #424242);
+  border-radius: 8px;
   transition: all 0.2s ease;
 }
 
@@ -54,8 +54,8 @@
 }
 
 .participant-badge-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
@@ -67,42 +67,42 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .participant-badge-status {
   position: absolute;
   bottom: -2px;
   right: -2px;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--chat-bg-secondary, #171717);
 }
 
 .participant-badge-status.status-online {
-  background-color: #10b981;
+  background-color: var(--chat-accent-color, #10a37f);
 }
 
 .participant-badge-status.status-offline {
-  background-color: #6b7280;
+  background-color: var(--chat-text-muted, #8e8e8e);
 }
 
 .participant-badge-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .participant-badge-name {
   font-weight: 600;
-  color: #1f2937;
-  font-size: 14px;
+  color: var(--chat-text-primary, #ececec);
+  font-size: 13px;
 }
 
 .participant-badge-status-text {
-  font-size: 12px;
-  color: #6b7280;
+  font-size: 11px;
+  color: var(--chat-text-muted, #8e8e8e);
 }
 
 /* Chat Content */
@@ -110,71 +110,76 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
   overflow: hidden;
 }
 
+/* Override chat-window height when inside shared chat */
+.shared-chat-content .chat-window {
+  flex: 1;
+  height: auto;
+}
+
 .shared-chat-intro {
-  padding: 20px;
-  background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
-  border-radius: 12px;
-  margin-bottom: 20px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-bottom: 1px solid var(--chat-border-color, #424242);
 }
 
 .shared-chat-intro h2 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 8px 0;
+  color: var(--chat-text-primary, #ececec);
+  margin: 0 0 6px 0;
 }
 
 .shared-chat-intro p {
-  font-size: 14px;
-  color: #4b5563;
+  font-size: 13px;
+  color: var(--chat-text-secondary, #b4b4b4);
   margin: 0;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 /* Chat Messages - Partner Variants */
-.chat-message-partner-a .message-bubble {
-  background-color: #dbeafe;
-  border-left: 4px solid #3b82f6;
+.chat-message-partner-a .message-content,
+.chat-message-partner-b .message-content {
+  background-color: var(--chat-user-bg, #2f2f2f);
+  border-radius: 20px;
+  padding: 12px 16px;
 }
 
-.chat-message-partner-b .message-bubble {
-  background-color: #ede9fe;
-  border-left: 4px solid #8b5cf6;
+.chat-message-partner-a .message-content {
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px 20px 20px 4px;
 }
 
-.chat-message-partner-a,
-.chat-message-partner-b {
-  align-self: flex-start;
-  max-width: 75%;
+.chat-message-partner-b .message-content {
+  border-left: 3px solid #8b5cf6;
+  border-radius: 4px 20px 20px 4px;
 }
 
 .chat-message-partner-a .message-sender,
 .chat-message-partner-b .message-sender {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   margin-bottom: 6px;
   display: block;
 }
 
 .chat-message-partner-a .message-sender {
-  color: #2563eb;
+  color: #60a5fa;
 }
 
 .chat-message-partner-b .message-sender {
-  color: #7c3aed;
+  color: #a78bfa;
 }
 
 /* Connection Warning */
 .shared-chat-connection-warning {
-  padding: 12px 16px;
-  background-color: #fef3c7;
-  border: 1px solid #fbbf24;
-  border-radius: 8px;
-  color: #92400e;
-  margin-bottom: 16px;
+  padding: 12px 24px;
+  background-color: rgba(251, 191, 36, 0.15);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
   font-size: 14px;
   text-align: center;
 }
@@ -185,6 +190,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  height: 100vh;
+  background-color: var(--chat-bg-primary, #212121);
   padding: 40px 20px;
   text-align: center;
 }
@@ -192,134 +199,136 @@
 .shared-chat-error h2 {
   font-size: 24px;
   font-weight: 700;
-  color: #dc2626;
+  color: #ef4444;
   margin: 0 0 12px 0;
 }
 
 .shared-chat-error p {
   font-size: 16px;
-  color: #4b5563;
+  color: var(--chat-text-secondary, #b4b4b4);
   margin: 8px 0;
 }
 
 .shared-chat-retry-button {
   margin-top: 20px;
   padding: 12px 24px;
-  background-color: #3b82f6;
+  background-color: var(--chat-accent-color, #10a37f);
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: opacity 0.2s ease;
 }
 
 .shared-chat-retry-button:hover {
-  background-color: #2563eb;
+  opacity: 0.85;
 }
 
 .shared-chat-retry-button:active {
-  background-color: #1d4ed8;
+  opacity: 0.7;
 }
 
 /* Loading State */
 .shared-chat-loading {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   height: 100vh;
+  background-color: var(--chat-bg-primary, #212121);
   font-size: 18px;
-  color: #6b7280;
+  color: var(--chat-text-secondary, #b4b4b4);
 }
 
 /* Finalized Notice */
 .shared-chat-finalized-notice {
-  padding: 16px;
-  background-color: #f3f4f6;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  margin-top: 16px;
+  padding: 16px 24px;
+  background-color: var(--chat-bg-secondary, #171717);
+  border-top: 1px solid var(--chat-border-color, #424242);
   text-align: center;
 }
 
 .shared-chat-finalized-notice p {
   margin: 0;
   font-size: 14px;
-  color: #4b5563;
+  color: var(--chat-text-secondary, #b4b4b4);
   font-weight: 500;
 }
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .shared-relationship-chat {
-    padding: 12px;
+    padding: 0;
+  }
+
+  .shared-chat-header {
+    padding: 12px 16px;
   }
 
   .shared-chat-title {
-    font-size: 22px;
-  }
-
-  .shared-chat-participants {
-    gap: 12px;
-  }
-
-  .participant-badge {
-    padding: 10px 12px;
-    gap: 10px;
-  }
-
-  .participant-badge-avatar {
-    width: 36px;
-    height: 36px;
-  }
-
-  .participant-badge-name {
-    font-size: 13px;
-  }
-
-  .participant-badge-status-text {
-    font-size: 11px;
-  }
-
-  .shared-chat-intro {
-    padding: 16px;
-  }
-
-  .shared-chat-intro h2 {
     font-size: 18px;
   }
 
-  .shared-chat-intro p {
-    font-size: 13px;
+  .shared-chat-participants {
+    gap: 8px;
   }
 
-  .chat-message-partner-a,
-  .chat-message-partner-b {
-    max-width: 85%;
+  .participant-badge {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .participant-badge-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .participant-badge-name {
+    font-size: 12px;
+  }
+
+  .participant-badge-status-text {
+    font-size: 10px;
+  }
+
+  .shared-chat-intro {
+    padding: 12px 16px;
+  }
+
+  .shared-chat-intro h2 {
+    font-size: 15px;
+  }
+
+  .shared-chat-intro p {
+    font-size: 12px;
   }
 }
 
 @media (max-width: 480px) {
-  .shared-relationship-chat {
-    padding: 8px;
+  .shared-chat-header {
+    padding: 12px;
   }
 
   .shared-chat-title {
-    font-size: 20px;
+    font-size: 16px;
   }
 
   .shared-chat-participants {
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
   }
 
   .participant-badge {
     width: 100%;
   }
+}
 
-  .chat-message-partner-a,
-  .chat-message-partner-b {
-    max-width: 90%;
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .participant-badge,
+  .shared-chat-retry-button {
+    transition: none;
   }
 }

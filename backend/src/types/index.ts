@@ -10,16 +10,20 @@ export interface User {
   firebaseUid: string;
   email: string;
   displayName: string;
-  relationshipId?: string;
+  relationshipId?: string; // Legacy - primary relationship ID
+  primaryRelationshipId?: string; // Primary relationship for conflicts
   intakeData?: IntakeData;
   createdAt: string;
   updatedAt: string;
 }
 
+export type RelationshipType = 'partner' | 'family' | 'friend';
+
 export interface Relationship {
   id: string;
   user1Id: string;
   user2Id: string;
+  type: RelationshipType;
   status: 'active' | 'pending' | 'inactive';
   createdAt: string;
   updatedAt: string;
@@ -27,10 +31,11 @@ export interface Relationship {
 
 export interface Invitation {
   id: string;
-  token: string;
+  inviteToken: string;
   inviterId: string;
   inviterEmail: string;
   partnerEmail: string;
+  relationshipType: RelationshipType;
   status: 'pending' | 'accepted' | 'expired';
   expiresAt: string;
   createdAt: string;
@@ -78,10 +83,13 @@ export type ConflictStatus =
 
 export type ConflictPrivacy = 'private' | 'shared';
 
+export type GuidanceMode = 'structured' | 'conversational' | 'test';
+
 export interface Conflict {
   id: string;
   title: string;
   privacy: ConflictPrivacy;
+  guidance_mode: GuidanceMode;
   status: ConflictStatus;
   partner_a_id: string;
   partner_b_id?: string;
@@ -122,4 +130,32 @@ export interface PatternInsights {
   recurringThemes: ThemeFrequency[];
   relationshipCycles: RelationshipCycle[];
   frequencyAlerts: string[];
+}
+
+// Prompt Logging Types
+export type PromptLogType =
+  | 'exploration'
+  | 'individual_guidance'
+  | 'joint_context_guidance'
+  | 'relationship_synthesis'
+  | 'relationship_chat';
+
+export interface PromptLog {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  conflictId?: string;
+  conflictTitle?: string;
+  sessionId?: string;
+  sessionType?: SessionType;
+  logType: PromptLogType;
+  guidanceMode?: GuidanceMode;
+  systemPrompt: string;
+  userMessage: string;
+  aiResponse: string;
+  inputTokens: number;
+  outputTokens: number;
+  cost: number;
+  createdAt: string;
 }

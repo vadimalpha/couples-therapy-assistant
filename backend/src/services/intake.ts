@@ -10,12 +10,56 @@ import { getDatabase } from './db';
  * Manages conversation flow, data extraction, and storage.
  */
 
-// Initialize OpenAI client for data extraction
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '',
-});
+/**
+ * Helper to extract results from SurrealDB query response
+ * Supports both old format (result[0].result) and v1.x format (result[0] is array)
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+
+  // Check for old format: result[0].result
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+
+  // v1.x format: result[0] is directly an array or the item itself
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+
+  // Single item returned directly
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+
+  return [];
+}
+
+// Lazy-initialized OpenAI client for data extraction
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return openai;
+}
 
 const EXTRACTION_MODEL = 'gpt-5.2';
+
+// Intake sections for progress tracking
+const INTAKE_SECTIONS = [
+  { id: 'basics', label: 'Relationship Basics', questionCount: 5 },
+  { id: 'communication', label: 'Communication Style', questionCount: 6 },
+  { id: 'friction', label: 'Common Topics', questionCount: 3 },
+  { id: 'history', label: 'Relationship History', questionCount: 4 },
+  { id: 'background', label: 'Background', questionCount: 3 },
+  { id: 'goals', label: 'Goals', questionCount: 3 },
+];
 
 export class IntakeService {
   /**
@@ -33,6 +77,49 @@ export class IntakeService {
 
     // Create new intake session
     return await conversationService.createSession(userId, 'intake');
+  }
+
+  /**
+   * Calculate progress based on message count
+   * Returns current section and completed sections
+   */
+  calculateProgress(messageCount: number): {
+    currentSection: string;
+    completedSections: string[];
+    percentage: number;
+  } {
+    // Approximate: each user message + AI response = 2 messages per question
+    // We estimate progress based on message pairs
+    const questionsPassed = Math.floor(messageCount / 2);
+
+    let currentSectionIndex = 0;
+    let questionsInPreviousSections = 0;
+
+    for (let i = 0; i < INTAKE_SECTIONS.length; i++) {
+      const section = INTAKE_SECTIONS[i];
+      if (questionsPassed < questionsInPreviousSections + section.questionCount) {
+        currentSectionIndex = i;
+        break;
+      }
+      questionsInPreviousSections += section.questionCount;
+      currentSectionIndex = i + 1;
+    }
+
+    // Cap at last section
+    currentSectionIndex = Math.min(currentSectionIndex, INTAKE_SECTIONS.length - 1);
+
+    const completedSections = INTAKE_SECTIONS
+      .slice(0, currentSectionIndex)
+      .map((s) => s.id);
+
+    const totalQuestions = INTAKE_SECTIONS.reduce((sum, s) => sum + s.questionCount, 0);
+    const percentage = Math.min(100, Math.round((questionsPassed / totalQuestions) * 100));
+
+    return {
+      currentSection: INTAKE_SECTIONS[currentSectionIndex].id,
+      completedSections,
+      percentage,
+    };
   }
 
   /**
@@ -113,9 +200,9 @@ Conversation transcript:
 ${transcript}`;
 
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: EXTRACTION_MODEL,
-        max_tokens: 2000,
+        max_completion_tokens: 2000,
         messages: [
           {
             role: 'user',
@@ -163,11 +250,25 @@ ${transcript}`;
   async saveIntakeData(userId: string, intakeData: IntakeData): Promise<void> {
     const db = getDatabase();
 
-    // Update user record with intake data
+    // First, find the user by firebaseUid to get their record ID
+    const userResult = await db.query(
+      'SELECT * FROM user WHERE firebaseUid = $firebaseUid',
+      { firebaseUid: userId }
+    );
+
+    const users = extractQueryResult<{ id: string }>(userResult);
+    if (users.length === 0) {
+      throw new Error('User not found');
+    }
+
+    const userRecordId = users[0].id;
+
+    // Update user record with intake data using the record ID
+    // Use camelCase 'intakeData' to match the rest of the codebase (rag.ts, users.ts)
     const result = await db.query(
-      'UPDATE user SET intake_data = $intakeData WHERE firebaseUid = $userId',
+      'UPDATE $userRecordId SET intakeData = $intakeData',
       {
-        userId,
+        userRecordId,
         intakeData: {
           ...intakeData,
           completed_at: intakeData.completed_at.toISOString(),
@@ -176,7 +277,8 @@ ${transcript}`;
       }
     );
 
-    if (!result || result.length === 0) {
+    const updated = extractQueryResult<{ id: string }>(result);
+    if (updated.length === 0) {
       throw new Error('Failed to save intake data to user profile');
     }
   }
@@ -203,22 +305,18 @@ ${transcript}`;
   async getIntakeData(userId: string): Promise<IntakeData | null> {
     const db = getDatabase();
 
+    // Use camelCase 'intakeData' to match the rest of the codebase
     const result = await db.query(
-      'SELECT intake_data FROM user WHERE firebaseUid = $userId',
+      'SELECT intakeData FROM user WHERE firebaseUid = $userId',
       { userId }
     );
 
-    if (!result || result.length === 0 || !(result[0] as any).result || (result[0] as any).result.length === 0) {
+    const users = extractQueryResult<{ intakeData?: IntakeData }>(result);
+    if (users.length === 0) {
       return null;
     }
 
-    const user = (result[0] as any).result[0];
-
-    if (!user.intake_data) {
-      return null;
-    }
-
-    return user.intake_data;
+    return users[0].intakeData || null;
   }
 }
 

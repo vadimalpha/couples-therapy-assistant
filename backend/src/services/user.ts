@@ -1,6 +1,33 @@
 import { getDatabase } from './db';
 import { User } from '../types';
 
+/**
+ * Helper to extract results from SurrealDB query response
+ * Supports both old format (result[0].result) and v1.x format (result[0] is array)
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+
+  // Check for old format: result[0].result
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+
+  // v1.x format: result[0] is directly an array or the item itself
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+
+  // Single item returned directly
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+
+  return [];
+}
+
 export async function syncUser(
   firebaseUid: string,
   email: string,
@@ -11,37 +38,41 @@ export async function syncUser(
 
   try {
     // Check if user already exists
-    const existingUsers = await db.query<User[]>(
+    const existingUsersRaw = await db.query<User[]>(
       'SELECT * FROM user WHERE firebaseUid = $firebaseUid',
       { firebaseUid }
     );
 
-    if (existingUsers && existingUsers.length > 0 && existingUsers[0].result && existingUsers[0].result.length > 0) {
+    const existingUsers = extractQueryResult<User>(existingUsersRaw);
+
+    if (existingUsers.length > 0) {
       // Update existing user
-      const userId = existingUsers[0].result[0].id;
-      const updated = await db.query<User[]>(
+      const userId = existingUsers[0].id;
+      const updatedRaw = await db.query<User[]>(
         'UPDATE $userId SET email = $email, displayName = $displayName, updatedAt = $updatedAt',
         { userId, email, displayName, updatedAt: now }
       );
 
-      if (updated && updated.length > 0 && updated[0].result) {
-        return updated[0].result[0];
+      const updated = extractQueryResult<User>(updatedRaw);
+      if (updated.length > 0) {
+        return updated[0];
       }
 
-      return existingUsers[0].result[0];
+      return existingUsers[0];
     }
 
     // Create new user
-    const created = await db.query<User[]>(
+    const createdRaw = await db.query<User[]>(
       'CREATE user CONTENT { firebaseUid: $firebaseUid, email: $email, displayName: $displayName, createdAt: $createdAt, updatedAt: $updatedAt }',
       { firebaseUid, email, displayName, createdAt: now, updatedAt: now }
     );
 
-    if (!created || created.length === 0 || !created[0].result || created[0].result.length === 0) {
+    const created = extractQueryResult<User>(createdRaw);
+    if (created.length === 0) {
       throw new Error('Failed to create user');
     }
 
-    return created[0].result[0];
+    return created[0];
   } catch (error) {
     console.error('Error syncing user:', error);
     throw error;
@@ -52,13 +83,14 @@ export async function getUserByFirebaseUid(firebaseUid: string): Promise<User | 
   const db = getDatabase();
 
   try {
-    const result = await db.query<User[]>(
+    const resultRaw = await db.query<User[]>(
       'SELECT * FROM user WHERE firebaseUid = $firebaseUid',
       { firebaseUid }
     );
 
-    if (result && result.length > 0 && result[0].result && result[0].result.length > 0) {
-      return result[0].result[0];
+    const result = extractQueryResult<User>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
     }
 
     return null;
@@ -72,13 +104,14 @@ export async function getUserById(userId: string): Promise<User | null> {
   const db = getDatabase();
 
   try {
-    const result = await db.query<User[]>(
+    const resultRaw = await db.query<User[]>(
       'SELECT * FROM $userId',
       { userId }
     );
 
-    if (result && result.length > 0 && result[0].result && result[0].result.length > 0) {
-      return result[0].result[0];
+    const result = extractQueryResult<User>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
     }
 
     return null;
@@ -96,16 +129,17 @@ export async function updateUser(
   const now = new Date().toISOString();
 
   try {
-    const updated = await db.query<User[]>(
+    const updatedRaw = await db.query<User[]>(
       'UPDATE $userId MERGE { displayName: $displayName, email: $email, updatedAt: $updatedAt }',
       { userId, ...data, updatedAt: now }
     );
 
-    if (!updated || updated.length === 0 || !updated[0].result || updated[0].result.length === 0) {
+    const updated = extractQueryResult<User>(updatedRaw);
+    if (updated.length === 0) {
       throw new Error('Failed to update user');
     }
 
-    return updated[0].result[0];
+    return updated[0];
   } catch (error) {
     console.error('Error updating user:', error);
     throw error;
@@ -120,18 +154,44 @@ export async function updateUserRelationship(
   const now = new Date().toISOString();
 
   try {
-    const updated = await db.query<User[]>(
+    const updatedRaw = await db.query<User[]>(
       'UPDATE $userId SET relationshipId = $relationshipId, updatedAt = $updatedAt',
       { userId, relationshipId, updatedAt: now }
     );
 
-    if (!updated || updated.length === 0 || !updated[0].result || updated[0].result.length === 0) {
+    const updated = extractQueryResult<User>(updatedRaw);
+    if (updated.length === 0) {
       throw new Error('Failed to update user relationship');
     }
 
-    return updated[0].result[0];
+    return updated[0];
   } catch (error) {
     console.error('Error updating user relationship:', error);
+    throw error;
+  }
+}
+
+export async function updateUserPrimaryRelationship(
+  userId: string,
+  primaryRelationshipId: string | undefined
+): Promise<User> {
+  const db = getDatabase();
+  const now = new Date().toISOString();
+
+  try {
+    const updatedRaw = await db.query<User[]>(
+      'UPDATE $userId SET primaryRelationshipId = $primaryRelationshipId, updatedAt = $updatedAt',
+      { userId, primaryRelationshipId, updatedAt: now }
+    );
+
+    const updated = extractQueryResult<User>(updatedRaw);
+    if (updated.length === 0) {
+      throw new Error('Failed to update user primary relationship');
+    }
+
+    return updated[0];
+  } catch (error) {
+    console.error('Error updating user primary relationship:', error);
     throw error;
   }
 }

@@ -63,3 +63,32 @@ Using the test-runner agent ensures:
 - NO OVER-ENGINEERING - Don't add unnecessary abstractions, factory patterns, or middleware when simple functions would work. Don't think "enterprise" when you need "working"
 - NO MIXED CONCERNS - Don't put validation logic inside API handlers, database queries inside UI components, etc. instead of proper separation
 - NO RESOURCE LEAKS - Don't forget to close database connections, clear timeouts, remove event listeners, or clean up file handles
+
+## Test Accounts
+
+Two test accounts are available for testing the application (including invitation flows):
+
+### Primary Test User
+| Field | Value |
+|-------|-------|
+| Email | `claude-test@couples-app.local` |
+| Password | `ClaudeTest2024!` |
+| Firebase UID | `FbZK044F07VQlsAYo0AloaQ6ex82` |
+
+### Partner Test User
+| Field | Value |
+|-------|-------|
+| Email | `claude-partner@couples-app.local` |
+| Password | `ClaudePartner2024!` |
+| Firebase UID | `TmqrMqi6WMNa1Gua7ZP44snB94z1` |
+
+**First-time setup:** After logging in, each user must be synced to SurrealDB. The frontend does this automatically on login. If testing via API directly, call:
+```
+POST /api/auth/sync
+Authorization: Bearer {token}
+```
+
+**Testing invitation flow:**
+1. Login as primary user, send invitation to `claude-partner@couples-app.local`
+2. Login as partner user, accept the invitation
+3. Both users now have a relationship and can create shared conflicts
