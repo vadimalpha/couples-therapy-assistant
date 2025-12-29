@@ -213,7 +213,7 @@ export async function streamExplorationResponse(
   } catch (error) {
     console.error('Error streaming AI response:', error);
     throw new Error(
-      `Failed to stream AI response: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to stream AI response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -277,7 +277,7 @@ export async function synthesizeIndividualGuidance(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      `Individual guidance synthesis - User: \${explorationSession.userId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
+      `Individual guidance synthesis - User: ${explorationSession.userId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
 
     // Log the prompt
@@ -315,7 +315,7 @@ export async function synthesizeIndividualGuidance(
   } catch (error) {
     console.error('Error synthesizing individual guidance:', error);
     throw new Error(
-      `Failed to synthesize individual guidance: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to synthesize individual guidance: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -397,7 +397,7 @@ export async function synthesizeJointContextGuidance(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      `Joint-context guidance synthesis - Conflict: \${conflictId}, Partner: \${partnerId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
+      `Joint-context guidance synthesis - Conflict: ${conflictId}, Partner: ${partnerId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
 
     // Log the prompt
@@ -442,7 +442,7 @@ export async function synthesizeJointContextGuidance(
   } catch (error) {
     console.error('Error synthesizing joint-context guidance:', error);
     throw new Error(
-      `Failed to synthesize joint-context guidance: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to synthesize joint-context guidance: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -523,7 +523,7 @@ export async function generateRelationshipSynthesis(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      `Relationship synthesis - Conflict: \${context.conflictId}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
+      `Relationship synthesis - Conflict: ${context.conflictId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
 
     // Log the prompt
@@ -549,7 +549,7 @@ export async function generateRelationshipSynthesis(
   } catch (error) {
     console.error('Error generating relationship synthesis:', error);
     throw new Error(
-      `Failed to generate relationship synthesis: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to generate relationship synthesis: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -609,7 +609,7 @@ export async function generateRelationshipResponse(
     const usage = calculateUsageFromResponse(response);
 
     console.log(
-      `Relationship chat - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
+      `Relationship chat - Session: ${context.sessionId}, Sender: ${context.senderId || 'unknown'}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
 
     // Log the prompt
@@ -637,7 +637,7 @@ export async function generateRelationshipResponse(
   } catch (error) {
     console.error('Error generating relationship response:', error);
     throw new Error(
-      `Failed to generate relationship response: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to generate relationship response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -719,7 +719,7 @@ export async function streamRelationshipResponse(
     }
 
     console.log(
-      `Relationship chat (stream) - Session: \${context.sessionId}, Sender: \${context.senderId || 'unknown'}, Input tokens: \${usage.inputTokens}, Output tokens: \${usage.outputTokens}, Cost: $\${usage.totalCost.toFixed(4)}`
+      `Relationship chat (stream) - Session: ${context.sessionId}, Sender: ${context.senderId || 'unknown'}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
     );
 
     // Log the prompt
@@ -747,7 +747,7 @@ export async function streamRelationshipResponse(
   } catch (error) {
     console.error('Error streaming relationship response:', error);
     throw new Error(
-      `Failed to stream relationship response: \${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to stream relationship response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
@@ -791,19 +791,19 @@ function buildSystemPromptWithContext(
   if (context.intakeData) {
     prompt += '\n\nUser Background (from intake):';
     if (context.intakeData.relationshipLength) {
-      prompt += `\n- Relationship length: \${context.intakeData.relationshipLength}`;
+      prompt += `\n- Relationship length: ${context.intakeData.relationshipLength}`;
     }
     if (context.intakeData.mainConcerns) {
-      prompt += `\n- Main concerns: \${context.intakeData.mainConcerns}`;
+      prompt += `\n- Main concerns: ${context.intakeData.mainConcerns}`;
     }
     if (context.intakeData.goals) {
-      prompt += `\n- Goals for therapy: \${context.intakeData.goals}`;
+      prompt += `\n- Goals for therapy: ${context.intakeData.goals}`;
     }
   }
 
   if (context.relationshipContext) {
     prompt += '\n\nRelationship Context:';
-    prompt += `\n\${JSON.stringify(context.relationshipContext, null, 2)}`;
+    prompt += `\n${JSON.stringify(context.relationshipContext, null, 2)}`;
   }
 
   return prompt;
@@ -992,7 +992,7 @@ function convertRelationshipMessages(
 
       return {
         role: 'user' as const,
-        content: `[Message from \${senderName}]\n\${msg.content}`,
+        content: `[Message from ${senderName}]\n${msg.content}`,
       };
     }
   });
@@ -1044,7 +1044,7 @@ async function getIntakeData(userId: string): Promise<any | null> {
           /(\d+)\s*(year|month|week)s?\s*(together|relationship|dating)/i
         );
         if (lengthMatch) {
-          intakeData.relationshipLength = `\${lengthMatch[1]} \${lengthMatch[2]}s`;
+          intakeData.relationshipLength = `${lengthMatch[1]} ${lengthMatch[2]}s`;
         }
 
         if (
