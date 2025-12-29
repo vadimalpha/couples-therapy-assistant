@@ -3,6 +3,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 import './Intake.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 interface IntakeData {
   summary: string;
   extractedData: {
@@ -36,7 +38,7 @@ const IntakeSummary: React.FC = () => {
 
       try {
         const response = await fetch(
-          `http://localhost:3001/api/intake/summary?userId=${user.uid}${sessionId ? `&sessionId=${sessionId}` : ''}`,
+          `${API_URL}/api/intake/summary?userId=${user.uid}${sessionId ? `&sessionId=${sessionId}` : ''}`,
           {
             headers: {
               'Authorization': `Bearer ${await user.getIdToken()}`
@@ -63,7 +65,7 @@ const IntakeSummary: React.FC = () => {
   const handleConfirm = async () => {
     setConfirming(true);
     try {
-      const response = await fetch('http://localhost:3001/api/intake/confirm', {
+      const response = await fetch(`${API_URL}/api/intake/confirm`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

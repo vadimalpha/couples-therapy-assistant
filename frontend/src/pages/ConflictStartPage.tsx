@@ -18,6 +18,8 @@ interface ConflictStartPageProps {}
 
 type GuidanceMode = 'structured' | 'conversational' | 'test';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
   const [title, setTitle] = useState('');
   const [isShared, setIsShared] = useState(false);
@@ -42,7 +44,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const response = await fetch('http://localhost:3001/api/relationships/all', {
+        const response = await fetch(`${API_URL}/api/relationships/all`, {
           headers: {
             'Authorization': `Bearer ${await user.getIdToken()}`
           }
@@ -117,7 +119,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
     setError(null);
 
     try {
-      const response = await fetch('http://localhost:3001/api/conflicts', {
+      const response = await fetch(`${API_URL}/api/conflicts`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

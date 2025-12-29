@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import '../components/intake/Intake.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 const IntakePage: React.FC = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -21,7 +23,7 @@ const IntakePage: React.FC = () => {
       }
 
       try {
-        const response = await fetch(`http://localhost:3001/api/intake/status?userId=${user.uid}`, {
+        const response = await fetch(`${API_URL}/api/intake/status?userId=${user.uid}`, {
           headers: {
             'Authorization': `Bearer ${await user.getIdToken()}`
           }
