@@ -173,7 +173,17 @@ const RelationshipCard: React.FC<{
 
 const PendingInvitationCard: React.FC<{
   invitation: PendingInvitation;
-}> = ({ invitation }) => {
+  onResend: (invitationId: string) => Promise<void>;
+  isResending: boolean;
+}> = ({ invitation, onResend, isResending }) => {
+  const [resendSuccess, setResendSuccess] = useState(false);
+
+  const handleResend = async () => {
+    await onResend(invitation.id);
+    setResendSuccess(true);
+    setTimeout(() => setResendSuccess(false), 3000);
+  };
+
   return (
     <div className="relationship-card is-pending">
       <div className="relationship-card-header">
@@ -190,7 +200,20 @@ const PendingInvitationCard: React.FC<{
         </div>
       </div>
       <div className="pending-message">
-        Waiting for them to accept your invitation
+        {resendSuccess ? (
+          <span className="resend-success">✅ Invitation resent!</span>
+        ) : (
+          'Waiting for them to accept your invitation'
+        )}
+      </div>
+      <div className="relationship-card-actions">
+        <button
+          className="btn btn-secondary btn-sm"
+          onClick={handleResend}
+          disabled={isResending || resendSuccess}
+        >
+          {isResending ? 'Sending...' : 'Resend Email'}
+        </button>
       </div>
     </div>
   );
@@ -342,6 +365,7 @@ export const DashboardPage: React.FC = () => {
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -485,6 +509,32 @@ export const DashboardPage: React.FC = () => {
     navigate('/conflicts/new', { state: { relationshipId } });
   };
 
+  const handleResendInvitation = async (invitationId: string) => {
+    if (!user) return;
+
+    try {
+      setResendLoading(true);
+      const token = await user.getIdToken();
+      const response = await fetch(`${API_URL}/api/relationships/resend/${invitationId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to resend invitation');
+      }
+
+      // Update the invitation in the list with new expiry
+      await fetchData();
+    } catch (err) {
+      console.error('Error resending invitation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to resend invitation');
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <main id="main-content" className="dashboard-container">
@@ -539,6 +589,8 @@ export const DashboardPage: React.FC = () => {
             <PendingInvitationCard
               key={inv.id}
               invitation={inv}
+              onResend={handleResendInvitation}
+              isResending={resendLoading}
             />
           ))}
           <AddRelationshipCard
