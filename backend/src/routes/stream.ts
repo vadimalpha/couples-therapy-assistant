@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { streamResponseSSE, validateSession, saveAIResponse } from '../services/ai-stream';
-import { authenticate } from '../middleware/auth';
+import { authenticateUser as authenticate } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
 
 const router = Router();

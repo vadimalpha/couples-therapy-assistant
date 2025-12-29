@@ -15,6 +15,7 @@ export interface User {
   intakeData?: IntakeData;
   createdAt: string;
   updatedAt: string;
+  [key: string]: unknown;
 }
 
 export type RelationshipType = 'partner' | 'family' | 'friend';
@@ -27,6 +28,7 @@ export interface Relationship {
   status: 'active' | 'pending' | 'inactive';
   createdAt: string;
   updatedAt: string;
+  [key: string]: unknown;
 }
 
 export interface Invitation {
@@ -39,6 +41,7 @@ export interface Invitation {
   status: 'pending' | 'accepted' | 'expired';
   expiresAt: string;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface SurrealDBResponse<T> {
@@ -62,6 +65,7 @@ export interface ConversationMessage {
   content: string;
   senderId?: string;
   timestamp: string;
+  [key: string]: unknown;
 }
 
 export interface ConversationSession {
@@ -73,6 +77,7 @@ export interface ConversationSession {
   messages: ConversationMessage[];
   createdAt: string;
   finalizedAt?: string;
+  [key: string]: unknown;
 }
 
 export type ConflictStatus =
@@ -98,6 +103,7 @@ export interface Conflict {
   relationship_id: string;
   created_at: string;
   updated_at: string;
+  [key: string]: unknown;
 }
 
 export interface IntakeData {
@@ -111,6 +117,7 @@ export interface IntakeData {
   intake_conversation_id: string;
   completed_at: Date;
   last_updated: Date;
+  [key: string]: unknown;
 }
 
 // Pattern Recognition Types
@@ -158,4 +165,5 @@ export interface PromptLog {
   outputTokens: number;
   cost: number;
   createdAt: string;
+  [key: string]: unknown;
 }

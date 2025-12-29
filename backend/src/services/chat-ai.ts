@@ -830,25 +830,25 @@ function buildIndividualContext(
   context += '--- EXPLORATION CONVERSATION ---\n\n';
   messages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += `\${label}: \${msg.content}\n\n`;
+    context += `${label}: ${msg.content}\n\n`;
   });
 
   if (intakeData) {
     context += '--- USER BACKGROUND (from intake) ---\n\n';
     if (intakeData.relationshipLength) {
-      context += `Relationship length: \${intakeData.relationshipLength}\n`;
+      context += `Relationship length: ${intakeData.relationshipLength}\n`;
     }
     if (intakeData.mainConcerns) {
-      context += `Main concerns: \${intakeData.mainConcerns}\n`;
+      context += `Main concerns: ${intakeData.mainConcerns}\n`;
     }
     if (intakeData.goals) {
-      context += `Goals for therapy: \${intakeData.goals}\n`;
+      context += `Goals for therapy: ${intakeData.goals}\n`;
     }
     context += '\n';
   }
 
   if (userName) {
-    context += `User's name: \${userName}\n\n`;
+    context += `User's name: ${userName}\n\n`;
   }
 
   context += `Please synthesize personalized guidance based on this exploration conversation. Draw directly from what was shared, validate their experience, identify key themes, and offer warm, actionable suggestions. End with an invitation for continued dialogue.`;
@@ -925,29 +925,29 @@ function buildRelationshipSynthesisContext(
   let context = 'You are about to begin a shared relationship conversation with both partners.\n\n';
 
   if (conflictTitle) {
-    context += `The situation they want to explore together: \${conflictTitle}\n\n`;
+    context += `The situation they want to explore together: ${conflictTitle}\n\n`;
   }
 
-  context += `--- \${partnerAName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
+  context += `--- ${partnerAName || 'PARTNER A'}'S EXPLORATION CONVERSATION ---\n\n`;
   partnerAMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += `\${label}: \${msg.content}\n\n`;
+    context += `${label}: ${msg.content}\n\n`;
   });
 
   if (partnerAGuidance) {
-    context += `--- GUIDANCE PROVIDED TO \${partnerAName || 'PARTNER A'} ---\n\n`;
-    context += `\${partnerAGuidance}\n\n`;
+    context += `--- GUIDANCE PROVIDED TO ${partnerAName || 'PARTNER A'} ---\n\n`;
+    context += `${partnerAGuidance}\n\n`;
   }
 
-  context += `--- \${partnerBName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
+  context += `--- ${partnerBName || 'PARTNER B'}'S EXPLORATION CONVERSATION ---\n\n`;
   partnerBMessages.forEach((msg) => {
     const label = msg.role === 'user' ? 'User' : 'Therapist';
-    context += `\${label}: \${msg.content}\n\n`;
+    context += `${label}: ${msg.content}\n\n`;
   });
 
   if (partnerBGuidance) {
-    context += `--- GUIDANCE PROVIDED TO \${partnerBName || 'PARTNER B'} ---\n\n`;
-    context += `\${partnerBGuidance}\n\n`;
+    context += `--- GUIDANCE PROVIDED TO ${partnerBName || 'PARTNER B'} ---\n\n`;
+    context += `${partnerBGuidance}\n\n`;
   }
 
   context += `Please create a warm, welcoming initial message that brings both partners together. Acknowledge what you heard from each of them, highlight areas of alignment and divergence, and invite them into constructive dialogue. Remember to address them as a couple and set a hopeful, collaborative tone.`;
@@ -963,8 +963,8 @@ function buildSystemPromptWithSenderContext(
   let prompt = basePrompt;
 
   prompt += '\n\n## Partner Information\n';
-  prompt += `Partner A: \${partnerAName || 'Not provided'}\n`;
-  prompt += `Partner B: \${partnerBName || 'Not provided'}\n\n`;
+  prompt += `Partner A: ${partnerAName || 'Not provided'}\n`;
+  prompt += `Partner B: ${partnerBName || 'Not provided'}\n\n`;
   prompt += 'Each message will include sender information so you know which partner is speaking.\n';
   prompt += 'Always address BOTH partners in your responses, not just the one who sent the message.\n';
 

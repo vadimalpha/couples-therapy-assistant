@@ -5,6 +5,22 @@ import { moderationLimiter } from '../middleware/rate-limit';
 import { getDatabase } from '../services/db';
 import { AuthenticatedRequest } from '../types';
 
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  return [];
+}
+
 const router = Router();
 
 /**
@@ -23,6 +39,7 @@ interface ModerationReport {
   reason: string;
   description?: string;
   reportedAt: string;
+  [key: string]: unknown;
 }
 
 /**
@@ -134,7 +151,7 @@ router.get(
         { userId }
       );
 
-      const reports = result[0]?.result || [];
+      const reports = extractResult(result);
 
       res.json({
         reports,
@@ -165,7 +182,7 @@ router.get('/stats', async (req, res: Response) => {
       GROUP BY reason
     `);
 
-    const stats = result[0]?.result || [];
+    const stats = extractResult<{ reason: string; count: number }>(result);
 
     res.json({
       reasonBreakdown: stats,

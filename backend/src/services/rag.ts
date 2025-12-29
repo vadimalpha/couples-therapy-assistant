@@ -2,6 +2,25 @@ import { getDatabase } from './db';
 import { Conflict, IntakeData } from '../types';
 import { generateEmbedding } from './embeddings';
 
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+  return [];
+}
+
 export interface RAGContext {
   recentConflicts: Conflict[];
   intakeData: IntakeData | null;
@@ -30,16 +49,12 @@ export async function getSimilarConflicts(
       { conflictId: fullConflictId }
     );
 
-    if (
-      !conflictResult ||
-      conflictResult.length === 0 ||
-      !(conflictResult[0] as any).result ||
-      (conflictResult[0] as any).result.length === 0
-    ) {
+    const conflicts = extractQueryResult<Conflict>(conflictResult);
+    if (conflicts.length === 0) {
       throw new Error('Conflict not found');
     }
 
-    const currentConflict = (conflictResult[0] as any).result[0];
+    const currentConflict = conflicts[0];
     const relationshipId = currentConflict.relationship_id;
 
     // Get the embedding for this conflict
@@ -48,18 +63,14 @@ export async function getSimilarConflicts(
       { conflictId: fullConflictId }
     );
 
-    if (
-      !embeddingResult ||
-      embeddingResult.length === 0 ||
-      !(embeddingResult[0] as any).result ||
-      (embeddingResult[0] as any).result.length === 0
-    ) {
+    const embeddings = extractQueryResult<{ embedding: number[] }>(embeddingResult);
+    if (embeddings.length === 0) {
       // No embedding found, return empty array
       console.warn(`No embedding found for conflict ${conflictId}`);
       return [];
     }
 
-    const queryEmbedding = (embeddingResult[0] as any).result[0].embedding;
+    const queryEmbedding = embeddings[0].embedding;
 
     // Use SurrealDB's vector similarity to find similar conflicts
     // Join with conflict table to get full conflict details and filter by relationship
@@ -82,15 +93,11 @@ export async function getSimilarConflicts(
       }
     );
 
-    if (
-      !similarConflictsResult ||
-      similarConflictsResult.length === 0 ||
-      !(similarConflictsResult[0] as any).result
-    ) {
+    const results = extractQueryResult<{ conflict: Conflict; similarity: number }>(similarConflictsResult);
+    if (results.length === 0) {
       return [];
     }
 
-    const results = (similarConflictsResult[0] as any).result || [];
     return results
       .filter((item: any) => item.similarity > 0)
       .map((item: any) => item.conflict);
@@ -120,16 +127,12 @@ async function getRecentConflicts(
       { conflictId: fullConflictId }
     );
 
-    if (
-      !conflictResult ||
-      conflictResult.length === 0 ||
-      !(conflictResult[0] as any).result ||
-      (conflictResult[0] as any).result.length === 0
-    ) {
+    const conflictData = extractQueryResult<{ relationship_id: string }>(conflictResult);
+    if (conflictData.length === 0) {
       return [];
     }
 
-    const relationshipId = (conflictResult[0] as any).result[0].relationship_id;
+    const relationshipId = conflictData[0].relationship_id;
 
     const recentResult = await db.query(
       `SELECT * FROM conflict
@@ -139,15 +142,7 @@ async function getRecentConflicts(
       { relationshipId, conflictId: fullConflictId, limit }
     );
 
-    if (
-      !recentResult ||
-      recentResult.length === 0 ||
-      !(recentResult[0] as any).result
-    ) {
-      return [];
-    }
-
-    return (recentResult[0] as any).result || [];
+    return extractQueryResult<Conflict>(recentResult);
   } catch (error) {
     console.error('Error fetching recent conflicts:', error);
     return [];
@@ -175,14 +170,9 @@ export async function getRAGContext(
       { userId }
     );
 
-    if (
-      userResult &&
-      userResult.length > 0 &&
-      (userResult[0] as any).result &&
-      (userResult[0] as any).result.length > 0
-    ) {
-      const userData = (userResult[0] as any).result[0];
-      intakeData = userData.intakeData || null;
+    const users = extractQueryResult<{ intakeData?: IntakeData }>(userResult);
+    if (users.length > 0 && users[0].intakeData) {
+      intakeData = users[0].intakeData;
     }
 
     // Build relationship history from conflicts

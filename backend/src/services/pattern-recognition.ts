@@ -2,6 +2,22 @@ import { getDatabase } from './db';
 import { Conflict, PatternInsights, ThemeFrequency, RelationshipCycle } from '../types';
 
 /**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  return [];
+}
+
+/**
  * Pattern Recognition Engine
  * Detects recurring themes and relationship cycles in conflict history
  */
@@ -106,11 +122,7 @@ export class PatternRecognitionEngine {
       }
     );
 
-    if (!result || result.length === 0 || !(result[0] as any).result) {
-      return [];
-    }
-
-    return (result[0] as any).result || [];
+    return extractQueryResult<Conflict>(result);
   }
 
   /**

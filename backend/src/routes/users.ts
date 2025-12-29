@@ -2,8 +2,24 @@ import { Router, Response } from 'express';
 import { authenticateUser } from '../middleware/auth';
 import { getUserByFirebaseUid } from '../services/user';
 import { embedIntakeData } from '../services/embeddings';
-import { AuthenticatedRequest, IntakeData } from '../types';
+import { AuthenticatedRequest, IntakeData, User } from '../types';
 import { getDatabase } from '../services/db';
+
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  return [];
+}
 
 const router = Router();
 
@@ -162,7 +178,8 @@ router.put('/me/intake', authenticateUser, async (req: AuthenticatedRequest, res
       }
     );
 
-    if (!updated || updated.length === 0 || !updated[0].result) {
+    const updatedUsers = extractQueryResult<User>(updated);
+    if (updatedUsers.length === 0) {
       throw new Error('Failed to update intake data');
     }
 

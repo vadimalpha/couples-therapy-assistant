@@ -67,6 +67,27 @@ export function getDatabase(): Surreal {
   return db;
 }
 
+/**
+ * Type-safe query helper that extracts first result set
+ * Use for queries that return a single array of items
+ */
+export async function queryFirst<T>(sql: string, params?: Record<string, unknown>): Promise<T[]> {
+  const result = await getDatabase().query(sql, params);
+  if (Array.isArray(result) && result.length > 0) {
+    return result[0] as T[];
+  }
+  return [];
+}
+
+/**
+ * Type-safe query helper that extracts a single item from first result set
+ * Use for queries that return exactly one item
+ */
+export async function queryOne<T>(sql: string, params?: Record<string, unknown>): Promise<T | undefined> {
+  const items = await queryFirst<T>(sql, params);
+  return items[0];
+}
+
 export async function closeDatabase(): Promise<void> {
   if (db) {
     await db.close();

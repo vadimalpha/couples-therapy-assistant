@@ -5,6 +5,25 @@ import { searchSimilar } from './embeddings';
 import { SessionType, GuidanceMode } from '../types';
 
 /**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+  return [];
+}
+
+/**
  * Prompt Builder Service
  *
  * Builds prompts with RAG context and pattern insights injected.
@@ -94,9 +113,10 @@ export async function buildPrompt(
       'SELECT relationshipId FROM user WHERE id = $userId',
       { userId: context.userId }
     );
+    const users = extractQueryResult<{ relationshipId?: string }>(userResult);
 
-    if (userResult && userResult[0]?.result?.[0]?.relationshipId) {
-      const relationshipId = userResult[0].result[0].relationshipId;
+    if (users.length > 0 && users[0].relationshipId) {
+      const relationshipId = users[0].relationshipId;
       const patternSection = await buildPatternSection(relationshipId);
       prompt = prompt.replace('{{PATTERN_INSIGHTS}}', patternSection);
     } else {
@@ -127,11 +147,12 @@ export async function buildRAGSection(
       { conflictId }
     );
 
-    if (!conflictResult || !conflictResult[0]?.result?.[0]) {
+    const conflicts = extractQueryResult<{ title: string }>(conflictResult);
+    if (conflicts.length === 0) {
       return '';
     }
 
-    const conflictTitle = conflictResult[0].result[0].title;
+    const conflictTitle = conflicts[0].title;
 
     // Search for similar past content
     const similarContent = await searchSimilar(userId, conflictTitle, 3);
@@ -214,11 +235,11 @@ export async function detectPatterns(
       { relationshipId }
     );
 
-    if (!conflictsResult || !conflictsResult[0]?.result) {
+    const conflicts = extractQueryResult<{ id: string; title: string; created_at: string }>(conflictsResult);
+
+    if (conflicts.length === 0) {
       return [];
     }
-
-    const conflicts = conflictsResult[0].result;
 
     if (conflicts.length < 3) {
       return []; // Need at least 3 conflicts to detect patterns

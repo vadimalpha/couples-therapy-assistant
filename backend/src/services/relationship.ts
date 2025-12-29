@@ -59,7 +59,7 @@ export async function createInvitation(
     }
 
     // Check if invitation already exists for this email from this user
-    const existingInvitationsRaw = await db.query<Invitation[]>(
+    const existingInvitationsRaw = await db.query(
       'SELECT * FROM invitation WHERE inviterId = $inviterId AND partnerEmail = $partnerEmail AND status = "pending"',
       { inviterId: userId, partnerEmail }
     );
@@ -70,7 +70,7 @@ export async function createInvitation(
     }
 
     // Create invitation
-    const createdRaw = await db.query<Invitation[]>(
+    const createdRaw = await db.query(
       'CREATE invitation CONTENT { inviteToken: $inviteToken, inviterId: $inviterId, inviterEmail: $inviterEmail, partnerEmail: $partnerEmail, relationshipType: $relationshipType, status: "pending", expiresAt: $expiresAt, createdAt: $createdAt }',
       {
         inviteToken,
@@ -99,7 +99,7 @@ export async function getInvitationByToken(inviteToken: string): Promise<Invitat
   const db = getDatabase();
 
   try {
-    const resultRaw = await db.query<Invitation[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM invitation WHERE inviteToken = $inviteToken',
       { inviteToken }
     );
@@ -168,7 +168,7 @@ export async function acceptInvitation(token: string, userId: string): Promise<R
     const relationshipType = invitation.relationshipType || 'partner';
 
     // Create relationship
-    const createdRaw = await db.query<Relationship[]>(
+    const createdRaw = await db.query(
       'CREATE relationship CONTENT { user1Id: $user1Id, user2Id: $user2Id, type: $type, status: "active", createdAt: $createdAt, updatedAt: $updatedAt }',
       {
         user1Id: invitation.inviterId,
@@ -227,7 +227,7 @@ export async function getRelationship(userId: string): Promise<Relationship | nu
       return null;
     }
 
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM $relationshipId',
       { relationshipId: user.relationshipId }
     );
@@ -250,7 +250,7 @@ export async function unpair(relationshipId: string, userId: string): Promise<vo
 
   try {
     // Get relationship
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM $relationshipId',
       { relationshipId }
     );
@@ -291,7 +291,7 @@ export async function getPendingInvitations(userId: string): Promise<Invitation[
       throw new Error('User not found');
     }
 
-    const resultRaw = await db.query<Invitation[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM invitation WHERE partnerEmail = $email AND status = "pending" ORDER BY createdAt DESC',
       { email: user.email }
     );
@@ -310,7 +310,7 @@ export async function getSentInvitations(userId: string): Promise<Invitation[]> 
   const db = getDatabase();
 
   try {
-    const resultRaw = await db.query<Invitation[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM invitation WHERE inviterId = $userId AND status = "pending" ORDER BY createdAt DESC',
       { userId }
     );
@@ -329,7 +329,7 @@ export async function getAllRelationships(userId: string): Promise<Relationship[
   const db = getDatabase();
 
   try {
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM relationship WHERE (user1Id = $userId OR user2Id = $userId) AND status = "active" ORDER BY createdAt DESC',
       { userId }
     );
@@ -351,7 +351,7 @@ export async function getRelationshipBetweenUsers(
   const db = getDatabase();
 
   try {
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM relationship WHERE ((user1Id = $user1Id AND user2Id = $user2Id) OR (user1Id = $user2Id AND user2Id = $user1Id))',
       { user1Id, user2Id }
     );
@@ -379,7 +379,7 @@ export async function setPrimaryRelationship(
 
   try {
     // Verify the relationship exists and user is part of it
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM $relationshipId',
       { relationshipId }
     );
@@ -417,7 +417,7 @@ export async function getRelationshipById(relationshipId: string): Promise<Relat
   const db = getDatabase();
 
   try {
-    const resultRaw = await db.query<Relationship[]>(
+    const resultRaw = await db.query(
       'SELECT * FROM $relationshipId',
       { relationshipId }
     );

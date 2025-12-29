@@ -1,6 +1,25 @@
 import openai from './openai-client';
 import { getDatabase } from './db';
 
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+  return [];
+}
+
 export interface EmbeddingDocument {
   id: string;
   userId: string;
@@ -11,6 +30,7 @@ export interface EmbeddingDocument {
     sourceId: string;
     createdAt: string;
   };
+  [key: string]: unknown;
 }
 
 /**
@@ -135,16 +155,15 @@ export async function searchSimilar(
     const queryEmbedding = await generateEmbedding(queryText);
 
     // Fetch all user's embeddings
-    const result = await db.query<EmbeddingDocument[]>(
+    const result = await db.query(
       'SELECT * FROM embedding WHERE userId = $userId',
       { userId }
     );
 
-    if (!result || result.length === 0 || !result[0].result) {
+    const documents = extractQueryResult<EmbeddingDocument>(result);
+    if (documents.length === 0) {
       return [];
     }
-
-    const documents = result[0].result;
 
     // Calculate cosine similarity for each document
     const similarities = documents.map(doc => {
@@ -232,7 +251,7 @@ export async function findSimilarContext(
     // Build query with optional type filter
     const typeFilter = type ? `AND metadata.type = $type` : '';
 
-    const result = await db.query<any[]>(
+    const result = await db.query(
       `SELECT
         content,
         metadata,
@@ -248,11 +267,12 @@ export async function findSimilarContext(
       }
     );
 
-    if (!result || result.length === 0 || !result[0].result) {
+    const items = extractQueryResult<{ content: string; score: number; metadata: unknown }>(result);
+    if (items.length === 0) {
       return [];
     }
 
-    return result[0].result.map((item: any) => ({
+    return items.map((item) => ({
       text: item.content,
       score: item.score,
       metadata: item.metadata,
@@ -338,16 +358,12 @@ export async function generateConflictEmbedding(
       { conflictId: fullId }
     );
 
-    if (
-      !conflictResult ||
-      conflictResult.length === 0 ||
-      !(conflictResult[0] as any).result ||
-      (conflictResult[0] as any).result.length === 0
-    ) {
+    const conflictData = extractQueryResult<{ partner_a_id: string }>(conflictResult);
+    if (conflictData.length === 0) {
       throw new Error('Conflict not found');
     }
 
-    const userId = (conflictResult[0] as any).result[0].partner_a_id;
+    const userId = conflictData[0].partner_a_id;
 
     // Store embedding
     await db.query(

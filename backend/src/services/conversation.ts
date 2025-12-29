@@ -11,6 +11,26 @@ import { IndividualGuidanceJob, JointContextGuidanceJob } from '../queue/jobs';
 import { conflictService } from './conflict';
 import { getRelationship } from './relationship';
 
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  const queryResult = result[0];
+  if (Array.isArray(queryResult)) {
+    return queryResult as T[];
+  }
+  if (queryResult && typeof queryResult === 'object' && 'result' in queryResult) {
+    return (queryResult as { result: T[] }).result || [];
+  }
+  if (queryResult && typeof queryResult === 'object' && 'id' in queryResult) {
+    return [queryResult as T];
+  }
+  return [];
+}
+
 export class ConversationService {
   /**
    * Create a new conversation session
@@ -42,32 +62,14 @@ export class ConversationService {
 
       console.log('Query result:', JSON.stringify(result, null, 2));
 
-      // SurrealDB SDK v0.11+ returns results directly as an array
-      // First element is the result of the first query
-      const queryResult = result[0];
+      const sessions = extractQueryResult<ConversationSession>(result);
 
-      // Handle both old and new SDK result structures
-      let session: ConversationSession | undefined;
-      if (Array.isArray(queryResult)) {
-        session = queryResult[0];
-      } else if (queryResult && typeof queryResult === 'object') {
-        // Could be the session directly, or old SDK format
-        if ((queryResult as any).id) {
-          // It's the session object itself
-          session = queryResult as ConversationSession;
-        } else if ((queryResult as any).result) {
-          // Old SDK format with .result property
-          const resultArray = (queryResult as any).result;
-          if (Array.isArray(resultArray)) {
-            session = resultArray[0];
-          }
-        }
-      }
-
-      if (!session) {
-        console.error('Failed to create session, result structure:', typeof queryResult, queryResult);
+      if (sessions.length === 0) {
+        console.error('Failed to create session, result structure:', result);
         throw new Error('Failed to create conversation session');
       }
+
+      const session = sessions[0];
 
       console.log('Session created successfully:', session.id);
       return session;
@@ -96,24 +98,8 @@ export class ConversationService {
 
     console.log('getSession query result:', JSON.stringify(result, null, 2));
 
-    // Handle both old and new SurrealDB SDK result structures
-    const queryResult = result[0];
-    let session: ConversationSession | undefined;
-
-    if (Array.isArray(queryResult)) {
-      session = queryResult[0];
-    } else if (queryResult && typeof queryResult === 'object') {
-      if ((queryResult as any).id) {
-        session = queryResult as ConversationSession;
-      } else if ((queryResult as any).result) {
-        const resultArray = (queryResult as any).result;
-        if (Array.isArray(resultArray)) {
-          session = resultArray[0];
-        }
-      }
-    }
-
-    return session || null;
+    const sessions = extractQueryResult<ConversationSession>(result);
+    return sessions.length > 0 ? sessions[0] : null;
   }
 
   /**
@@ -197,24 +183,13 @@ export class ConversationService {
       { sessionId: fullId, status: 'finalized', finalizedAt: new Date().toISOString() }
     );
 
-    // Handle both old and new SurrealDB SDK result structures
-    const queryResult = result[0];
-    let finalizedSession: ConversationSession | undefined;
+    const finalizedSessions = extractQueryResult<ConversationSession>(result);
 
-    if (Array.isArray(queryResult)) {
-      finalizedSession = queryResult[0];
-    } else if (queryResult && typeof queryResult === 'object') {
-      if ((queryResult as any).id) {
-        finalizedSession = queryResult as ConversationSession;
-      } else if ((queryResult as any).result) {
-        const resultArray = (queryResult as any).result;
-        finalizedSession = Array.isArray(resultArray) ? resultArray[0] : resultArray;
-      }
-    }
-
-    if (!finalizedSession) {
+    if (finalizedSessions.length === 0) {
       throw new Error('Failed to finalize conversation session');
     }
+
+    const finalizedSession = finalizedSessions[0];
 
     // Queue guidance synthesis jobs for exploration sessions
     if (
@@ -385,18 +360,7 @@ export class ConversationService {
       { userId }
     );
 
-    // Handle both old and new SurrealDB SDK result structures
-    const queryResult = result[0];
-
-    if (Array.isArray(queryResult)) {
-      return queryResult;
-    } else if (queryResult && typeof queryResult === 'object') {
-      if ((queryResult as any).result) {
-        return (queryResult as any).result || [];
-      }
-    }
-
-    return [];
+    return extractQueryResult<ConversationSession>(result);
   }
 
   /**
@@ -410,18 +374,7 @@ export class ConversationService {
       { conflictId }
     );
 
-    // Handle both old and new SurrealDB SDK result structures
-    const queryResult = result[0];
-
-    if (Array.isArray(queryResult)) {
-      return queryResult as ConversationSession[];
-    } else if (queryResult && typeof queryResult === 'object') {
-      if ((queryResult as any).result) {
-        return (queryResult as any).result || [];
-      }
-    }
-
-    return [];
+    return extractQueryResult<ConversationSession>(result);
   }
 }
 
