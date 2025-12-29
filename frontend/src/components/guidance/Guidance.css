@@ -1,0 +1,378 @@
+/* Guidance Components Styling */
+
+/* Import base chat styles */
+@import '../chat/Chat.css';
+
+/* Guidance-specific color extensions */
+:root {
+  --guidance-bubble-bg: #E8F5E9;
+  --guidance-bubble-text: #1B5E20;
+  --status-pending: #FFA726;
+  --status-synthesizing: #5C6BC0;
+  --status-ready: #66BB6A;
+  --guidance-bg: #F1F8E9;
+}
+
+/* Guidance Page - Full screen ChatGPT-style layout */
+.guidance-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--chat-bg-primary, #212121);
+  overflow-y: auto;
+}
+
+.guidance-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+
+/* Override chat-window height when inside guidance container */
+.guidance-container .chat-window {
+  flex: 1;
+  height: auto;
+}
+
+.guidance-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 40px 20px;
+  color: var(--chat-text-primary, #ececec);
+}
+
+.guidance-error p {
+  font-size: 16px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  margin-bottom: 20px;
+}
+
+.guidance-error .back-button {
+  background-color: var(--chat-input-bg, #404040);
+  color: var(--chat-text-primary, #ececec);
+  border: 1px solid var(--chat-border-color, #424242);
+}
+
+.guidance-error .back-button:hover {
+  background-color: var(--chat-hover-bg, #2a2a2a);
+}
+
+.guidance-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 16px;
+  font-size: 16px;
+  color: var(--chat-text-secondary, #b4b4b4);
+}
+
+/* Guidance Status Component */
+.guidance-status {
+  background-color: var(--chat-bg-secondary, #171717);
+  border-radius: 12px;
+  padding: 32px;
+  border: 1px solid var(--chat-border-color, #424242);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  text-align: center;
+  animation: fadeIn 0.4s ease-out;
+  max-width: 600px;
+  margin: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.guidance-status-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.guidance-status-pending .guidance-status-icon {
+  background-color: rgba(255, 167, 38, 0.1);
+  color: var(--status-pending);
+}
+
+.guidance-status-synthesizing .guidance-status-icon {
+  background-color: rgba(92, 107, 192, 0.1);
+  color: var(--status-synthesizing);
+}
+
+.guidance-status-ready .guidance-status-icon {
+  background-color: rgba(102, 187, 106, 0.1);
+  color: var(--status-ready);
+}
+
+.guidance-status-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--chat-text-primary, #ececec);
+}
+
+.guidance-status-description {
+  margin: 0;
+  font-size: 16px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+/* Synthesis Progress Animation */
+.synthesis-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.synthesis-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(92, 107, 192, 0.2);
+  border-top-color: var(--status-synthesizing);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.synthesis-text {
+  font-size: 14px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  font-weight: 500;
+}
+
+/* Guidance Chat Extensions */
+.chat-message-guidance .message-bubble {
+  background-color: var(--guidance-bubble-bg);
+  color: var(--guidance-bubble-text);
+  border-bottom-left-radius: 4px;
+}
+
+.guidance-initial-message {
+  padding: 20px;
+  background-color: rgba(16, 163, 127, 0.08);
+  border-left: 4px solid var(--chat-accent-color, #10a37f);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  max-width: 720px;
+}
+
+.guidance-initial-title {
+  margin: 0 0 12px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+}
+
+.guidance-initial-content {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--chat-text-primary, #ececec);
+}
+
+.guidance-initial-content .markdown-content {
+  text-align: left;
+}
+
+/* Shared Chat Unlock */
+.guidance-shared-chat-unlock {
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 2px solid #667eea;
+  border-radius: 12px;
+  margin: 20px auto;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  text-align: center;
+}
+
+.unlock-message h3 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--chat-text-primary, #ececec);
+}
+
+.unlock-message p {
+  margin: 0;
+  font-size: 15px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  line-height: 1.6;
+}
+
+.join-shared-chat-button {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(102, 126, 234, 0.2);
+}
+
+.join-shared-chat-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+}
+
+.join-shared-chat-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
+}
+
+.join-shared-chat-button:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* Waiting States */
+.waiting-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  font-size: 14px;
+  padding: 12px 16px;
+  background-color: rgba(255, 167, 38, 0.1);
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.waiting-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.waiting-dots .dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--status-pending);
+  border-radius: 50%;
+  animation: pulse 1.4s infinite;
+}
+
+.waiting-dots .dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.waiting-dots .dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.waiting-dots .dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%, 60%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .guidance-page {
+    padding: 0;
+  }
+
+  .guidance-status {
+    padding: 24px 20px;
+    margin: 16px;
+  }
+
+  .guidance-status-title {
+    font-size: 20px;
+  }
+
+  .guidance-status-description {
+    font-size: 15px;
+  }
+
+  .guidance-status-icon {
+    width: 56px;
+    height: 56px;
+  }
+
+  .guidance-initial-message {
+    padding: 16px;
+  }
+
+  .guidance-initial-title {
+    font-size: 16px;
+  }
+
+  .guidance-initial-content {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .guidance-status {
+    padding: 20px 16px;
+    margin: 12px;
+  }
+
+  .guidance-status-title {
+    font-size: 18px;
+  }
+
+  .guidance-status-icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .synthesis-progress {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .guidance-status,
+  .synthesis-spinner,
+  .waiting-dots .dot {
+    animation: none;
+  }
+}

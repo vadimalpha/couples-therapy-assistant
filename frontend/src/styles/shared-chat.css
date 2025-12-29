@@ -1,0 +1,334 @@
+/* Shared Relationship Chat Styles - ChatGPT-style dark theme */
+@import '../components/chat/Chat.css';
+
+.shared-relationship-chat {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: var(--chat-bg-primary, #212121);
+  overflow: hidden;
+}
+
+.shared-chat-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--chat-border-color, #424242);
+  background-color: var(--chat-bg-primary, #212121);
+}
+
+.shared-chat-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+  margin: 0 0 12px 0;
+}
+
+.shared-chat-participants {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Participant Badge - Dark Theme */
+.participant-badge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background-color: var(--chat-bg-secondary, #171717);
+  border: 1px solid var(--chat-border-color, #424242);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.participant-badge-partner-a {
+  border-color: #3b82f6;
+}
+
+.participant-badge-partner-b {
+  border-color: #8b5cf6;
+}
+
+.participant-badge-avatar-container {
+  position: relative;
+}
+
+.participant-badge-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.participant-badge-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.participant-badge-status {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--chat-bg-secondary, #171717);
+}
+
+.participant-badge-status.status-online {
+  background-color: var(--chat-accent-color, #10a37f);
+}
+
+.participant-badge-status.status-offline {
+  background-color: var(--chat-text-muted, #8e8e8e);
+}
+
+.participant-badge-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.participant-badge-name {
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+  font-size: 13px;
+}
+
+.participant-badge-status-text {
+  font-size: 11px;
+  color: var(--chat-text-muted, #8e8e8e);
+}
+
+/* Chat Content */
+.shared-chat-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Override chat-window height when inside shared chat */
+.shared-chat-content .chat-window {
+  flex: 1;
+  height: auto;
+}
+
+.shared-chat-intro {
+  padding: 16px 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-bottom: 1px solid var(--chat-border-color, #424242);
+}
+
+.shared-chat-intro h2 {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--chat-text-primary, #ececec);
+  margin: 0 0 6px 0;
+}
+
+.shared-chat-intro p {
+  font-size: 13px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Chat Messages - Partner Variants */
+.chat-message-partner-a .message-content,
+.chat-message-partner-b .message-content {
+  background-color: var(--chat-user-bg, #2f2f2f);
+  border-radius: 20px;
+  padding: 12px 16px;
+}
+
+.chat-message-partner-a .message-content {
+  border-left: 3px solid #3b82f6;
+  border-radius: 4px 20px 20px 4px;
+}
+
+.chat-message-partner-b .message-content {
+  border-left: 3px solid #8b5cf6;
+  border-radius: 4px 20px 20px 4px;
+}
+
+.chat-message-partner-a .message-sender,
+.chat-message-partner-b .message-sender {
+  font-weight: 600;
+  font-size: 12px;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.chat-message-partner-a .message-sender {
+  color: #60a5fa;
+}
+
+.chat-message-partner-b .message-sender {
+  color: #a78bfa;
+}
+
+/* Connection Warning */
+.shared-chat-connection-warning {
+  padding: 12px 24px;
+  background-color: rgba(251, 191, 36, 0.15);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  font-size: 14px;
+  text-align: center;
+}
+
+/* Error States */
+.shared-chat-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--chat-bg-primary, #212121);
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.shared-chat-error h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ef4444;
+  margin: 0 0 12px 0;
+}
+
+.shared-chat-error p {
+  font-size: 16px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  margin: 8px 0;
+}
+
+.shared-chat-retry-button {
+  margin-top: 20px;
+  padding: 12px 24px;
+  background-color: var(--chat-accent-color, #10a37f);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.shared-chat-retry-button:hover {
+  opacity: 0.85;
+}
+
+.shared-chat-retry-button:active {
+  opacity: 0.7;
+}
+
+/* Loading State */
+.shared-chat-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background-color: var(--chat-bg-primary, #212121);
+  font-size: 18px;
+  color: var(--chat-text-secondary, #b4b4b4);
+}
+
+/* Finalized Notice */
+.shared-chat-finalized-notice {
+  padding: 16px 24px;
+  background-color: var(--chat-bg-secondary, #171717);
+  border-top: 1px solid var(--chat-border-color, #424242);
+  text-align: center;
+}
+
+.shared-chat-finalized-notice p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--chat-text-secondary, #b4b4b4);
+  font-weight: 500;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .shared-relationship-chat {
+    padding: 0;
+  }
+
+  .shared-chat-header {
+    padding: 12px 16px;
+  }
+
+  .shared-chat-title {
+    font-size: 18px;
+  }
+
+  .shared-chat-participants {
+    gap: 8px;
+  }
+
+  .participant-badge {
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .participant-badge-avatar {
+    width: 28px;
+    height: 28px;
+  }
+
+  .participant-badge-name {
+    font-size: 12px;
+  }
+
+  .participant-badge-status-text {
+    font-size: 10px;
+  }
+
+  .shared-chat-intro {
+    padding: 12px 16px;
+  }
+
+  .shared-chat-intro h2 {
+    font-size: 15px;
+  }
+
+  .shared-chat-intro p {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .shared-chat-header {
+    padding: 12px;
+  }
+
+  .shared-chat-title {
+    font-size: 16px;
+  }
+
+  .shared-chat-participants {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .participant-badge {
+    width: 100%;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .participant-badge,
+  .shared-chat-retry-button {
+    transition: none;
+  }
+}
