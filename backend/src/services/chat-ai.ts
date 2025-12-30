@@ -233,29 +233,37 @@ export async function streamGuidanceRefinementResponse(
   context: GuidanceRefinementContext,
   onChunk: (chunk: string) => void
 ): Promise<{ fullContent: string; usage: TokenUsage }> {
+  console.log(`[streamGuidanceRefinementResponse] Starting with ${messages.length} messages, context:`, JSON.stringify(context));
+
   if (!process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
+    console.log(`[streamGuidanceRefinementResponse] Fetching user and conflict data...`);
     const user = await getUserById(context.userId);
     const conflict = context.conflictId
       ? await conflictService.getConflict(context.conflictId)
       : null;
+    console.log(`[streamGuidanceRefinementResponse] User found: ${!!user}, Conflict found: ${!!conflict}`);
 
+    console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
     const systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
       conflictId: context.conflictId || '',
       userId: context.userId,
       sessionType: context.sessionType,
       includeRAG: true,
     });
+    console.log(`[streamGuidanceRefinementResponse] Prompt built, length: ${systemPrompt.length}`);
 
     const openaiMessages = convertMessagesToOpenAI(messages);
+    console.log(`[streamGuidanceRefinementResponse] Converted ${openaiMessages.length} messages for OpenAI`);
 
     const userMessageContent = messages.length > 0
       ? messages[messages.length - 1].content
       : '';
 
+    console.log(`[streamGuidanceRefinementResponse] Calling OpenAI with model ${MODEL}...`);
     const stream = await openai.chat.completions.create({
       model: MODEL,
       max_completion_tokens: GUIDANCE_MAX_COMPLETION_TOKENS,
@@ -288,6 +296,8 @@ export async function streamGuidanceRefinementResponse(
         };
       }
     }
+
+    console.log(`[streamGuidanceRefinementResponse] Stream completed, fullContent length: ${fullContent.length}, tokens: ${usage.inputTokens}/${usage.outputTokens}`);
 
     logPrompt({
       userId: context.userId,
