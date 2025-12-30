@@ -128,6 +128,7 @@ export function useConversation(sessionId: string): UseConversationReturn {
       const token = await currentUser.getIdToken();
       tokenRef.current = token;
 
+      console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
       const socket = io(WS_URL, {
         transports: ['websocket', 'polling'],
         reconnection: false, // Handle reconnection manually
@@ -147,6 +148,11 @@ export function useConversation(sessionId: string): UseConversationReturn {
 
         // Process any queued messages
         processMessageQueue();
+      });
+
+      socket.on('connect_error', (err) => {
+        console.error('Socket.IO connect_error:', err.message);
+        setError(new Error(err.message));
       });
 
       socket.on('disconnect', (reason) => {
