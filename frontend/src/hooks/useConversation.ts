@@ -144,13 +144,13 @@ export function useConversation(sessionId: string): UseConversationReturn {
       }
 
       console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
+      console.log('Sending auth object:', JSON.stringify({ token: token.substring(0, 30) + '...' }));
       const socket = io(WS_URL, {
-        transports: ['polling', 'websocket'], // Polling first, upgrade to websocket
-        upgrade: true,
+        transports: ['websocket'], // WebSocket only to test if polling is the issue
         reconnection: false, // Handle reconnection manually
         query: { sessionId },
         auth: { token },
-        timeout: 20000, // 20 second timeout
+        timeout: 30000, // 30 second timeout
       });
 
       socket.on('connect', () => {
