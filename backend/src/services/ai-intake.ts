@@ -30,7 +30,7 @@ const SYSTEM_PROMPT = readFileSync(
 );
 
 // Model configuration
-const MODEL = 'gpt-5.2';
+const MODEL = 'gpt-4o';
 const MAX_COMPLETION_TOKENS = 1024;
 
 export interface IntakeContext {
