@@ -1,4 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { ConversationMessage, SessionType } from '../types';
 import { buildPrompt } from './prompt-builder';
 import { conversationService } from './conversation';
@@ -12,14 +12,21 @@ import { getUserById } from './user';
  * session type where both partners engage in a shared conversation.
  */
 
-// Initialize Anthropic client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || '',
-});
+// Lazy-initialized OpenAI client
+let openai: OpenAI | null = null;
+
+function getOpenAI(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY || '',
+    });
+  }
+  return openai;
+}
 
 // Model configuration
-const MODEL = 'claude-sonnet-4-20250514';
-const MAX_TOKENS = 1536; // Increased for couples dialogue
+const MODEL = 'gpt-5-2';
+const MAX_COMPLETION_TOKENS = 1536; // Increased for couples dialogue
 const SYNTHESIS_MAX_TOKENS = 2048; // For initial synthesis
 
 export interface TokenUsage {
@@ -43,8 +50,8 @@ export interface RelationshipContext {
 export async function generateRelationshipSynthesis(
   context: RelationshipContext
 ): Promise<{ content: string; usage: TokenUsage }> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
@@ -104,32 +111,26 @@ export async function generateRelationshipSynthesis(
       conflict.title
     );
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
+    // Call OpenAI API
+    const response = await getOpenAI().chat.completions.create({
       model: MODEL,
-      max_tokens: SYNTHESIS_MAX_TOKENS,
-      system: systemPrompt,
+      max_completion_tokens: SYNTHESIS_MAX_TOKENS,
       messages: [
-        {
-          role: 'user',
-          content: synthesisContext,
-        },
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: synthesisContext },
       ],
     });
 
     // Extract text content
-    const content = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as any).text)
-      .join('\n');
+    const content = response.choices[0]?.message?.content || '';
 
     // Calculate token usage
     const usage: TokenUsage = {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
       totalCost: calculateCost(
-        response.usage.input_tokens,
-        response.usage.output_tokens
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
       ),
     };
 
@@ -155,8 +156,8 @@ export async function generateRelationshipResponse(
   messages: ConversationMessage[],
   context: RelationshipContext
 ): Promise<{ content: string; usage: TokenUsage }> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
@@ -180,8 +181,8 @@ export async function generateRelationshipResponse(
       partnerBUser?.displayName
     );
 
-    // Convert messages to Anthropic format with sender information
-    const anthropicMessages = convertRelationshipMessages(
+    // Convert messages to OpenAI format with sender information
+    const openaiMessages = convertRelationshipMessages(
       messages,
       context.partnerAId,
       context.partnerBId,
@@ -189,27 +190,26 @@ export async function generateRelationshipResponse(
       partnerBUser?.displayName
     );
 
-    // Call Claude API
-    const response = await anthropic.messages.create({
+    // Call OpenAI API
+    const response = await getOpenAI().chat.completions.create({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: enrichedSystemPrompt,
-      messages: anthropicMessages,
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
+      messages: [
+        { role: 'system', content: enrichedSystemPrompt },
+        ...openaiMessages,
+      ],
     });
 
     // Extract text content
-    const content = response.content
-      .filter((block) => block.type === 'text')
-      .map((block) => (block as any).text)
-      .join('\n');
+    const content = response.choices[0]?.message?.content || '';
 
     // Calculate token usage and cost
     const usage: TokenUsage = {
-      inputTokens: response.usage.input_tokens,
-      outputTokens: response.usage.output_tokens,
+      inputTokens: response.usage?.prompt_tokens || 0,
+      outputTokens: response.usage?.completion_tokens || 0,
       totalCost: calculateCost(
-        response.usage.input_tokens,
-        response.usage.output_tokens
+        response.usage?.prompt_tokens || 0,
+        response.usage?.completion_tokens || 0
       ),
     };
 
@@ -235,8 +235,8 @@ export async function streamRelationshipResponse(
   context: RelationshipContext,
   onChunk: (chunk: string) => void
 ): Promise<{ fullContent: string; usage: TokenUsage }> {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured');
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
   }
 
   try {
@@ -260,8 +260,8 @@ export async function streamRelationshipResponse(
       partnerBUser?.displayName
     );
 
-    // Convert messages to Anthropic format with sender information
-    const anthropicMessages = convertRelationshipMessages(
+    // Convert messages to OpenAI format with sender information
+    const openaiMessages = convertRelationshipMessages(
       messages,
       context.partnerAId,
       context.partnerBId,
@@ -269,40 +269,41 @@ export async function streamRelationshipResponse(
       partnerBUser?.displayName
     );
 
-    // Call Claude API with streaming
-    const stream = await anthropic.messages.stream({
+    // Call OpenAI API with streaming
+    const stream = await getOpenAI().chat.completions.create({
       model: MODEL,
-      max_tokens: MAX_TOKENS,
-      system: enrichedSystemPrompt,
-      messages: anthropicMessages,
+      max_completion_tokens: MAX_COMPLETION_TOKENS,
+      messages: [
+        { role: 'system', content: enrichedSystemPrompt },
+        ...openaiMessages,
+      ],
+      stream: true,
+      stream_options: { include_usage: true },
     });
 
     let fullContent = '';
+    let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalCost: 0 };
 
     // Process stream
     for await (const chunk of stream) {
-      if (
-        chunk.type === 'content_block_delta' &&
-        chunk.delta.type === 'text_delta'
-      ) {
-        const text = chunk.delta.text;
-        fullContent += text;
-        onChunk(text);
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        onChunk(delta);
+      }
+
+      // Capture usage from final chunk
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens || 0,
+          outputTokens: chunk.usage.completion_tokens || 0,
+          totalCost: calculateCost(
+            chunk.usage.prompt_tokens || 0,
+            chunk.usage.completion_tokens || 0
+          ),
+        };
       }
     }
-
-    // Get final message with usage
-    const finalMessage = await stream.finalMessage();
-
-    // Calculate token usage and cost
-    const usage: TokenUsage = {
-      inputTokens: finalMessage.usage.input_tokens,
-      outputTokens: finalMessage.usage.output_tokens,
-      totalCost: calculateCost(
-        finalMessage.usage.input_tokens,
-        finalMessage.usage.output_tokens
-      ),
-    };
 
     // Log token usage for monitoring
     console.log(
@@ -387,7 +388,7 @@ function buildSystemPromptWithSenderContext(
 }
 
 /**
- * Convert relationship messages to Anthropic format
+ * Convert relationship messages to OpenAI format
  * Includes sender information in message content
  */
 function convertRelationshipMessages(
@@ -455,13 +456,13 @@ async function getPartnerGuidance(
 
 /**
  * Calculate cost based on token usage
- * Pricing for Claude Sonnet 4 (as of Dec 2024):
- * - Input: $3 per million tokens
- * - Output: $15 per million tokens
+ * Pricing for GPT-5.2 (estimated):
+ * - Input: $2.50 per million tokens
+ * - Output: $10 per million tokens
  */
 function calculateCost(inputTokens: number, outputTokens: number): number {
-  const INPUT_COST_PER_MILLION = 3.0;
-  const OUTPUT_COST_PER_MILLION = 15.0;
+  const INPUT_COST_PER_MILLION = 2.5;
+  const OUTPUT_COST_PER_MILLION = 10.0;
 
   const inputCost = (inputTokens / 1_000_000) * INPUT_COST_PER_MILLION;
   const outputCost = (outputTokens / 1_000_000) * OUTPUT_COST_PER_MILLION;
@@ -473,5 +474,5 @@ function calculateCost(inputTokens: number, outputTokens: number): number {
  * Validate that API key is configured
  */
 export function validateApiKey(): boolean {
-  return !!process.env.ANTHROPIC_API_KEY;
+  return !!process.env.OPENAI_API_KEY;
 }

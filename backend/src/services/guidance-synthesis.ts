@@ -19,7 +19,7 @@ const openai = new OpenAI({
 });
 
 // Model configuration for GPT-5.2
-const MODEL = 'gpt-5.2';
+const MODEL = 'gpt-5-2';
 const INDIVIDUAL_MAX_TOKENS = 2048;
 const JOINT_CONTEXT_MAX_TOKENS = 3072;
 
