@@ -146,10 +146,14 @@ export function useConversation(sessionId: string): UseConversationReturn {
       console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
       console.log('Sending auth object:', JSON.stringify({ token: token.substring(0, 30) + '...' }));
       const socket = io(WS_URL, {
-        transports: ['websocket'], // WebSocket only to test if polling is the issue
+        transports: ['polling', 'websocket'], // Try polling first
+        upgrade: true,
         reconnection: false, // Handle reconnection manually
-        query: { sessionId },
+        query: { sessionId, token }, // Also send token in query as backup
         auth: { token },
+        extraHeaders: {
+          Authorization: `Bearer ${token}` // Also send in header as backup
+        },
         timeout: 30000, // 30 second timeout
       });
 
