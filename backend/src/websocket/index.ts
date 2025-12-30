@@ -34,9 +34,14 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
 
       // Debug logging for token
       console.log('WebSocket auth - token type:', typeof token);
-      console.log('WebSocket auth - token length:', token ? token.length : 'null');
-      if (token) {
+      console.log('WebSocket auth - token length:', token ? String(token).length : 'null');
+      console.log('WebSocket auth - handshake.auth:', JSON.stringify(socket.handshake.auth));
+      if (token && typeof token === 'string') {
+        const parts = token.split('.');
+        console.log('WebSocket auth - JWT parts count:', parts.length);
         console.log('WebSocket auth - token preview:', token.substring(0, 50) + '...' + token.substring(token.length - 20));
+      } else if (token) {
+        console.log('WebSocket auth - token is NOT a string! Value:', JSON.stringify(token));
       }
 
       if (!token) {
