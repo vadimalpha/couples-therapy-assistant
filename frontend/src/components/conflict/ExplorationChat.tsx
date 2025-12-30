@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useLocation, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import ChatWindow from '../chat/ChatWindow';
 import type { Message } from '../chat/ChatWindow';
 import { useConversation } from '../../hooks/useConversation';
@@ -20,16 +20,14 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
   sessionId: sessionIdProp
 }) => {
   const { id: conflictIdParam } = useParams<{ id: string }>();
-  const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
 
   const conflictId = conflictIdProp || conflictIdParam;
-  // Try to get sessionId from props, then location state, then we'll fetch it
-  const [sessionId, setSessionId] = useState<string | undefined>(
-    sessionIdProp || location.state?.sessionId
-  );
-  const [isLoadingConflict, setIsLoadingConflict] = useState(!sessionId);
+  // Only use sessionId from props - NEVER from location.state to avoid stale Partner A sessions
+  // Always fetch conflict details to determine the correct session for the current user
+  const [sessionId, setSessionId] = useState<string | undefined>(sessionIdProp);
+  const [isLoadingConflict, setIsLoadingConflict] = useState(true); // Always load to verify correct session
 
   const [conflictTitle, setConflictTitle] = useState('Exploration Chat');
   const [, setShowReadyConfirmation] = useState(false);
@@ -61,8 +59,9 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
       return;
     }
 
-    // If we already have sessionId, don't re-fetch - just mark as loaded
-    if (sessionId) {
+    // If sessionId came from props, we trust it (it was passed programmatically)
+    // But if we don't have one, we MUST fetch to get the correct session for this user
+    if (sessionIdProp) {
       setIsLoadingConflict(false);
       return;
     }
@@ -135,7 +134,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
     };
 
     fetchConflictDetails();
-  }, [conflictId, navigate, user]); // Removed sessionId - we return early if it exists
+  }, [conflictId, navigate, user, sessionIdProp]); // Check sessionIdProp for early return
 
   const handleSendMessage = async (content: string) => {
     try {
@@ -187,8 +186,9 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
           isTyping={isStreaming}
           typingUser="AI Therapist"
           title={conflictTitle}
-          status={isFinalized ? 'finalized' : 'active'}
-          disabled={isFinalized || !isConnected}
+          status={isFinalized ? 'finalized' : (isConnected ? 'active' : 'connecting')}
+          disabled={isFinalized}
+          placeholder={!isConnected ? 'Connecting...' : undefined}
         />
 
         {conversationError && (

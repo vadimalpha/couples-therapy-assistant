@@ -25,7 +25,9 @@ interface UseConversationReturn {
   error: Error | null;
 }
 
-const WS_URL = 'ws://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+// Convert http(s) to ws(s) for WebSocket connection
+const WS_URL = API_URL.replace(/^http/, 'ws');
 const MAX_RECONNECT_DELAY = 30000; // 30 seconds
 const INITIAL_RECONNECT_DELAY = 1000; // 1 second
 
