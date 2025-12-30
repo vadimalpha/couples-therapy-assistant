@@ -18,8 +18,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// Model configuration for GPT-5.2
-const MODEL = 'gpt-5.2';
+// Model configuration
+const MODEL = 'gpt-4o';
 const INDIVIDUAL_MAX_TOKENS = 2048;
 const JOINT_CONTEXT_MAX_TOKENS = 3072;
 
