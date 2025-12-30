@@ -10,6 +10,7 @@ import { guidanceQueue } from '../queue';
 import { IndividualGuidanceJob, JointContextGuidanceJob } from '../queue/jobs';
 import { conflictService } from './conflict';
 import { getRelationship } from './relationship';
+import { synthesizeIndividualGuidance, synthesizeJointContextGuidance } from './chat-ai';
 
 /**
  * Helper to extract results from SurrealDB query response
@@ -199,19 +200,36 @@ export class ConversationService {
       const isPartnerA = finalizedSession.sessionType === 'individual_a';
       const partnerId = isPartnerA ? 'a' : 'b';
 
-      // Queue individual guidance job
+      // Generate individual guidance
       if (finalizedSession.conflictId) {
-        const individualJob: IndividualGuidanceJob = {
-          type: 'individual_guidance',
-          sessionId: finalizedSession.id,
-          conflictId: finalizedSession.conflictId,
-          partnerId,
-        };
+        try {
+          // Try to queue the job (requires Redis)
+          const individualJob: IndividualGuidanceJob = {
+            type: 'individual_guidance',
+            sessionId: finalizedSession.id,
+            conflictId: finalizedSession.conflictId,
+            partnerId,
+          };
 
-        await guidanceQueue.add('individual_guidance', individualJob);
-        console.log(
-          `Queued individual guidance job for session ${finalizedSession.id}`
-        );
+          await guidanceQueue.add('individual_guidance', individualJob);
+          console.log(
+            `Queued individual guidance job for session ${finalizedSession.id}`
+          );
+        } catch (queueError) {
+          // Queue failed (likely no Redis) - synthesize synchronously
+          console.log(
+            `Queue unavailable, synthesizing individual guidance synchronously for session ${finalizedSession.id}`
+          );
+          try {
+            const result = await synthesizeIndividualGuidance(finalizedSession.id);
+            console.log(
+              `Individual guidance synthesized synchronously. New session: ${result.sessionId}`
+            );
+          } catch (synthError) {
+            console.error('Failed to synthesize individual guidance:', synthError);
+            // Don't throw - the session is still finalized, guidance can be retried
+          }
+        }
 
         // Check if both partners have finalized - if so, queue joint context jobs
         await this.checkAndQueueJointContextGuidance(finalizedSession.conflictId);
@@ -275,25 +293,42 @@ export class ConversationService {
       return;
     }
 
-    // Both partners finalized - queue joint context jobs for both
-    const jobA: JointContextGuidanceJob = {
-      type: 'joint_context_guidance',
-      conflictId: conflict.id,
-      partnerId: conflict.partner_a_id,
-    };
+    // Both partners finalized - generate joint context guidance for both
+    try {
+      const jobA: JointContextGuidanceJob = {
+        type: 'joint_context_guidance',
+        conflictId: conflict.id,
+        partnerId: conflict.partner_a_id,
+      };
 
-    const jobB: JointContextGuidanceJob = {
-      type: 'joint_context_guidance',
-      conflictId: conflict.id,
-      partnerId: conflict.partner_b_id,
-    };
+      const jobB: JointContextGuidanceJob = {
+        type: 'joint_context_guidance',
+        conflictId: conflict.id,
+        partnerId: conflict.partner_b_id,
+      };
 
-    await guidanceQueue.add('joint_context_guidance', jobA);
-    await guidanceQueue.add('joint_context_guidance', jobB);
+      await guidanceQueue.add('joint_context_guidance', jobA);
+      await guidanceQueue.add('joint_context_guidance', jobB);
 
-    console.log(
-      `Queued joint context guidance jobs for both partners in conflict ${conflict.id}`
-    );
+      console.log(
+        `Queued joint context guidance jobs for both partners in conflict ${conflict.id}`
+      );
+    } catch (queueError) {
+      // Queue failed (likely no Redis) - synthesize synchronously
+      console.log(
+        `Queue unavailable, synthesizing joint context guidance synchronously for conflict ${conflict.id}`
+      );
+      try {
+        // Synthesize for both partners
+        await synthesizeJointContextGuidance(conflict.id, conflict.partner_a_id);
+        console.log(`Joint context guidance synthesized for partner A`);
+
+        await synthesizeJointContextGuidance(conflict.id, conflict.partner_b_id);
+        console.log(`Joint context guidance synthesized for partner B`);
+      } catch (synthError) {
+        console.error('Failed to synthesize joint context guidance:', synthError);
+      }
+    }
   }
 
   /**
