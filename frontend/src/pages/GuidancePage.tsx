@@ -75,9 +75,16 @@ const GuidancePage: React.FC = () => {
 
         if (sessionsResponse.ok) {
           const sessions = await sessionsResponse.json();
+          // Normalize IDs for comparison (handle both 'conflict:xxx' and 'xxx' formats)
+          const normalizeId = (cid: string | undefined) => {
+            if (!cid) return '';
+            return cid.startsWith('conflict:') ? cid : `conflict:${cid}`;
+          };
+          const targetConflictId = normalizeId(conflictData.conflict?.id || id);
+
           const jointContextSession = sessions.find((s: any) =>
             (s.sessionType === 'joint_context_a' || s.sessionType === 'joint_context_b') &&
-            s.conflictId === (conflictData.conflict?.id || id)
+            normalizeId(s.conflictId) === targetConflictId
           );
 
           if (jointContextSession && jointContextSession.messages?.length > 0) {
