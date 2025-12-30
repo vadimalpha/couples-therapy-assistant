@@ -229,10 +229,14 @@ export async function synthesizeIndividualGuidance(
   }
 
   try {
+    console.log(`synthesizeIndividualGuidance: Starting for session ${explorationSessionId}`);
+
     const explorationSession = await conversationService.getSession(explorationSessionId);
     if (!explorationSession) {
       throw new Error('Exploration session not found');
     }
+
+    console.log(`synthesizeIndividualGuidance: Found session - type=${explorationSession.sessionType}, status=${explorationSession.status}, conflictId=${explorationSession.conflictId}, messages=${explorationSession.messages?.length || 0}`);
 
     if (explorationSession.status !== 'finalized') {
       throw new Error('Exploration session must be finalized before synthesizing guidance');
@@ -240,6 +244,8 @@ export async function synthesizeIndividualGuidance(
 
     const isPartnerA = explorationSession.sessionType === 'individual_a';
     const jointContextSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
+
+    console.log(`synthesizeIndividualGuidance: Will create ${jointContextSessionType} session with conflictId=${explorationSession.conflictId}`);
 
     const user = await getUserById(explorationSession.userId);
     const intakeData = await getIntakeData(explorationSession.userId);
@@ -305,7 +311,11 @@ export async function synthesizeIndividualGuidance(
       explorationSession.conflictId
     );
 
+    console.log(`synthesizeIndividualGuidance: Created joint context session - id=${jointContextSession.id}, type=${jointContextSession.sessionType}, conflictId=${jointContextSession.conflictId}`);
+
     await conversationService.addMessage(jointContextSession.id, 'ai', guidance);
+
+    console.log(`synthesizeIndividualGuidance: Added guidance message to session ${jointContextSession.id}`);
 
     return {
       guidance,
