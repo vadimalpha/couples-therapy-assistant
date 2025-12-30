@@ -49,7 +49,7 @@ function getOpenAI(): OpenAI {
   return openai;
 }
 
-const EXTRACTION_MODEL = 'gpt-5.2';
+const EXTRACTION_MODEL = 'gpt-4o';
 
 // Intake sections for progress tracking
 const INTAKE_SECTIONS = [

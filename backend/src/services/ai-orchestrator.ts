@@ -25,7 +25,7 @@ function getOpenAI(): OpenAI {
 }
 
 // Model configuration
-const MODEL = 'gpt-5.2';
+const MODEL = 'gpt-4o';
 const MAX_COMPLETION_TOKENS = 1536; // Increased for couples dialogue
 const SYNTHESIS_MAX_TOKENS = 2048; // For initial synthesis
 
