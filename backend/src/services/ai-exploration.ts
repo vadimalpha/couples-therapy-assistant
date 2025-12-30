@@ -22,7 +22,7 @@ function getOpenAI(): OpenAI {
 }
 
 // Model configuration
-const MODEL = 'gpt-5-2';
+const MODEL = 'gpt-5.2';
 const MAX_COMPLETION_TOKENS = 1024;
 
 export interface TokenUsage {
