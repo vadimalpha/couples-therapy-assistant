@@ -129,7 +129,7 @@ export function useConversation(sessionId: string): UseConversationReturn {
       tokenRef.current = token;
 
       const socket = io(WS_URL, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: false, // Handle reconnection manually
         query: { sessionId },
         auth: { token }

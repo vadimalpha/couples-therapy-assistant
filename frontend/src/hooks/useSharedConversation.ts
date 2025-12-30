@@ -105,7 +105,7 @@ export function useSharedConversation(
 
     try {
       const socket = io(WS_URL, {
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'],
         reconnection: false,
         query: { relationshipId, userId }
       });
