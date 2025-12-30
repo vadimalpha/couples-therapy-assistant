@@ -180,6 +180,8 @@ async function triggerAIResponse(
   userId: string
 ): Promise<void> {
   try {
+    console.log(`[triggerAIResponse] Starting for sessionId=${sessionId}, userId=${userId}`);
+
     // Get the session to determine type
     const session = await conversationService.getSession(sessionId);
     if (!session) {
@@ -188,6 +190,7 @@ async function triggerAIResponse(
     }
 
     const sessionType = session.sessionType as SessionType;
+    console.log(`[triggerAIResponse] Session found: type=${sessionType}, conflictId=${session.conflictId}, messageCount=${session.messages?.length || 0}`);
 
     // Only generate AI responses for exploration, guidance refinement, and relationship sessions
     const supportedSessionTypes = [
@@ -233,11 +236,13 @@ async function triggerAIResponse(
       );
     } else if (sessionType === 'joint_context_a' || sessionType === 'joint_context_b') {
       // Guidance refinement chat - use streamGuidanceRefinementResponse
+      console.log(`[triggerAIResponse] Handling guidance refinement for ${sessionType}`);
       const guidanceContext: GuidanceRefinementContext = {
         userId,
         conflictId: session.conflictId,
         sessionType: sessionType as 'joint_context_a' | 'joint_context_b',
       };
+      console.log(`[triggerAIResponse] Guidance context:`, JSON.stringify(guidanceContext));
 
       const result = await streamGuidanceRefinementResponse(
         session.messages,
