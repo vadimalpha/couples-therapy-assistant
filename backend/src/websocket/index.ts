@@ -30,12 +30,34 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
   // Authentication middleware
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
-      const token = socket.handshake.auth.token;
+      // Debug: Log all possible places the token might be
+      console.log('WebSocket auth - full handshake auth keys:', Object.keys(socket.handshake.auth || {}));
+      console.log('WebSocket auth - full handshake query keys:', Object.keys(socket.handshake.query || {}));
+      console.log('WebSocket auth - handshake.auth:', JSON.stringify(socket.handshake.auth));
+      console.log('WebSocket auth - handshake.query:', JSON.stringify(socket.handshake.query));
+      console.log('WebSocket auth - headers auth:', socket.handshake.headers.authorization);
+
+      // Try to get token from various sources
+      let token = socket.handshake.auth?.token;
+
+      // Fallback: check query params
+      if (!token) {
+        token = socket.handshake.query?.token as string;
+        if (token) console.log('WebSocket auth - found token in query params instead of auth');
+      }
+
+      // Fallback: check authorization header
+      if (!token && socket.handshake.headers.authorization) {
+        const authHeader = socket.handshake.headers.authorization;
+        if (authHeader.startsWith('Bearer ')) {
+          token = authHeader.split('Bearer ')[1];
+          console.log('WebSocket auth - found token in authorization header');
+        }
+      }
 
       // Debug logging for token
       console.log('WebSocket auth - token type:', typeof token);
       console.log('WebSocket auth - token length:', token ? String(token).length : 'null');
-      console.log('WebSocket auth - handshake.auth:', JSON.stringify(socket.handshake.auth));
       if (token && typeof token === 'string') {
         const parts = token.split('.');
         console.log('WebSocket auth - JWT parts count:', parts.length);
