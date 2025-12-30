@@ -49,6 +49,12 @@ export interface RelationshipContext {
   senderId?: string;
 }
 
+export interface GuidanceRefinementContext {
+  userId: string;
+  conflictId?: string;
+  sessionType: 'joint_context_a' | 'joint_context_b';
+}
+
 export interface GuidanceSynthesisResult {
   guidance: string;
   usage: TokenUsage;
@@ -214,6 +220,96 @@ export async function streamExplorationResponse(
     console.error('Error streaming AI response:', error);
     throw new Error(
       `Failed to stream AI response: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Stream AI response for guidance refinement (joint_context sessions)
+ * Used when users ask follow-up questions about their personalized guidance
+ */
+export async function streamGuidanceRefinementResponse(
+  messages: ConversationMessage[],
+  context: GuidanceRefinementContext,
+  onChunk: (chunk: string) => void
+): Promise<{ fullContent: string; usage: TokenUsage }> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  try {
+    const user = await getUserById(context.userId);
+    const conflict = context.conflictId
+      ? await conflictService.getConflict(context.conflictId)
+      : null;
+
+    const systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
+      conflictId: context.conflictId || '',
+      userId: context.userId,
+      sessionType: context.sessionType,
+      includeRAG: true,
+    });
+
+    const openaiMessages = convertMessagesToOpenAI(messages);
+
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
+
+    const stream = await openai.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: GUIDANCE_MAX_COMPLETION_TOKENS,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...openaiMessages,
+      ],
+      stream: true,
+      stream_options: { include_usage: true },
+    });
+
+    let fullContent = '';
+    let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalCost: 0 };
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        onChunk(delta);
+      }
+
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens || 0,
+          outputTokens: chunk.usage.completion_tokens || 0,
+          totalCost: calculateCost(
+            chunk.usage.prompt_tokens || 0,
+            chunk.usage.completion_tokens || 0
+          ),
+        };
+      }
+    }
+
+    logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      conflictId: context.conflictId,
+      conflictTitle: conflict?.title,
+      sessionType: context.sessionType as SessionType,
+      logType: 'guidance_refinement',
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
+
+    return { fullContent, usage };
+  } catch (error) {
+    console.error('Error streaming guidance refinement response:', error);
+    throw new Error(
+      `Failed to stream guidance refinement response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }

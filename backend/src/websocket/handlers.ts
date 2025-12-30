@@ -15,8 +15,10 @@ import {
 import {
   streamExplorationResponse,
   streamRelationshipResponse,
+  streamGuidanceRefinementResponse,
   ExplorationContext,
-  RelationshipContext
+  RelationshipContext,
+  GuidanceRefinementContext
 } from '../services/chat-ai';
 import { getUserById } from '../services/user';
 import { SessionType } from '../types';
@@ -180,12 +182,17 @@ async function triggerAIResponse(
 
     const sessionType = session.sessionType as SessionType;
 
-    // Only generate AI responses for exploration and relationship sessions
-    if (!['individual_a', 'individual_b', 'relationship_shared'].includes(sessionType)) {
+    // Only generate AI responses for exploration, guidance refinement, and relationship sessions
+    const supportedSessionTypes = [
+      'individual_a', 'individual_b',
+      'joint_context_a', 'joint_context_b',
+      'relationship_shared'
+    ];
+    if (!supportedSessionTypes.includes(sessionType)) {
       return;
     }
 
-    // For exploration sessions, emit directly to the socket to avoid duplicates
+    // For exploration and guidance refinement sessions, emit directly to the socket to avoid duplicates
     // from multiple socket connections (React Strict Mode can cause this)
     // For relationship_shared, emit to room so both partners can see
     const emitToClient = sessionType === 'relationship_shared'
@@ -216,6 +223,26 @@ async function triggerAIResponse(
 
       console.log(
         `AI exploration response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
+    } else if (sessionType === 'joint_context_a' || sessionType === 'joint_context_b') {
+      // Guidance refinement chat - use streamGuidanceRefinementResponse
+      const guidanceContext: GuidanceRefinementContext = {
+        userId,
+        conflictId: session.conflictId,
+        sessionType: sessionType as 'joint_context_a' | 'joint_context_b',
+      };
+
+      const result = await streamGuidanceRefinementResponse(
+        session.messages,
+        guidanceContext,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI guidance refinement response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
       );
     } else if (sessionType === 'relationship_shared') {
       // Relationship shared chat - need conflict info for partner IDs
