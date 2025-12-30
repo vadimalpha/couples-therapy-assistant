@@ -128,6 +128,11 @@ export function useConversation(sessionId: string): UseConversationReturn {
       const token = await currentUser.getIdToken();
       tokenRef.current = token;
 
+      // Debug: Log token info (not the full token for security)
+      console.log('Token type:', typeof token);
+      console.log('Token length:', token ? token.length : 'null');
+      console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
+
       console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
       const socket = io(WS_URL, {
         transports: ['polling', 'websocket'], // Polling first, upgrade to websocket
