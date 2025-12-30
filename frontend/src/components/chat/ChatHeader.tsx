@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type SessionStatus = 'active' | 'finalized';
+export type SessionStatus = 'active' | 'finalized' | 'connecting';
 
 export interface Participant {
   id: string;
@@ -20,7 +20,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({ title, status, participants = [
       <div className="chat-header-content">
         <h2 className="chat-header-title">{title}</h2>
         <span className={`chat-header-status status-${status}`}>
-          {status === 'active' ? 'Active' : 'Finalized'}
+          {status === 'active' ? 'Active' : status === 'connecting' ? 'Connecting...' : 'Finalized'}
         </span>
       </div>
       {participants.length > 0 && (
