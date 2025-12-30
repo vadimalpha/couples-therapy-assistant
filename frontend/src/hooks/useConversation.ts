@@ -130,10 +130,12 @@ export function useConversation(sessionId: string): UseConversationReturn {
 
       console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
       const socket = io(WS_URL, {
-        transports: ['websocket', 'polling'],
+        transports: ['polling', 'websocket'], // Polling first, upgrade to websocket
+        upgrade: true,
         reconnection: false, // Handle reconnection manually
         query: { sessionId },
-        auth: { token }
+        auth: { token },
+        timeout: 20000, // 20 second timeout
       });
 
       socket.on('connect', () => {
