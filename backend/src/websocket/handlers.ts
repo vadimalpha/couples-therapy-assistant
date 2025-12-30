@@ -109,17 +109,20 @@ export function handleConnection(socket: AuthenticatedSocket, io: Server): void 
 export async function handleMessage(
   socket: AuthenticatedSocket,
   io: Server,
-  data: { content: string; role?: MessageRole; senderId?: string }
+  data: { content: string; role?: MessageRole; senderId?: string },
+  callback?: (response: { error?: string; success?: boolean }) => void
 ): Promise<void> {
   try {
     const { content, role = 'user', senderId } = data;
 
     if (!socket.sessionId) {
+      callback?.({ error: 'Not joined to any conversation' });
       socket.emit('error', { message: 'Not joined to any conversation' });
       return;
     }
 
     if (!content || content.trim().length === 0) {
+      callback?.({ error: 'Message content is required' });
       socket.emit('error', { message: 'Message content is required' });
       return;
     }
@@ -147,6 +150,9 @@ export async function handleMessage(
     // Broadcast message to all users in the room
     io.to(socket.sessionId).emit('message', message);
 
+    // Acknowledge message was received and saved
+    callback?.({ success: true });
+
     console.log(
       `Message sent in session ${socket.sessionId} by user ${socket.userId}`
     );
@@ -159,6 +165,7 @@ export async function handleMessage(
     console.error('Error handling message:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to send message';
+    callback?.({ error: errorMessage });
     socket.emit('error', { message: errorMessage });
   }
 }

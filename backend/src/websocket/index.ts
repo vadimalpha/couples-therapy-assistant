@@ -69,7 +69,7 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
     handleConnection(socket, io);
 
     // Handle message events
-    socket.on('message', (data) => handleMessage(socket, io, data));
+    socket.on('message', (data, callback) => handleMessage(socket, io, data, callback));
 
     // Handle typing events
     socket.on('typing', (data) => handleTyping(socket, io, data));
