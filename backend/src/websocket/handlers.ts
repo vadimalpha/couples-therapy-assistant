@@ -236,18 +236,24 @@ async function triggerAIResponse(
       );
     } else if (sessionType === 'joint_context_a' || sessionType === 'joint_context_b') {
       // Guidance refinement chat - use streamGuidanceRefinementResponse
-      console.log(`[triggerAIResponse] Handling guidance refinement for ${sessionType}`);
+      console.log(`[triggerAIResponse] *** GUIDANCE REFINEMENT PATH ***`);
+      console.log(`[triggerAIResponse] Session type: ${sessionType}`);
+      console.log(`[triggerAIResponse] User ID: ${userId}`);
+      console.log(`[triggerAIResponse] Conflict ID: ${session.conflictId}`);
+      console.log(`[triggerAIResponse] Message count: ${session.messages?.length || 0}`);
+
       const guidanceContext: GuidanceRefinementContext = {
         userId,
         conflictId: session.conflictId,
         sessionType: sessionType as 'joint_context_a' | 'joint_context_b',
       };
-      console.log(`[triggerAIResponse] Guidance context:`, JSON.stringify(guidanceContext));
+      console.log(`[triggerAIResponse] Calling streamGuidanceRefinementResponse...`);
 
       const result = await streamGuidanceRefinementResponse(
         session.messages,
         guidanceContext,
         (chunk: string) => {
+          console.log(`[triggerAIResponse] Received chunk, length: ${chunk.length}`);
           emitToClient('stream-chunk', { content: chunk });
         }
       );
