@@ -7,7 +7,7 @@ import {
   MessageRole,
 } from '../types';
 import { guidanceQueue } from '../queue';
-import { IndividualGuidanceJob, JointContextGuidanceJob } from '../queue/jobs';
+import { JointContextGuidanceJob } from '../queue/jobs';
 import { conflictService } from './conflict';
 import { getRelationship } from './relationship';
 import { synthesizeIndividualGuidance, synthesizeJointContextGuidance } from './chat-ai';
@@ -200,35 +200,19 @@ export class ConversationService {
       const isPartnerA = finalizedSession.sessionType === 'individual_a';
       const partnerId = isPartnerA ? 'a' : 'b';
 
-      // Generate individual guidance
+      // Generate individual guidance synchronously so it's available immediately
       if (finalizedSession.conflictId) {
+        console.log(
+          `Synthesizing individual guidance synchronously for session ${finalizedSession.id}`
+        );
         try {
-          // Try to queue the job (requires Redis)
-          const individualJob: IndividualGuidanceJob = {
-            type: 'individual_guidance',
-            sessionId: finalizedSession.id,
-            conflictId: finalizedSession.conflictId,
-            partnerId,
-          };
-
-          await guidanceQueue.add('individual_guidance', individualJob);
+          const result = await synthesizeIndividualGuidance(finalizedSession.id);
           console.log(
-            `Queued individual guidance job for session ${finalizedSession.id}`
+            `Individual guidance synthesized. New session: ${result.sessionId}`
           );
-        } catch (queueError) {
-          // Queue failed (likely no Redis) - synthesize synchronously
-          console.log(
-            `Queue unavailable, synthesizing individual guidance synchronously for session ${finalizedSession.id}`
-          );
-          try {
-            const result = await synthesizeIndividualGuidance(finalizedSession.id);
-            console.log(
-              `Individual guidance synthesized synchronously. New session: ${result.sessionId}`
-            );
-          } catch (synthError) {
-            console.error('Failed to synthesize individual guidance:', synthError);
-            // Don't throw - the session is still finalized, guidance can be retried
-          }
+        } catch (synthError) {
+          console.error('Failed to synthesize individual guidance:', synthError);
+          // Don't throw - the session is still finalized, guidance can be retried
         }
 
         // Check if both partners have finalized - if so, queue joint context jobs
