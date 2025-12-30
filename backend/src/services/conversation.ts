@@ -192,23 +192,26 @@ export class ConversationService {
 
     const finalizedSession = finalizedSessions[0];
 
+    // Use original session data for sessionType and conflictId since UPDATE may not return all fields
+    const sessionType = session.sessionType;
+    const conflictId = session.conflictId;
+
+    console.log(`Session finalized: id=${finalizedSession.id}, type=${sessionType}, conflictId=${conflictId}`);
+
     // Queue guidance synthesis jobs for exploration sessions
-    if (
-      finalizedSession.sessionType === 'individual_a' ||
-      finalizedSession.sessionType === 'individual_b'
-    ) {
-      const isPartnerA = finalizedSession.sessionType === 'individual_a';
+    if (sessionType === 'individual_a' || sessionType === 'individual_b') {
+      const isPartnerA = sessionType === 'individual_a';
       const partnerId = isPartnerA ? 'a' : 'b';
 
       // Generate individual guidance synchronously so it's available immediately
-      if (finalizedSession.conflictId) {
+      if (conflictId) {
         console.log(
-          `Synthesizing individual guidance synchronously for session ${finalizedSession.id}`
+          `Synthesizing individual guidance synchronously for session ${finalizedSession.id}, conflictId=${conflictId}`
         );
         try {
           const result = await synthesizeIndividualGuidance(finalizedSession.id);
           console.log(
-            `Individual guidance synthesized. New session: ${result.sessionId}`
+            `Individual guidance synthesized successfully. New joint_context session: ${result.sessionId}`
           );
         } catch (synthError) {
           console.error('Failed to synthesize individual guidance:', synthError);
@@ -216,7 +219,9 @@ export class ConversationService {
         }
 
         // Check if both partners have finalized - if so, queue joint context jobs
-        await this.checkAndQueueJointContextGuidance(finalizedSession.conflictId);
+        await this.checkAndQueueJointContextGuidance(conflictId);
+      } else {
+        console.log(`No conflictId found for session ${finalizedSession.id}, skipping guidance synthesis`);
       }
     }
 
