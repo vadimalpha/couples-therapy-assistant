@@ -261,12 +261,16 @@ export class ConflictService {
     }
 
     // Get conflicts from those relationships where user isn't Partner A (they're the potential Partner B)
-    const relationshipIds = relationships.map(r => r.id);
-    const relConflictResult = await db.query(
-      'SELECT * FROM conflict WHERE relationship_id IN $relationshipIds AND partner_a_id != $userId ORDER BY created_at DESC',
-      { relationshipIds, userId }
-    );
-    const relationshipConflicts = extractQueryResult<Conflict>(relConflictResult);
+    // Query each relationship individually to avoid SurrealDB IN clause issues
+    const relationshipConflicts: Conflict[] = [];
+    for (const rel of relationships) {
+      const relConflictResult = await db.query(
+        'SELECT * FROM conflict WHERE relationship_id = $relationshipId AND partner_a_id != $userId ORDER BY created_at DESC',
+        { relationshipId: rel.id, userId }
+      );
+      const conflicts = extractQueryResult<Conflict>(relConflictResult);
+      relationshipConflicts.push(...conflicts);
+    }
 
     // Merge and deduplicate
     const allConflicts = [...directConflicts];

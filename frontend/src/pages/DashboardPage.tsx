@@ -12,6 +12,8 @@ interface Conflict {
   title: string;
   status: 'partner_a_chatting' | 'pending_partner_b' | 'partner_b_chatting' | 'both_finalized';
   privacy: 'private' | 'shared';
+  partner_a_id: string;
+  partner_b_id?: string;
   created_at: string;
   updated_at: string;
 }
@@ -338,14 +340,20 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function getConflictBadge(status: Conflict['status']): ConflictItemProps['badge'] {
+function getConflictBadge(status: Conflict['status'], isPartnerA: boolean): ConflictItemProps['badge'] {
   switch (status) {
     case 'partner_a_chatting':
-      return { label: 'Your Turn', variant: 'info' };
+      return isPartnerA
+        ? { label: 'Your Turn', variant: 'info' }
+        : { label: 'Waiting for Partner', variant: 'warning' };
     case 'pending_partner_b':
-      return { label: 'Waiting for Partner', variant: 'warning' };
+      return isPartnerA
+        ? { label: 'Waiting for Partner', variant: 'warning' }
+        : { label: 'Your Turn', variant: 'info' };
     case 'partner_b_chatting':
-      return { label: "Partner's Turn", variant: 'warning' };
+      return isPartnerA
+        ? { label: 'Waiting for Partner', variant: 'warning' }
+        : { label: 'Your Turn', variant: 'info' };
     case 'both_finalized':
       return { label: 'Complete', variant: 'success' };
     default:
@@ -617,22 +625,31 @@ export const DashboardPage: React.FC = () => {
                 <div className="conflict-empty">No conflicts in progress</div>
               ) : (
                 inProgressConflicts.map((conflict) => {
-                  // Show additional buttons when at least one partner has finalized
-                  const showGuidanceButton = conflict.status === 'pending_partner_b' ||
-                                             conflict.status === 'partner_b_chatting';
+                  const isPartnerA = conflict.partner_a_id === user?.uid;
+                  const buttons: ActionButton[] = [];
+
+                  // Continue/Start button for exploration
+                  if (conflict.status === 'partner_a_chatting' && isPartnerA) {
+                    buttons.push({ label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                  } else if (conflict.status === 'pending_partner_b' && !isPartnerA) {
+                    buttons.push({ label: 'Start', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                  } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
+                    buttons.push({ label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                  } else if (conflict.status === 'pending_partner_b' && isPartnerA) {
+                    // Partner A finished, show their individual guidance
+                    buttons.push({ label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'primary' });
+                  } else if (conflict.status === 'partner_b_chatting' && isPartnerA) {
+                    // Partner A finished, Partner B still exploring
+                    buttons.push({ label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' });
+                  }
 
                   return (
                     <ConflictItem
                       key={conflict.id}
                       title={conflict.title}
                       meta={`Started ${formatDate(conflict.created_at)}`}
-                      badge={getConflictBadge(conflict.status)}
-                      actionButtons={showGuidanceButton ? [
-                        { label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' },
-                        { label: 'Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' },
-                      ] : [
-                        { label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' },
-                      ]}
+                      badge={getConflictBadge(conflict.status, isPartnerA)}
+                      actionButtons={buttons}
                     />
                   );
                 })
@@ -649,18 +666,21 @@ export const DashboardPage: React.FC = () => {
               {completedConflicts.length === 0 ? (
                 <div className="conflict-empty">No completed conflicts</div>
               ) : (
-                completedConflicts.map((conflict) => (
-                  <ConflictItem
-                    key={conflict.id}
-                    title={conflict.title}
-                    meta={`Completed ${formatDate(conflict.updated_at)}`}
-                    badge={getConflictBadge(conflict.status)}
-                    actionButtons={[
-                      { label: 'Chat', to: `/conflicts/${conflict.id}/explore`, variant: 'outline' },
-                      { label: 'Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'primary' },
-                    ]}
-                  />
-                ))
+                completedConflicts.map((conflict) => {
+                  const isPartnerA = conflict.partner_a_id === user?.uid;
+                  return (
+                    <ConflictItem
+                      key={conflict.id}
+                      title={conflict.title}
+                      meta={`Completed ${formatDate(conflict.updated_at)}`}
+                      badge={getConflictBadge(conflict.status, isPartnerA)}
+                      actionButtons={[
+                        { label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' },
+                        { label: 'Partner Chat', to: `/conflicts/${conflict.id}/shared`, variant: 'primary' },
+                      ]}
+                    />
+                  );
+                })
               )}
             </div>
           </div>
