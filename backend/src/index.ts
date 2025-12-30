@@ -63,6 +63,7 @@ app.get('/health', async (req: Request, res: Response) => {
     console.error('Health check - DB connection failed:', error);
   }
 
+  const openaiConfigured = !!process.env.OPENAI_API_KEY;
   const status = dbConnected ? 'ok' : 'degraded';
   const httpStatus = dbConnected ? 200 : 503;
 
@@ -70,7 +71,8 @@ app.get('/health', async (req: Request, res: Response) => {
     status,
     timestamp,
     dbConnected,
-    version: '1.0.0'
+    openaiConfigured,
+    version: '1.0.1'
   });
 });
 
