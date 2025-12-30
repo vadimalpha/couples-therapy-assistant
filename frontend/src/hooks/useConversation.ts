@@ -131,7 +131,17 @@ export function useConversation(sessionId: string): UseConversationReturn {
       // Debug: Log token info (not the full token for security)
       console.log('Token type:', typeof token);
       console.log('Token length:', token ? token.length : 'null');
-      console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
+      if (token && typeof token === 'string') {
+        const parts = token.split('.');
+        console.log('Token JWT parts:', parts.length);
+        console.log('Token preview:', token.substring(0, 30) + '...');
+      }
+
+      // Validate token before sending
+      if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
+        console.error('Invalid token format! Token:', token);
+        throw new Error('Invalid authentication token format');
+      }
 
       console.log('Connecting to Socket.IO:', WS_URL, 'with sessionId:', sessionId);
       const socket = io(WS_URL, {
