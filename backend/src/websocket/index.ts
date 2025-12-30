@@ -30,20 +30,12 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
   // Authentication middleware
   io.use(async (socket: AuthenticatedSocket, next) => {
     try {
-      // Debug: Log all possible places the token might be
-      console.log('WebSocket auth - full handshake auth keys:', Object.keys(socket.handshake.auth || {}));
-      console.log('WebSocket auth - full handshake query keys:', Object.keys(socket.handshake.query || {}));
-      console.log('WebSocket auth - handshake.auth:', JSON.stringify(socket.handshake.auth));
-      console.log('WebSocket auth - handshake.query:', JSON.stringify(socket.handshake.query));
-      console.log('WebSocket auth - headers auth:', socket.handshake.headers.authorization);
-
-      // Try to get token from various sources
+      // Try to get token from various sources (multi-source for compatibility)
       let token = socket.handshake.auth?.token;
 
       // Fallback: check query params
       if (!token) {
         token = socket.handshake.query?.token as string;
-        if (token) console.log('WebSocket auth - found token in query params instead of auth');
       }
 
       // Fallback: check authorization header
@@ -51,19 +43,7 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
         const authHeader = socket.handshake.headers.authorization;
         if (authHeader.startsWith('Bearer ')) {
           token = authHeader.split('Bearer ')[1];
-          console.log('WebSocket auth - found token in authorization header');
         }
-      }
-
-      // Debug logging for token
-      console.log('WebSocket auth - token type:', typeof token);
-      console.log('WebSocket auth - token length:', token ? String(token).length : 'null');
-      if (token && typeof token === 'string') {
-        const parts = token.split('.');
-        console.log('WebSocket auth - JWT parts count:', parts.length);
-        console.log('WebSocket auth - token preview:', token.substring(0, 50) + '...' + token.substring(token.length - 20));
-      } else if (token) {
-        console.log('WebSocket auth - token is NOT a string! Value:', JSON.stringify(token));
       }
 
       if (!token) {
@@ -73,12 +53,10 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
       // Verify Firebase token
       const decoded = await admin.auth().verifyIdToken(token);
       socket.userId = decoded.uid;
-      console.log('WebSocket auth - verified user:', decoded.uid);
 
       next();
     } catch (error: any) {
       console.error('WebSocket authentication failed:', error.message);
-      console.error('WebSocket auth error code:', error.code);
       next(new Error('Invalid authentication token'));
     }
   });
