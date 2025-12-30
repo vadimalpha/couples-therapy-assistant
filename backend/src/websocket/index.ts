@@ -32,6 +32,13 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
     try {
       const token = socket.handshake.auth.token;
 
+      // Debug logging for token
+      console.log('WebSocket auth - token type:', typeof token);
+      console.log('WebSocket auth - token length:', token ? token.length : 'null');
+      if (token) {
+        console.log('WebSocket auth - token preview:', token.substring(0, 50) + '...' + token.substring(token.length - 20));
+      }
+
       if (!token) {
         return next(new Error('Authentication token required'));
       }
@@ -39,10 +46,12 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
       // Verify Firebase token
       const decoded = await admin.auth().verifyIdToken(token);
       socket.userId = decoded.uid;
+      console.log('WebSocket auth - verified user:', decoded.uid);
 
       next();
-    } catch (error) {
-      console.error('WebSocket authentication failed:', error);
+    } catch (error: any) {
+      console.error('WebSocket authentication failed:', error.message);
+      console.error('WebSocket auth error code:', error.code);
       next(new Error('Invalid authentication token'));
     }
   });
