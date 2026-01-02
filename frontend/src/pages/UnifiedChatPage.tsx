@@ -10,7 +10,7 @@ import ReadyButton from '../components/conflict/ReadyButton';
 import './UnifiedChatPage.css';
 
 // Admin emails for debug panel
-const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local'];
+const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local', 'claude.test.partnera@gmail.com', 'claude.test.partnerb@gmail.com'];
 
 interface ConflictInfo {
   id: string;
