@@ -373,6 +373,15 @@ router.post(
         return;
       }
 
+      // Only allow finalizing intake and individual exploration sessions
+      const finalizableTypes = ['intake', 'individual_a', 'individual_b'];
+      if (!finalizableTypes.includes(session.sessionType)) {
+        res.status(400).json({
+          error: `Cannot finalize session of type '${session.sessionType}'. Only intake and exploration sessions can be finalized.`
+        });
+        return;
+      }
+
       const finalizedSession = await conversationService.finalizeSession(id);
 
       res.json(finalizedSession);
@@ -409,6 +418,58 @@ router.get(
     } catch (error) {
       console.error('Error fetching user sessions:', error);
       res.status(500).json({ error: 'Failed to fetch conversation sessions' });
+    }
+  }
+);
+
+/**
+ * Debug endpoint to reset session status to active
+ * POST /api/conversations/:id/debug-reset
+ */
+router.post(
+  '/:id/debug-reset',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Session not found' });
+        return;
+      }
+
+      if (session.userId !== userId) {
+        res.status(403).json({ error: 'Access denied' });
+        return;
+      }
+
+      // Reset status to active
+      const { getDatabase } = await import('../services/db');
+      const db = getDatabase();
+      const fullId = id.startsWith('conversation:') ? id : `conversation:${id}`;
+
+      await db.query(
+        'UPDATE type::thing($sessionId) SET status = $status, finalizedAt = NONE',
+        { sessionId: fullId, status: 'active' }
+      );
+
+      res.json({
+        success: true,
+        message: `Session ${id} reset to active`,
+        previousStatus: session.status
+      });
+    } catch (error) {
+      console.error('Error resetting session:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to reset session'
+      });
     }
   }
 );
