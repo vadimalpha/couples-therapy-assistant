@@ -150,6 +150,7 @@ router.post(
         // Prepare context for initial greeting
         const context = {
           userId,
+          sessionId,
           isRefresh,
           previousIntakeData: previousIntakeData || undefined,
         };
@@ -330,6 +331,7 @@ router.post(
         // Prepare context
         const context = {
           userId,
+          sessionId: updatedSession.id,
           isRefresh,
           previousIntakeData: previousIntakeData || undefined,
         };

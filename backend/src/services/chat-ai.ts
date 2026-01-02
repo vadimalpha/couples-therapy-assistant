@@ -35,6 +35,7 @@ export interface TokenUsage {
 
 export interface IntakeContext {
   userId: string;
+  sessionId?: string;
   isRefresh?: boolean; // True if this is a quarterly refresh
   previousIntakeData?: any; // Previous intake data if doing refresh
 }
@@ -143,6 +144,28 @@ export async function streamIntakeResponse(
       }
     }
 
+    // Get user info for logging
+    const user = await getUserById(context.userId);
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
+
+    // Log the prompt
+    logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      sessionId: context.sessionId,
+      sessionType: 'intake',
+      logType: 'intake',
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
+
     return { fullContent, usage };
   } catch (error) {
     console.error('Error streaming intake response:', error);
@@ -202,6 +225,7 @@ export async function generateExplorationResponse(
       userName: user?.displayName,
       conflictId: context.conflictId,
       conflictTitle: conflict?.title,
+      sessionId: context.sessionId,
       sessionType: context.sessionType as SessionType,
       logType: 'exploration',
       guidanceMode: enrichedContext.guidanceMode,
