@@ -179,6 +179,25 @@ const GuidancePage: React.FC = () => {
 
   return (
     <main id="main-content" className="guidance-page">
+      {/* Test button for new unified chat UI */}
+      {guidanceSession.status === 'ready' && guidanceSession.id && (
+        <div style={{ padding: '8px 16px', background: '#1a1a2e', borderBottom: '1px solid #333' }}>
+          <button
+            onClick={() => navigate(`/chat/guidance/${guidanceSession.id}`)}
+            style={{
+              padding: '6px 12px',
+              background: '#10a37f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Try New UI (with Debug Panel)
+          </button>
+        </div>
+      )}
       <div className="guidance-container">
         {guidanceSession.status === 'ready' && guidanceSession.id ? (
           <GuidanceChat
