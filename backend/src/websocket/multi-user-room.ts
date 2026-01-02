@@ -175,17 +175,10 @@ export async function verifyMultiUserAccess(
       return { allowed: false, reason: 'User is not part of this conflict' };
     }
 
-    // Get user's relationship
-    const relationship = await getRelationship(userId);
-    if (!relationship) {
-      return { allowed: false, reason: 'User has no active relationship' };
-    }
-
-    // Verify conflict belongs to user's relationship
-    if (conflict.relationship_id !== relationship.id) {
-      return { allowed: false, reason: 'Conflict does not belong to user\'s relationship' };
-    }
-
+    // User is part of the conflict - allow access
+    // Note: We already verified conflict membership above, which is sufficient
+    // for access control. The relationship check was causing issues for Partner B
+    // who may not have a relationship record in their own user context.
     return { allowed: true };
   } catch (error) {
     console.error('Error verifying multi-user access:', error);
