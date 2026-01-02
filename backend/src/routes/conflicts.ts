@@ -3,6 +3,7 @@ import { AuthenticatedRequest } from '../types';
 import { authenticateUser } from '../middleware/auth';
 import { conflictService } from '../services/conflict';
 import { conversationService } from '../services/conversation';
+import { generateRelationshipSynthesis } from '../services/chat-ai';
 
 const router = Router();
 
@@ -376,13 +377,54 @@ router.get(
         return;
       }
 
+      // Check if both partners have finalized their exploration
+      if (conflict.status !== 'both_finalized') {
+        res.status(404).json({ error: 'Shared session not yet available - both partners must complete exploration first' });
+        return;
+      }
+
       // Find the relationship_shared session for this conflict
       const sessions = await conversationService.getSessionsByConflict(id);
-      const sharedSession = sessions.find(s => s.sessionType === 'relationship_shared');
+      let sharedSession = sessions.find(s => s.sessionType === 'relationship_shared');
 
+      // If no shared session exists, create one and generate initial synthesis
       if (!sharedSession) {
-        res.status(404).json({ error: 'Shared session not yet available' });
-        return;
+        console.log(`Creating relationship_shared session for conflict ${id}`);
+        sharedSession = await conversationService.createSession(
+          conflict.partner_a_id,
+          'relationship_shared',
+          id
+        );
+      }
+
+      // Check if the session starts with an AI message (the initial synthesis)
+      // The synthesis should be the first message in the session
+      const hasInitialSynthesis = sharedSession.messages?.length > 0 &&
+        sharedSession.messages[0].role === 'ai';
+
+      // If no initial synthesis, generate the relationship synthesis
+      if (!hasInitialSynthesis) {
+        console.log(`Generating initial synthesis for shared session ${sharedSession.id}`);
+        try {
+          const synthesisResult = await generateRelationshipSynthesis({
+            sessionId: sharedSession.id,
+            conflictId: id,
+            partnerAId: conflict.partner_a_id,
+            partnerBId: conflict.partner_b_id || '',
+          });
+
+          // Save the synthesis as the first AI message
+          await conversationService.addMessage(
+            sharedSession.id,
+            'ai',
+            synthesisResult.content
+          );
+
+          console.log(`Initial synthesis added to shared session ${sharedSession.id}`);
+        } catch (synthError) {
+          console.error('Error generating initial synthesis:', synthError);
+          // Continue without synthesis - the session is still usable
+        }
       }
 
       res.json({
