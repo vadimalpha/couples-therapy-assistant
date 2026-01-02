@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChatSession, SessionType } from '../hooks/useChatSession';
-import ChatWindow from '../components/chat/ChatWindow';
+import ChatWindow, { Message as ChatMessage } from '../components/chat/ChatWindow';
+import type { SessionStatus } from '../components/chat/ChatHeader';
 import { ChatModeHeader } from '../components/chat/ChatModeHeader';
 import { AdminDebugPanel } from '../components/admin/AdminDebugPanel';
-import { ReadyButton } from '../components/conflict/ReadyButton';
+import ReadyButton from '../components/conflict/ReadyButton';
 import './UnifiedChatPage.css';
 
 // Admin emails for debug panel
@@ -43,7 +44,7 @@ const UnifiedChatPage: React.FC = () => {
   const { user } = useAuth();
 
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
-  const [isLoadingConflict, setIsLoadingConflict] = useState(false);
+  const [_isLoadingConflict, setIsLoadingConflict] = useState(false);
 
   // Map URL param to SessionType
   const sessionType: SessionType = useMemo(() => {
@@ -138,6 +139,34 @@ const UnifiedChatPage: React.FC = () => {
     }
   };
 
+  // Map messages to ChatWindow format (convert 'ai' to 'assistant')
+  const mappedMessages: ChatMessage[] = useMemo(() => {
+    return messages.map(msg => ({
+      ...msg,
+      role: msg.role === 'ai' ? 'assistant' : msg.role as ChatMessage['role']
+    }));
+  }, [messages]);
+
+  // Get chat title based on session type
+  const chatTitle = useMemo(() => {
+    switch (sessionType) {
+      case 'intake': return 'Intake Interview';
+      case 'individual_a': return conflictInfo?.title || 'Explore Your Perspective';
+      case 'individual_b': return conflictInfo?.title || 'Explore Your Perspective';
+      case 'joint_context_a': return 'Joint Guidance';
+      case 'joint_context_b': return 'Joint Guidance';
+      case 'relationship_shared': return 'Relationship Chat';
+      default: return 'Chat';
+    }
+  }, [sessionType, conflictInfo?.title]);
+
+  // Get session status for ChatWindow
+  const sessionStatus: SessionStatus = useMemo(() => {
+    if (!isConnected) return 'connecting';
+    if (isFinalized) return 'finalized';
+    return 'active';
+  }, [isConnected, isFinalized]);
+
   // Loading state
   if (!sessionId) {
     return (
@@ -170,16 +199,18 @@ const UnifiedChatPage: React.FC = () => {
       {/* Main chat content */}
       <main className="unified-chat-content">
         <ChatWindow
-          messages={messages}
-          onSendMessage={sendMessage}
+          messages={mappedMessages}
+          onSend={sendMessage}
           isTyping={isStreaming}
           disabled={isFinalized}
+          title={chatTitle}
+          status={sessionStatus}
         />
 
         {/* Chat-type-specific confirmation elements */}
         {(sessionType === 'individual_a' || sessionType === 'individual_b') &&
          !isFinalized &&
-         messages.length >= 4 && (
+         mappedMessages.length >= 4 && (
           <div className="unified-chat-actions">
             <ReadyButton
               onReady={handleFinalize}

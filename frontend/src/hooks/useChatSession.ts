@@ -91,7 +91,7 @@ const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@c
  * - Multi-user features for relationship_shared sessions
  */
 export function useChatSession(options: UseChatSessionOptions): UseChatSessionReturn {
-  const { sessionId, sessionType, onMessage, onStreamStart, onStreamEnd } = options;
+  const { sessionId, sessionType: _sessionType, onMessage, onStreamStart, onStreamEnd } = options;
   const { user } = useAuth();
 
   // Use the underlying conversation hook
@@ -109,8 +109,8 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
   const [debugPrompt, setDebugPrompt] = useState<DebugPromptInfo | null>(null);
 
   // Multi-user state (for relationship_shared)
-  const [participants, setParticipants] = useState<ParticipantStatus[]>([]);
-  const [currentUserRole, setCurrentUserRole] = useState<'partner-a' | 'partner-b' | null>(null);
+  const [participants, _setParticipants] = useState<ParticipantStatus[]>([]);
+  const [currentUserRole, _setCurrentUserRole] = useState<'partner-a' | 'partner-b' | null>(null);
 
   // Check if user is admin
   const isAdmin = useMemo(() => {
