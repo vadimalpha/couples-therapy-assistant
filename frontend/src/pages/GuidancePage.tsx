@@ -82,10 +82,14 @@ const GuidancePage: React.FC = () => {
           };
           const targetConflictId = normalizeId(conflictData.conflict?.id || id);
 
-          const jointContextSession = sessions.find((s: any) =>
+          // Find joint context sessions for this conflict, preferring ones with messages
+          const jointContextSessions = sessions.filter((s: any) =>
             (s.sessionType === 'joint_context_a' || s.sessionType === 'joint_context_b') &&
             normalizeId(s.conflictId) === targetConflictId
           );
+          // Prefer session with messages, fall back to first match
+          const jointContextSession = jointContextSessions.find((s: any) => s.messages?.length > 0)
+            || jointContextSessions[0];
 
           if (jointContextSession && jointContextSession.messages?.length > 0) {
             // Found joint context session with guidance
