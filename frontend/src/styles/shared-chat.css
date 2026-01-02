@@ -137,11 +137,13 @@
 
 /* Override chat-window height when inside shared chat */
 .shared-chat-content .chat-window {
-  flex: 1;
-  height: auto;
+  flex: 1 1 auto;
+  height: auto !important;
   min-height: 300px;
+  max-height: none;
   display: flex;
   flex-direction: column;
+  overflow: visible;
 }
 
 /* Ensure messages area is scrollable */
@@ -161,6 +163,7 @@
 }
 
 .shared-chat-intro {
+  flex-shrink: 0;
   padding: 16px 24px;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
   border-bottom: 1px solid var(--chat-border-color, #424242);
