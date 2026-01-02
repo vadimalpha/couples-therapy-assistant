@@ -154,12 +154,21 @@ export async function handleMessage(
     callback?.({ success: true });
 
     console.log(
-      `Message sent in session ${socket.sessionId} by user ${socket.userId}`
+      `Message sent in session ${socket.sessionId} by user ${socket.userId}, role=${role}`
     );
 
     // Trigger AI response for user messages (not for AI messages)
     if (role === 'user') {
-      await triggerAIResponse(socket, io, socket.sessionId, socket.userId!);
+      console.log(`[handleMessage] About to call triggerAIResponse for session=${socket.sessionId}, user=${socket.userId}`);
+      try {
+        await triggerAIResponse(socket, io, socket.sessionId, socket.userId!);
+        console.log(`[handleMessage] triggerAIResponse completed successfully`);
+      } catch (aiError) {
+        console.error(`[handleMessage] triggerAIResponse failed:`, aiError);
+        throw aiError; // Re-throw to be caught by outer handler
+      }
+    } else {
+      console.log(`[handleMessage] Skipping AI response - role is not 'user': ${role}`);
     }
   } catch (error) {
     console.error('Error handling message:', error);
