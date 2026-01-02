@@ -254,6 +254,7 @@ async function triggerAIResponse(
       const guidanceContext: GuidanceRefinementContext = {
         userId,
         conflictId: session.conflictId,
+        sessionId: sessionId,
         sessionType: sessionType as 'joint_context_a' | 'joint_context_b',
       };
       console.log(`[triggerAIResponse] Calling streamGuidanceRefinementResponse...`);

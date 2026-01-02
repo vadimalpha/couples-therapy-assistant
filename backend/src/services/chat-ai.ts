@@ -59,6 +59,7 @@ export interface RelationshipContext {
 export interface GuidanceRefinementContext {
   userId: string;
   conflictId?: string;
+  sessionId?: string;
   sessionType: 'joint_context_a' | 'joint_context_b';
 }
 
@@ -412,6 +413,7 @@ export async function streamGuidanceRefinementResponse(
       userName: user?.displayName,
       conflictId: context.conflictId,
       conflictTitle: conflict?.title,
+      sessionId: context.sessionId,
       sessionType: context.sessionType as SessionType,
       logType: 'guidance_refinement',
       systemPrompt,
