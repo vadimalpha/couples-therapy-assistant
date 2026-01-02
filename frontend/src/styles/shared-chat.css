@@ -10,6 +10,15 @@
   overflow: hidden;
 }
 
+/* Ensure the main content area is properly sized */
+.shared-relationship-chat main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .shared-chat-header {
   padding: 16px 24px;
   border-bottom: 1px solid var(--chat-border-color, #424242);
@@ -111,13 +120,44 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+}
+
+/* Initial guidance message - scrollable with max height */
+.shared-chat-content .guidance-initial-message {
+  max-height: 50vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+  margin: 16px 24px;
+  padding: 20px;
+  background-color: rgba(16, 163, 127, 0.08);
+  border-left: 4px solid var(--chat-accent-color, #10a37f);
+  border-radius: 8px;
 }
 
 /* Override chat-window height when inside shared chat */
 .shared-chat-content .chat-window {
   flex: 1;
   height: auto;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure messages area is scrollable */
+.shared-chat-content .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100px;
+}
+
+/* Ensure input is always visible at bottom */
+.shared-chat-content .chat-input {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background-color: var(--chat-bg-primary, #212121);
+  padding-bottom: 20px;
 }
 
 .shared-chat-intro {
