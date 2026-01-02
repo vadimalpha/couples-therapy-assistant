@@ -291,12 +291,27 @@ export async function getPendingInvitations(userId: string): Promise<Invitation[
       throw new Error('User not found');
     }
 
+    // Normalize email to handle +alias variations (e.g., user+test@gmail.com -> user@gmail.com)
+    const normalizeEmail = (email: string) => {
+      const [local, domain] = email.toLowerCase().split('@');
+      return `${local.split('+')[0]}@${domain}`;
+    };
+    const normalizedUserEmail = normalizeEmail(user.email);
+
+    // Get all pending invitations
     const resultRaw = await db.query(
-      'SELECT * FROM invitation WHERE partnerEmail = $email AND status = "pending" ORDER BY createdAt DESC',
-      { email: user.email }
+      'SELECT * FROM invitation WHERE status = "pending" ORDER BY createdAt DESC'
     );
 
-    return extractQueryResult<Invitation>(resultRaw);
+    const allInvitations = extractQueryResult<Invitation>(resultRaw);
+
+    // Filter to invitations where:
+    // 1. The partnerEmail matches the user's email (with normalization)
+    // 2. The user is NOT the inviter (exclude self-invitations)
+    return allInvitations.filter(inv => {
+      const normalizedPartnerEmail = normalizeEmail(inv.partnerEmail);
+      return normalizedPartnerEmail === normalizedUserEmail && inv.inviterId !== userId;
+    });
   } catch (error) {
     console.error('Error getting pending invitations:', error);
     throw error;
