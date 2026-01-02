@@ -144,14 +144,14 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
     }
   }, [isAdmin, sessionId, user]);
 
-  // Auto-fetch debug prompt when messages change (for admins)
+  // Auto-fetch debug prompt on initial load and when messages change (for admins)
   useEffect(() => {
-    if (isAdmin && messages.length > 0) {
-      // Debounce to avoid too many requests
-      const timeout = setTimeout(refreshDebugPrompt, 1000);
+    if (isAdmin && sessionId) {
+      // Fetch immediately on mount, and when messages change
+      const timeout = setTimeout(refreshDebugPrompt, 500);
       return () => clearTimeout(timeout);
     }
-  }, [isAdmin, messages.length, refreshDebugPrompt]);
+  }, [isAdmin, sessionId, messages.length, refreshDebugPrompt]);
 
   // Trigger callbacks when streaming state changes
   useEffect(() => {

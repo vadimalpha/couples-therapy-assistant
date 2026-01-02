@@ -13,7 +13,7 @@ import { contentFilter } from '../services/content-filter';
 const router = Router();
 
 // Admin email whitelist for debug endpoints
-const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local'];
+const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local', 'claude.test.partnera@gmail.com', 'claude.test.partnerb@gmail.com'];
 
 /**
  * Create a new conversation session
