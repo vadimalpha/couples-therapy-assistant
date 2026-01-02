@@ -4,7 +4,9 @@ import { authenticateUser } from '../middleware/auth';
 import { conversationService } from '../services/conversation';
 import {
   streamExplorationResponse,
+  streamGuidanceRefinementResponse,
   validateApiKey,
+  GuidanceRefinementContext,
 } from '../services/chat-ai';
 import { contentFilter } from '../services/content-filter';
 
@@ -407,6 +409,126 @@ router.get(
     } catch (error) {
       console.error('Error fetching user sessions:', error);
       res.status(500).json({ error: 'Failed to fetch conversation sessions' });
+    }
+  }
+);
+
+/**
+ * Debug endpoint for testing guidance AI response
+ * POST /api/conversations/:id/debug-guidance
+ */
+router.post(
+  '/:id/debug-guidance',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      console.log(`[debug-guidance] Starting for session=${id}, user=${userId}`);
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Verify API key is configured
+      if (!validateApiKey()) {
+        res.status(503).json({ error: 'AI service not configured (OPENAI_API_KEY missing)' });
+        return;
+      }
+
+      // Get the session
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Conversation session not found', sessionId: id });
+        return;
+      }
+
+      console.log(`[debug-guidance] Session found: type=${session.sessionType}, userId=${session.userId}, conflictId=${session.conflictId}`);
+
+      // Return session info first
+      const sessionInfo = {
+        sessionId: session.id,
+        sessionType: session.sessionType,
+        sessionUserId: session.userId,
+        requestUserId: userId,
+        userMatch: session.userId === userId,
+        conflictId: session.conflictId,
+        messageCount: session.messages?.length || 0,
+        status: session.status,
+      };
+
+      // Check if it's a guidance session
+      if (session.sessionType !== 'joint_context_a' && session.sessionType !== 'joint_context_b') {
+        res.json({
+          success: false,
+          error: `Session type is '${session.sessionType}', not joint_context_a or joint_context_b`,
+          sessionInfo,
+        });
+        return;
+      }
+
+      // Verify the user owns this session
+      if (session.userId !== userId) {
+        res.json({
+          success: false,
+          error: 'Access denied - user does not own this session',
+          sessionInfo,
+        });
+        return;
+      }
+
+      // Try to trigger AI response
+      console.log(`[debug-guidance] Attempting to trigger AI response...`);
+
+      const context: GuidanceRefinementContext = {
+        userId,
+        conflictId: session.conflictId,
+        sessionType: session.sessionType as 'joint_context_a' | 'joint_context_b',
+      };
+
+      let chunks: string[] = [];
+
+      try {
+        const result = await streamGuidanceRefinementResponse(
+          session.messages || [],
+          context,
+          (chunk: string) => {
+            chunks.push(chunk);
+          }
+        );
+
+        console.log(`[debug-guidance] AI response success, content length: ${result.fullContent.length}`);
+
+        // Save AI response to conversation
+        await conversationService.addMessage(id, 'ai', result.fullContent);
+
+        res.json({
+          success: true,
+          sessionInfo,
+          aiResponse: {
+            contentLength: result.fullContent.length,
+            chunkCount: chunks.length,
+            usage: result.usage,
+            preview: result.fullContent.substring(0, 200) + '...',
+          },
+        });
+      } catch (aiError) {
+        console.error(`[debug-guidance] AI response error:`, aiError);
+        res.json({
+          success: false,
+          sessionInfo,
+          aiError: aiError instanceof Error ? aiError.message : 'Unknown AI error',
+          aiErrorStack: aiError instanceof Error ? aiError.stack : undefined,
+        });
+      }
+    } catch (error) {
+      console.error('[debug-guidance] Error:', error);
+      res.status(500).json({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
     }
   }
 );
