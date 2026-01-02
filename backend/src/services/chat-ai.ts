@@ -20,6 +20,7 @@ const openai = new OpenAI({
 
 // Model configuration for GPT-4o
 const MODEL = 'gpt-4o';
+const INTAKE_MAX_COMPLETION_TOKENS = 1024;
 const EXPLORATION_MAX_COMPLETION_TOKENS = 1024;
 const GUIDANCE_MAX_COMPLETION_TOKENS = 2048;
 const JOINT_CONTEXT_MAX_COMPLETION_TOKENS = 3072;
@@ -30,6 +31,12 @@ export interface TokenUsage {
   inputTokens: number;
   outputTokens: number;
   totalCost: number; // in USD
+}
+
+export interface IntakeContext {
+  userId: string;
+  isRefresh?: boolean; // True if this is a quarterly refresh
+  previousIntakeData?: any; // Previous intake data if doing refresh
 }
 
 export interface ExplorationContext {
@@ -59,6 +66,88 @@ export interface GuidanceSynthesisResult {
   guidance: string;
   usage: TokenUsage;
   sessionId: string;
+}
+
+/**
+ * Stream AI response for intake interview
+ * Calls onChunk for each piece of content as it arrives
+ */
+export async function streamIntakeResponse(
+  messages: ConversationMessage[],
+  context: IntakeContext,
+  onChunk: (chunk: string) => void
+): Promise<{ fullContent: string; usage: TokenUsage }> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  try {
+    // Build system prompt using the prompt builder
+    let systemPrompt = await buildPrompt('intake-system-prompt.txt', {
+      conflictId: '',
+      userId: context.userId,
+      sessionType: 'intake',
+      includeRAG: false,
+      includePatterns: false,
+    });
+
+    // Add refresh context if applicable
+    if (context.isRefresh && context.previousIntakeData) {
+      systemPrompt += '\n\nIMPORTANT: This is a quarterly refresh conversation.';
+      systemPrompt += '\nPrevious intake data:';
+      systemPrompt += `\n- Name: ${context.previousIntakeData.name}`;
+      systemPrompt += `\n- Relationship duration: ${context.previousIntakeData.relationship_duration}`;
+      systemPrompt += `\n- Previous goals: ${context.previousIntakeData.relationship_goals?.join(', ') || 'None specified'}`;
+      systemPrompt += '\n\nAcknowledge that you remember them and ask how things have been going since last time.';
+      systemPrompt += '\nFocus on what has changed, what progress they\'ve made, and if their goals have evolved.';
+    }
+
+    // Convert messages to OpenAI format
+    const openaiMessages = convertMessagesToOpenAI(messages);
+
+    // Call OpenAI API with streaming
+    const stream = await openai.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: INTAKE_MAX_COMPLETION_TOKENS,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...openaiMessages,
+      ],
+      stream: true,
+      stream_options: { include_usage: true },
+    });
+
+    let fullContent = '';
+    let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalCost: 0 };
+
+    // Process stream
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        onChunk(delta);
+      }
+
+      // Capture usage from final chunk
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens || 0,
+          outputTokens: chunk.usage.completion_tokens || 0,
+          totalCost: calculateCost(
+            chunk.usage.prompt_tokens || 0,
+            chunk.usage.completion_tokens || 0
+          ),
+        };
+      }
+    }
+
+    return { fullContent, usage };
+  } catch (error) {
+    console.error('Error streaming intake response:', error);
+    throw new Error(
+      `Failed to stream intake response: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
 }
 
 /**

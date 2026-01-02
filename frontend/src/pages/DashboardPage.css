@@ -396,6 +396,80 @@
   border-top: 1px solid var(--border-subtle);
 }
 
+/* Received invitation card styles */
+.relationship-card.is-received {
+  border-color: var(--accent-200);
+  background: var(--accent-50);
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    border-color: var(--accent-200);
+    box-shadow: 0 0 0 0 rgba(16, 163, 127, 0.2);
+  }
+  50% {
+    border-color: var(--accent-300, #10a37f);
+    box-shadow: 0 0 0 4px rgba(16, 163, 127, 0.1);
+  }
+}
+
+.received-badge {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  background: var(--accent-200);
+  color: white;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.received-avatar {
+  background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-50) 100%) !important;
+  border: 2px solid var(--accent-200);
+}
+
+.received-icon {
+  font-size: var(--text-lg);
+}
+
+.received-message {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-default);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--border-hover, var(--border-default));
+}
+
+.btn-outline-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Invitations section */
+.invitations-section {
+  margin-bottom: var(--space-6);
+}
+
+.invitations-section .section-title {
+  color: var(--accent-300);
+}
+
 .relationship-card-content {
   display: flex;
   align-items: center;

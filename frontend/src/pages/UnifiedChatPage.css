@@ -1,0 +1,175 @@
+/* UnifiedChatPage - Single page for all chat types */
+
+.unified-chat-page {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px); /* Account for header */
+  width: 100%;
+  background-color: var(--chat-bg-primary, #212121);
+  overflow: hidden;
+}
+
+/* Loading and error states */
+.unified-chat-page.loading,
+.unified-chat-page.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 40px;
+  text-align: center;
+}
+
+.unified-chat-page.error h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #ef4444;
+}
+
+.unified-chat-page.error p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--chat-text-secondary, #b4b4b4);
+}
+
+.unified-chat-page.error button {
+  padding: 10px 20px;
+  background-color: var(--chat-accent-color, #10a37f);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.unified-chat-page.error button:hover {
+  opacity: 0.85;
+}
+
+/* Main chat content area */
+.unified-chat-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Override ChatWindow styles when inside UnifiedChatPage */
+.unified-chat-content .chat-window {
+  flex: 1;
+  height: auto !important;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.unified-chat-content .chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 100px;
+}
+
+.unified-chat-content .chat-input {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  background-color: var(--chat-bg-primary, #212121);
+  padding-bottom: 20px;
+}
+
+/* Actions area (for ReadyButton, etc.) */
+.unified-chat-actions {
+  display: flex;
+  justify-content: center;
+  padding: 16px 24px;
+  background-color: var(--chat-bg-primary, #212121);
+  border-top: 1px solid var(--chat-border-color, #424242);
+  flex-shrink: 0;
+}
+
+/* Connection status indicator */
+.unified-chat-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f59e0b;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.status-indicator.connecting {
+  background-color: #f59e0b;
+}
+
+.status-indicator.connected {
+  background-color: var(--chat-accent-color, #10a37f);
+  animation: none;
+}
+
+.status-indicator.disconnected {
+  background-color: #ef4444;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .unified-chat-page {
+    height: calc(100vh - 52px); /* Smaller header on mobile */
+  }
+
+  .unified-chat-actions {
+    padding: 12px 16px;
+  }
+
+  .unified-chat-status {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .unified-chat-page {
+    height: calc(100vh - 48px);
+  }
+
+  .unified-chat-actions {
+    padding: 10px 12px;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .status-indicator {
+    animation: none;
+  }
+
+  .unified-chat-page.error button {
+    transition: none;
+  }
+}

@@ -459,6 +459,110 @@ export async function getInvitationById(invitationId: string): Promise<Invitatio
 }
 
 /**
+ * Accept invitation by ID (for dashboard acceptance)
+ * Validates that the accepting user's email matches the invitation's partnerEmail
+ */
+export async function acceptInvitationById(invitationId: string, userId: string): Promise<Relationship> {
+  const db = getDatabase();
+  const now = new Date();
+
+  try {
+    // Get invitation by ID
+    const invitation = await getInvitationById(invitationId);
+    if (!invitation) {
+      throw new Error('Invitation not found');
+    }
+
+    // Validate invitation
+    if (invitation.status !== 'pending') {
+      throw new Error('Invitation has already been used');
+    }
+
+    if (new Date(invitation.expiresAt) < now) {
+      await db.query(
+        'UPDATE $invitationId SET status = "expired"',
+        { invitationId: invitation.id }
+      );
+      throw new Error('Invitation has expired');
+    }
+
+    // Get accepting user
+    const acceptingUser = await getUserById(userId);
+    if (!acceptingUser) {
+      throw new Error('User not found');
+    }
+
+    // Verify email matches (normalize to handle +alias variants)
+    if (normalizeEmail(acceptingUser.email) !== normalizeEmail(invitation.partnerEmail)) {
+      throw new Error('This invitation is for a different email address');
+    }
+
+    // Get inviter
+    const inviter = await getUserById(invitation.inviterId);
+    if (!inviter) {
+      throw new Error('Inviter not found');
+    }
+
+    // Check if a relationship already exists between these users
+    const existingRelationship = await getRelationshipBetweenUsers(invitation.inviterId, userId);
+    if (existingRelationship && existingRelationship.status === 'active') {
+      throw new Error('A relationship already exists between these users');
+    }
+
+    // Get relationship type from invitation
+    const relationshipType = invitation.relationshipType || 'partner';
+
+    // Create relationship
+    const createdRaw = await db.query(
+      'CREATE relationship CONTENT { user1Id: $user1Id, user2Id: $user2Id, type: $type, status: "active", createdAt: $createdAt, updatedAt: $updatedAt }',
+      {
+        user1Id: invitation.inviterId,
+        user2Id: userId,
+        type: relationshipType,
+        createdAt: now.toISOString(),
+        updatedAt: now.toISOString(),
+      }
+    );
+
+    const created = extractQueryResult<Relationship>(createdRaw);
+    if (created.length === 0) {
+      throw new Error('Failed to create relationship');
+    }
+
+    const relationship = created[0];
+
+    // For partner type, set as primary if user doesn't have one
+    if (relationshipType === 'partner') {
+      if (!inviter.primaryRelationshipId) {
+        await updateUserPrimaryRelationship(invitation.inviterId, relationship.id);
+      }
+      if (!acceptingUser.primaryRelationshipId) {
+        await updateUserPrimaryRelationship(userId, relationship.id);
+      }
+    }
+
+    // Legacy support: update relationshipId for first relationship
+    if (!inviter.relationshipId) {
+      await updateUserRelationship(invitation.inviterId, relationship.id);
+    }
+    if (!acceptingUser.relationshipId) {
+      await updateUserRelationship(userId, relationship.id);
+    }
+
+    // Mark invitation as accepted
+    await db.query(
+      'UPDATE $invitationId SET status = "accepted"',
+      { invitationId: invitation.id }
+    );
+
+    return relationship;
+  } catch (error) {
+    console.error('Error accepting invitation by ID:', error);
+    throw error;
+  }
+}
+
+/**
  * Refresh invitation expiry (extend by 72 hours from now)
  */
 export async function refreshInvitationExpiry(invitationId: string): Promise<Invitation> {

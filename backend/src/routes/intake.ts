@@ -3,7 +3,7 @@ import { AuthenticatedRequest } from '../types';
 import { authenticateUser } from '../middleware/auth';
 import { intakeService } from '../services/intake';
 import { conversationService } from '../services/conversation';
-import { streamIntakeResponse, validateApiKey } from '../services/ai-intake';
+import { streamIntakeResponse, validateApiKey } from '../services/chat-ai';
 import { contentFilter } from '../services/content-filter';
 
 const router = Router();

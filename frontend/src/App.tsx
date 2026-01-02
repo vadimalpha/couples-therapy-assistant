@@ -14,6 +14,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import AdminLogsPage from './pages/AdminLogsPage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
+import UnifiedChatPage from './pages/UnifiedChatPage';
 import { ExplorationChat } from './components/conflict';
 import { IntakeChat, IntakeSummary } from './components/intake';
 import { CrisisFooter, AppHeader } from './components/layout';
@@ -61,13 +62,14 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Check if current route is a full-page chat experience
 const isChatRoute = (pathname: string): boolean => {
-  // Match chat routes: /conflicts/:id/explore, /conflicts/:id/guidance, /conflicts/:id/joint-guidance, /conflicts/:id/shared, /intake/chat
+  // Match chat routes: /conflicts/:id/explore, /conflicts/:id/guidance, /conflicts/:id/joint-guidance, /conflicts/:id/shared, /intake/chat, /chat/:type/:id
   const chatPatterns = [
     /^\/conflicts\/[^/]+\/explore$/,
     /^\/conflicts\/[^/]+\/guidance$/,
     /^\/conflicts\/[^/]+\/joint-guidance$/,
     /^\/conflicts\/[^/]+\/shared$/,
-    /^\/intake\/chat$/
+    /^\/intake\/chat$/,
+    /^\/chat\/[^/]+\/[^/]+$/  // New unified chat route
   ];
   return chatPatterns.some(pattern => pattern.test(pathname));
 };
@@ -207,6 +209,18 @@ const AppContent: React.FC = () => {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <AdminPromptsPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Unified chat route - new architecture */}
+          <Route
+            path="/chat/:sessionType/:sessionId"
+            element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <UnifiedChatPage />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             }

@@ -12,6 +12,9 @@ import { contentFilter } from '../services/content-filter';
 
 const router = Router();
 
+// Admin email whitelist for debug endpoints
+const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local'];
+
 /**
  * Create a new conversation session
  * POST /api/conversations
@@ -589,6 +592,92 @@ router.post(
       res.status(500).json({
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+);
+
+/**
+ * Get debug prompt information for a session (admin only)
+ * GET /api/conversations/:id/debug-prompt
+ *
+ * Returns the system prompt, user messages, and model info for debugging.
+ * Requires admin email in whitelist.
+ */
+router.get(
+  '/:id/debug-prompt',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+      const userEmail = req.user?.email;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check admin access
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      // Get the session
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Conversation session not found' });
+        return;
+      }
+
+      // Get the most recent prompt log for this session
+      const { getDatabase } = await import('../services/db');
+      const db = getDatabase();
+
+      const result = await db.query<any[]>(
+        `SELECT * FROM prompt_log
+         WHERE sessionId = $sessionId
+         ORDER BY timestamp DESC
+         LIMIT 1`,
+        { sessionId: session.id }
+      );
+
+      const promptLog = result?.[0]?.[0];
+
+      if (!promptLog) {
+        res.json({
+          sessionId: session.id,
+          sessionType: session.sessionType,
+          messageCount: session.messages?.length || 0,
+          promptLog: null,
+          message: 'No prompt logs found for this session',
+        });
+        return;
+      }
+
+      // Return debug info
+      res.json({
+        sessionId: session.id,
+        sessionType: session.sessionType,
+        messageCount: session.messages?.length || 0,
+        promptLog: {
+          logType: promptLog.logType,
+          guidanceMode: promptLog.guidanceMode,
+          systemPrompt: promptLog.systemPrompt,
+          userMessage: promptLog.userMessage,
+          aiResponse: promptLog.aiResponse,
+          model: 'gpt-4o',
+          inputTokens: promptLog.inputTokens,
+          outputTokens: promptLog.outputTokens,
+          cost: promptLog.cost,
+          timestamp: promptLog.timestamp,
+        },
+      });
+    } catch (error) {
+      console.error('Error getting debug prompt:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to get debug prompt',
       });
     }
   }

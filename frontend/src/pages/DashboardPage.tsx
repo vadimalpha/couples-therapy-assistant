@@ -43,6 +43,16 @@ interface PendingInvitation {
   createdAt: string;
 }
 
+interface ReceivedInvitation {
+  id: string;
+  inviterEmail: string;
+  inviterId: string;
+  relationshipType: RelationshipType;
+  status: 'pending';
+  createdAt: string;
+  expiresAt: string;
+}
+
 interface ActionButton {
   label: string;
   to: string;
@@ -221,6 +231,64 @@ const PendingInvitationCard: React.FC<{
   );
 };
 
+const ReceivedInvitationCard: React.FC<{
+  invitation: ReceivedInvitation;
+  onAccept: (invitationId: string) => Promise<void>;
+  onDecline: (invitationId: string) => Promise<void>;
+  isProcessing: boolean;
+}> = ({ invitation, onAccept, onDecline, isProcessing }) => {
+  const [actionInProgress, setActionInProgress] = useState<'accept' | 'decline' | null>(null);
+
+  const handleAccept = async () => {
+    setActionInProgress('accept');
+    await onAccept(invitation.id);
+    setActionInProgress(null);
+  };
+
+  const handleDecline = async () => {
+    setActionInProgress('decline');
+    await onDecline(invitation.id);
+    setActionInProgress(null);
+  };
+
+  return (
+    <div className="relationship-card is-received">
+      <div className="relationship-card-header">
+        <RelationshipTypeLabel type={invitation.relationshipType} />
+        <span className="received-badge">Invitation</span>
+      </div>
+      <div className="relationship-card-content">
+        <div className="partner-avatar received-avatar">
+          <span className="received-icon">📩</span>
+        </div>
+        <div className="partner-details">
+          <div className="partner-name">Invitation from</div>
+          <div className="partner-email">{invitation.inviterEmail}</div>
+        </div>
+      </div>
+      <div className="received-message">
+        Wants to connect as: <strong>{invitation.relationshipType}</strong>
+      </div>
+      <div className="relationship-card-actions">
+        <button
+          className="btn btn-primary btn-sm"
+          onClick={handleAccept}
+          disabled={isProcessing}
+        >
+          {actionInProgress === 'accept' ? 'Accepting...' : 'Accept'}
+        </button>
+        <button
+          className="btn btn-outline-secondary btn-sm"
+          onClick={handleDecline}
+          disabled={isProcessing}
+        >
+          {actionInProgress === 'decline' ? 'Declining...' : 'Decline'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const AddRelationshipCard: React.FC<{
   onInvite: (email: string, type: RelationshipType) => Promise<void>;
   isLoading: boolean;
@@ -367,6 +435,7 @@ export const DashboardPage: React.FC = () => {
   const [conflicts, setConflicts] = useState<Conflict[]>([]);
   const [relationships, setRelationships] = useState<RelationshipWithPartner[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
+  const [receivedInvitations, setReceivedInvitations] = useState<ReceivedInvitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -374,6 +443,7 @@ export const DashboardPage: React.FC = () => {
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [inviteProcessing, setInviteProcessing] = useState(false);
 
   const fetchData = async () => {
     if (!user) return;
@@ -383,8 +453,8 @@ export const DashboardPage: React.FC = () => {
       setError(null);
       const token = await user.getIdToken();
 
-      // Fetch conflicts, relationships, and sent invitations in parallel
-      const [conflictsRes, relationshipsRes, sentInvitationsRes] = await Promise.all([
+      // Fetch conflicts, relationships, sent invitations, and received invitations in parallel
+      const [conflictsRes, relationshipsRes, sentInvitationsRes, receivedInvitationsRes] = await Promise.all([
         fetch(`${API_URL}/api/conflicts`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -392,6 +462,9 @@ export const DashboardPage: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_URL}/api/relationships/invitations/sent`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/relationships/invitations`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -411,6 +484,11 @@ export const DashboardPage: React.FC = () => {
       if (sentInvitationsRes.ok) {
         const sentData = await sentInvitationsRes.json();
         setPendingInvitations(sentData.invitations || []);
+      }
+
+      if (receivedInvitationsRes.ok) {
+        const receivedData = await receivedInvitationsRes.json();
+        setReceivedInvitations(receivedData.invitations || []);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -543,6 +621,59 @@ export const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleAcceptInvitation = async (invitationId: string) => {
+    if (!user) return;
+
+    try {
+      setInviteProcessing(true);
+      const token = await user.getIdToken();
+      const response = await fetch(`${API_URL}/api/relationships/accept-by-id/${invitationId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to accept invitation');
+      }
+
+      // Refresh data to show the new relationship
+      await fetchData();
+    } catch (err) {
+      console.error('Error accepting invitation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to accept invitation');
+    } finally {
+      setInviteProcessing(false);
+    }
+  };
+
+  const handleDeclineInvitation = async (invitationId: string) => {
+    if (!user) return;
+    if (!confirm('Are you sure you want to decline this invitation?')) return;
+
+    try {
+      setInviteProcessing(true);
+      const token = await user.getIdToken();
+      const response = await fetch(`${API_URL}/api/relationships/decline/${invitationId}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to decline invitation');
+      }
+
+      // Refresh data to remove the declined invitation
+      await fetchData();
+    } catch (err) {
+      console.error('Error declining invitation:', err);
+      setError(err instanceof Error ? err.message : 'Failed to decline invitation');
+    } finally {
+      setInviteProcessing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <main id="main-content" className="dashboard-container">
@@ -578,6 +709,24 @@ export const DashboardPage: React.FC = () => {
           </Link>
         )}
       </div>
+
+      {/* Received Invitations Section */}
+      {receivedInvitations.length > 0 && (
+        <section className="dashboard-section invitations-section">
+          <h2 className="section-title">Pending Invitations</h2>
+          <div className="relationships-grid">
+            {receivedInvitations.map((inv) => (
+              <ReceivedInvitationCard
+                key={inv.id}
+                invitation={inv}
+                onAccept={handleAcceptInvitation}
+                onDecline={handleDeclineInvitation}
+                isProcessing={inviteProcessing}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Relationships Section */}
       <section className="dashboard-section">

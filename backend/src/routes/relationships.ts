@@ -4,6 +4,7 @@ import { getUserByFirebaseUid, getUserById, syncUser } from '../services/user';
 import {
   createInvitation,
   acceptInvitation,
+  acceptInvitationById,
   getRelationship,
   getAllRelationships,
   getRelationshipById,
@@ -214,7 +215,7 @@ router.get('/invitation/:token', async (req, res: Response) => {
   }
 });
 
-// Accept invitation
+// Accept invitation by token (for email link acceptance)
 router.post('/accept/:token', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
   try {
     if (!req.user) {
@@ -245,6 +246,89 @@ router.post('/accept/:token', authenticateUser, async (req: AuthenticatedRequest
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Failed to accept invitation';
     console.error('Error accepting invitation:', error);
+    res.status(400).json({ error: errorMessage });
+  }
+});
+
+// Accept invitation by ID (for dashboard acceptance)
+router.post('/accept-by-id/:invitationId', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const currentUser = await getUserByFirebaseUid(req.user.uid);
+    if (!currentUser) {
+      res.status(404).json({ error: 'User not found. Please sync your profile first.' });
+      return;
+    }
+
+    const { invitationId } = req.params;
+    if (!invitationId) {
+      res.status(400).json({ error: 'Invitation ID is required' });
+      return;
+    }
+
+    const relationship = await acceptInvitationById(invitationId, currentUser.id);
+    res.json({ relationship });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to accept invitation';
+    console.error('Error accepting invitation by ID:', error);
+    res.status(400).json({ error: errorMessage });
+  }
+});
+
+// Decline invitation by ID (for dashboard decline)
+router.post('/decline/:invitationId', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const currentUser = await getUserByFirebaseUid(req.user.uid);
+    if (!currentUser) {
+      res.status(404).json({ error: 'User not found. Please sync your profile first.' });
+      return;
+    }
+
+    const { invitationId } = req.params;
+    const invitation = await getInvitationById(invitationId);
+
+    if (!invitation) {
+      res.status(404).json({ error: 'Invitation not found' });
+      return;
+    }
+
+    // Verify current user is the invitee (normalize emails to handle +alias)
+    const normalizeEmail = (email: string) => {
+      const [local, domain] = email.toLowerCase().split('@');
+      return `${local.split('+')[0]}@${domain}`;
+    };
+
+    if (normalizeEmail(currentUser.email) !== normalizeEmail(invitation.partnerEmail)) {
+      res.status(403).json({ error: 'You can only decline invitations sent to you' });
+      return;
+    }
+
+    if (invitation.status !== 'pending') {
+      res.status(400).json({ error: 'Invitation has already been accepted or expired' });
+      return;
+    }
+
+    // Mark invitation as declined
+    const { getDatabase } = await import('../services/db');
+    const db = getDatabase();
+    await db.query(
+      'UPDATE $invitationId SET status = "declined"',
+      { invitationId: invitation.id }
+    );
+
+    res.json({ success: true, message: 'Invitation declined' });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Failed to decline invitation';
+    console.error('Error declining invitation:', error);
     res.status(400).json({ error: errorMessage });
   }
 });
