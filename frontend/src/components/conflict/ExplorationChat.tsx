@@ -179,6 +179,25 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
 
   return (
     <main id="main-content" className="exploration-chat-page">
+      {/* Test button for new unified chat UI */}
+      {sessionId && (
+        <div style={{ padding: '8px 16px', background: '#1a1a2e', borderBottom: '1px solid #333' }}>
+          <button
+            onClick={() => navigate(`/chat/exploration/${sessionId}`)}
+            style={{
+              padding: '6px 12px',
+              background: '#10a37f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Try New UI (with Debug Panel)
+          </button>
+        </div>
+      )}
       <div className="exploration-chat-container">
         <ChatWindow
           messages={messages}

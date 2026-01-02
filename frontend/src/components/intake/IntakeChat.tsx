@@ -300,6 +300,25 @@ Let's start with the basics. **How long have you and your partner been together?
 
   return (
     <div className="intake-chat-page">
+      {/* Test button for new unified chat UI */}
+      {session?.id && (
+        <div style={{ padding: '8px 16px', background: '#1a1a2e', borderBottom: '1px solid #333' }}>
+          <button
+            onClick={() => navigate(`/chat/intake/${session.id}`)}
+            style={{
+              padding: '6px 12px',
+              background: '#10a37f',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            Try New UI (with Debug Panel)
+          </button>
+        </div>
+      )}
       <div className="intake-chat-header">
         <div className="intake-header-content">
           <h1 className="intake-chat-title">Getting to Know You</h1>
