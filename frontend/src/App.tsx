@@ -6,6 +6,7 @@ import SignupPage from './components/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import ConflictStartPage from './pages/ConflictStartPage';
 import GuidancePage from './pages/GuidancePage';
+import JointGuidancePage from './pages/JointGuidancePage';
 import ProfilePage from './pages/ProfilePage';
 import IntakePage from './pages/IntakePage';
 import TermsPage from './pages/TermsPage';
@@ -60,10 +61,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Check if current route is a full-page chat experience
 const isChatRoute = (pathname: string): boolean => {
-  // Match chat routes: /conflicts/:id/explore, /conflicts/:id/guidance, /conflicts/:id/shared, /intake/chat
+  // Match chat routes: /conflicts/:id/explore, /conflicts/:id/guidance, /conflicts/:id/joint-guidance, /conflicts/:id/shared, /intake/chat
   const chatPatterns = [
     /^\/conflicts\/[^/]+\/explore$/,
     /^\/conflicts\/[^/]+\/guidance$/,
+    /^\/conflicts\/[^/]+\/joint-guidance$/,
     /^\/conflicts\/[^/]+\/shared$/,
     /^\/intake\/chat$/
   ];
@@ -125,6 +127,16 @@ const AppContent: React.FC = () => {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <GuidancePage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/conflicts/:id/joint-guidance"
+            element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <JointGuidancePage />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             }

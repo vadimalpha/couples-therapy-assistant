@@ -676,6 +676,7 @@ export const DashboardPage: React.FC = () => {
                       badge={getConflictBadge(conflict.status, isPartnerA)}
                       actionButtons={[
                         { label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' },
+                        { label: 'Joint Guidance', to: `/conflicts/${conflict.id}/joint-guidance`, variant: 'outline' },
                         { label: 'Partner Chat', to: `/conflicts/${conflict.id}/shared`, variant: 'primary' },
                       ]}
                     />
