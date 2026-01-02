@@ -397,14 +397,13 @@ router.get(
         );
       }
 
-      // Check if the session starts with an AI message (the initial synthesis)
-      // The synthesis should be the first message in the session
-      const hasInitialSynthesis = sharedSession.messages?.length > 0 &&
-        sharedSession.messages[0].role === 'ai';
+      // Only generate synthesis for brand new sessions (no messages yet)
+      // If the session already has messages, it's been used and we shouldn't add synthesis at the end
+      const needsSynthesis = !sharedSession.messages || sharedSession.messages.length === 0;
 
-      // If no initial synthesis, generate the relationship synthesis
-      if (!hasInitialSynthesis) {
-        console.log(`Generating initial synthesis for shared session ${sharedSession.id}`);
+      // Generate the relationship synthesis for new sessions
+      if (needsSynthesis) {
+        console.log(`Generating initial synthesis for new shared session ${sharedSession.id}`);
         try {
           const synthesisResult = await generateRelationshipSynthesis({
             sessionId: sharedSession.id,
