@@ -248,12 +248,30 @@ export async function streamGuidanceRefinementResponse(
     console.log(`[streamGuidanceRefinementResponse] User found: ${!!user}, Conflict found: ${!!conflict}`);
 
     console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
-    const systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
+    let systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
       conflictId: context.conflictId || '',
       userId: context.userId,
       sessionType: context.sessionType,
       includeRAG: true,
     });
+
+    // Extract and include the initial guidance in the system prompt
+    // The initial guidance is the first AI message(s) before any user messages
+    const initialGuidanceMessages: string[] = [];
+    for (const msg of messages) {
+      if (msg.role === 'ai') {
+        initialGuidanceMessages.push(msg.content);
+      } else if (msg.role === 'user') {
+        break; // Stop at first user message
+      }
+    }
+
+    if (initialGuidanceMessages.length > 0) {
+      const initialGuidance = initialGuidanceMessages.join('\n\n');
+      systemPrompt += `\n\n## The Initial Guidance You Provided\n\nThis is the personalized guidance you gave this person. They may have questions about it or want to refine specific parts:\n\n${initialGuidance}\n\nRemember to reference this guidance when responding to their questions.`;
+      console.log(`[streamGuidanceRefinementResponse] Added initial guidance to prompt, ${initialGuidanceMessages.length} messages`);
+    }
+
     console.log(`[streamGuidanceRefinementResponse] Prompt built, length: ${systemPrompt.length}`);
 
     const openaiMessages = convertMessagesToOpenAI(messages);
