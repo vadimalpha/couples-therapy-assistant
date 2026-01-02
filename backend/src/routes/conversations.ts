@@ -635,12 +635,15 @@ router.get(
       const { getDatabase } = await import('../services/db');
       const db = getDatabase();
 
+      // Convert sessionId to safe format (colons to double underscores) to match stored format
+      const safeSessionId = session.id.replace(/:/g, '__');
+
       const result = await db.query<any[]>(
         `SELECT * FROM prompt_log
          WHERE sessionId = $sessionId
-         ORDER BY timestamp DESC
+         ORDER BY createdAt DESC
          LIMIT 1`,
-        { sessionId: session.id }
+        { sessionId: safeSessionId }
       );
 
       const promptLog = result?.[0]?.[0];
