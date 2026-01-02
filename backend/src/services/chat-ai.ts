@@ -42,6 +42,7 @@ export interface IntakeContext {
 export interface ExplorationContext {
   userId: string;
   conflictId?: string;
+  sessionId?: string;
   sessionType: string;
   intakeData?: any;
   relationshipContext?: any;
@@ -294,6 +295,7 @@ export async function streamExplorationResponse(
       userName: user?.displayName,
       conflictId: context.conflictId,
       conflictTitle: conflict?.title,
+      sessionId: context.sessionId,
       sessionType: context.sessionType as SessionType,
       logType: 'exploration',
       guidanceMode: enrichedContext.guidanceMode,

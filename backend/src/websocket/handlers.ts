@@ -228,6 +228,7 @@ async function triggerAIResponse(
       const context: ExplorationContext = {
         userId,
         conflictId: session.conflictId,
+        sessionId: sessionId,
         sessionType,
       };
 
