@@ -1,6 +1,6 @@
 {
   "name": "couples-therapy-backend",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Backend API for Couples Therapy Assistant",
   "main": "dist/index.js",
   "scripts": {
