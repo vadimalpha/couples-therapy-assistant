@@ -1,5 +1,11 @@
 # Couples Therapy Assistant - Claude Instructions
 
+## ⚠️ CRITICAL - OpenAI Model
+
+**ALWAYS use `gpt-5.2`** - This is the latest model. Do NOT change to gpt-4o or any other model.
+
+Location: `backend/src/services/chat-ai.ts` line 22
+
 ## Testing
 
 **ALWAYS follow the testing plan**: `.claude/testing-plan.md`
