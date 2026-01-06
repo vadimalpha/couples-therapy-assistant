@@ -7,7 +7,11 @@ import {
   streamGuidanceRefinementResponse,
   validateApiKey,
   GuidanceRefinementContext,
+  setPromptOverride,
+  clearPromptOverride,
 } from '../services/chat-ai';
+import * as fs from 'fs';
+import * as path from 'path';
 import { contentFilter } from '../services/content-filter';
 
 const router = Router();
@@ -253,6 +257,8 @@ router.post(
         // Prepare context
         const context = {
           userId,
+          sessionId: id,
+          conflictId: session.conflictId,
           sessionType: session.sessionType,
           // TODO: Add intake data when available
           intakeData: undefined,
@@ -548,6 +554,7 @@ router.post(
 
       const context: GuidanceRefinementContext = {
         userId,
+        sessionId: id,
         conflictId: session.conflictId,
         sessionType: session.sessionType as 'joint_context_a' | 'joint_context_b',
       };
@@ -681,6 +688,159 @@ router.get(
       console.error('Error getting debug prompt:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to get debug prompt',
+      });
+    }
+  }
+);
+
+/**
+ * Restart a session with a modified system prompt (admin only)
+ * POST /api/conversations/:id/restart-with-prompt
+ *
+ * Clears all messages from the session and stores a prompt override
+ * for testing. The next AI response will use the overridden prompt.
+ */
+router.post(
+  '/:id/restart-with-prompt',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { systemPrompt } = req.body;
+      const userId = req.user?.uid;
+      const userEmail = req.user?.email;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check admin access
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      if (!systemPrompt || typeof systemPrompt !== 'string') {
+        res.status(400).json({ error: 'systemPrompt is required' });
+        return;
+      }
+
+      // Get the session
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Conversation session not found' });
+        return;
+      }
+
+      // Clear all messages from the session
+      const { getDatabase } = await import('../services/db');
+      const db = getDatabase();
+      const fullId = id.startsWith('conversation:') ? id : `conversation:${id}`;
+
+      await db.query(
+        'UPDATE type::thing($sessionId) SET messages = [], status = $status',
+        { sessionId: fullId, status: 'active' }
+      );
+
+      // Store prompt override for this session
+      setPromptOverride(id, systemPrompt);
+
+      res.json({
+        success: true,
+        message: 'Session restarted with modified prompt',
+        sessionId: id,
+      });
+    } catch (error) {
+      console.error('Error restarting session:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to restart session',
+      });
+    }
+  }
+);
+
+/**
+ * Save a prompt to the template file (admin only)
+ * POST /api/conversations/:id/save-prompt-template
+ *
+ * Permanently saves the modified prompt to the template file.
+ */
+router.post(
+  '/:id/save-prompt-template',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { systemPrompt } = req.body;
+      const userId = req.user?.uid;
+      const userEmail = req.user?.email;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check admin access
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      if (!systemPrompt || typeof systemPrompt !== 'string') {
+        res.status(400).json({ error: 'systemPrompt is required' });
+        return;
+      }
+
+      // Get the session to determine template file
+      const session = await conversationService.getSession(id);
+      if (!session) {
+        res.status(404).json({ error: 'Conversation session not found' });
+        return;
+      }
+
+      // Map session type to template file
+      const templateMap: Record<string, string> = {
+        'intake': 'intake-system-prompt.txt',
+        'individual_a': 'exploration-system-prompt.txt',
+        'individual_b': 'exploration-system-prompt.txt',
+        'joint_context_a': 'guidance-refinement-prompt.txt',
+        'joint_context_b': 'guidance-refinement-prompt.txt',
+        'relationship_shared': 'relationship-system-prompt.txt',
+      };
+
+      const templateFile = templateMap[session.sessionType];
+      if (!templateFile) {
+        res.status(400).json({ error: `Unknown session type: ${session.sessionType}` });
+        return;
+      }
+
+      // Construct path to prompts directory
+      const promptsDir = path.join(__dirname, '..', 'prompts');
+      const templatePath = path.join(promptsDir, templateFile);
+
+      // Create backup of original file
+      const backupPath = path.join(promptsDir, `${templateFile}.backup`);
+      if (fs.existsSync(templatePath)) {
+        fs.copyFileSync(templatePath, backupPath);
+      }
+
+      // Write new prompt to template file
+      fs.writeFileSync(templatePath, systemPrompt, 'utf8');
+
+      // Clear prompt override (now using saved version)
+      clearPromptOverride(id);
+
+      res.json({
+        success: true,
+        message: `Saved to ${templateFile}`,
+        templateFile,
+        backupCreated: true,
+      });
+    } catch (error) {
+      console.error('Error saving prompt template:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to save prompt template',
       });
     }
   }

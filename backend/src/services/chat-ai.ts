@@ -72,6 +72,24 @@ export interface GuidanceSynthesisResult {
 }
 
 /**
+ * In-memory prompt override store for testing modified prompts
+ * Key: sessionId, Value: system prompt override
+ */
+const promptOverrides = new Map<string, string>();
+
+export function getPromptOverride(sessionId: string): string | undefined {
+  return promptOverrides.get(sessionId);
+}
+
+export function setPromptOverride(sessionId: string, systemPrompt: string): void {
+  promptOverrides.set(sessionId, systemPrompt);
+}
+
+export function clearPromptOverride(sessionId: string): void {
+  promptOverrides.delete(sessionId);
+}
+
+/**
  * Stream AI response for intake interview
  * Calls onChunk for each piece of content as it arrives
  */

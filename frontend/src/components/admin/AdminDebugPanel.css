@@ -347,3 +347,275 @@
     animation: none;
   }
 }
+
+/* Modified/Testing indicators */
+.modified-indicator,
+.testing-indicator {
+  font-size: 8px;
+  font-weight: 600;
+  padding: 2px 4px;
+  border-radius: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modified-indicator {
+  background-color: #f59e0b;
+  color: #000;
+}
+
+.testing-indicator {
+  background-color: #3b82f6;
+  color: #fff;
+}
+
+.modified-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background-color: #f59e0b;
+  color: #000;
+  margin-left: 8px;
+}
+
+/* Header actions */
+.debug-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Error message */
+.debug-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  margin: 12px;
+  background-color: #7f1d1d;
+  border: 1px solid #dc2626;
+  border-radius: 6px;
+  color: #fca5a5;
+  font-size: 12px;
+}
+
+.debug-error button {
+  background: none;
+  border: none;
+  color: #fca5a5;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+}
+
+/* Template info */
+.debug-template-info {
+  padding: 8px 16px;
+  font-size: 12px;
+  color: #8e8e8e;
+  border-bottom: 1px solid #333;
+}
+
+.debug-template-info code {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background-color: #252525;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: #b4b4b4;
+}
+
+/* Prompt editor */
+.section-content-wrapper {
+  border-top: 1px solid #333;
+}
+
+.prompt-editor {
+  width: 100%;
+  min-height: 400px;
+  padding: 12px;
+  margin: 0;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #ececec;
+  background-color: #1a1a1a;
+  border: none;
+  border-bottom: 1px solid #333;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.prompt-editor:focus {
+  outline: none;
+  background-color: #1f1f1f;
+}
+
+/* Prompt actions */
+.prompt-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background-color: #252525;
+  border-top: 1px solid #333;
+}
+
+.edit-button,
+.action-button {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-button {
+  background-color: #3f3f3f;
+  border: 1px solid #555;
+  color: #ececec;
+}
+
+.edit-button:hover {
+  background-color: #4f4f4f;
+  border-color: #666;
+}
+
+.restart-button {
+  background-color: #3b82f6;
+  border: 1px solid #2563eb;
+  color: #fff;
+}
+
+.restart-button:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+.restart-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.save-button {
+  background-color: #22c55e;
+  border: 1px solid #16a34a;
+  color: #fff;
+}
+
+.save-button:hover:not(:disabled) {
+  background-color: #16a34a;
+}
+
+.cancel-button,
+.reset-button {
+  background-color: #3f3f3f;
+  border: 1px solid #555;
+  color: #b4b4b4;
+}
+
+.cancel-button:hover,
+.reset-button:hover {
+  background-color: #4f4f4f;
+  border-color: #666;
+  color: #ececec;
+}
+
+/* Save confirmation dialog */
+.save-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1001;
+}
+
+.save-confirm-dialog {
+  background-color: #1a1a1a;
+  border: 1px solid #424242;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+}
+
+.save-confirm-dialog h4 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #ececec;
+}
+
+.save-confirm-dialog p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #b4b4b4;
+}
+
+.save-confirm-dialog code {
+  display: block;
+  margin: 12px 0;
+  padding: 12px;
+  background-color: #252525;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  color: #f59e0b;
+}
+
+.save-confirm-dialog .warning {
+  font-size: 12px;
+  color: #f59e0b;
+  padding: 8px;
+  background-color: rgba(245, 158, 11, 0.1);
+  border-radius: 4px;
+  margin-top: 12px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.confirm-actions .confirm-button {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #22c55e;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.confirm-actions .confirm-button:hover:not(:disabled) {
+  background-color: #16a34a;
+}
+
+.confirm-actions .confirm-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirm-actions .cancel-button {
+  flex: 1;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: #3f3f3f;
+  border: 1px solid #555;
+  border-radius: 6px;
+  color: #b4b4b4;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.confirm-actions .cancel-button:hover {
+  background-color: #4f4f4f;
+  color: #ececec;
+}

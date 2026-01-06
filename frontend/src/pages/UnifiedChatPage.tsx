@@ -84,6 +84,9 @@ const UnifiedChatPage: React.FC = () => {
     error,
     debugPrompt,
     refreshDebugPrompt,
+    restartWithPrompt,
+    savePromptTemplate,
+    clearMessages,
   } = useChatSession({
     sessionId: sessionId || '',
     sessionType,
@@ -232,7 +235,11 @@ const UnifiedChatPage: React.FC = () => {
       {isAdmin && (
         <AdminDebugPanel
           prompt={debugPrompt}
+          sessionType={sessionType}
           onRefresh={refreshDebugPrompt}
+          onRestartWithPrompt={restartWithPrompt}
+          onSaveTemplate={savePromptTemplate}
+          onClearMessages={clearMessages}
           isLoading={isStreaming}
         />
       )}

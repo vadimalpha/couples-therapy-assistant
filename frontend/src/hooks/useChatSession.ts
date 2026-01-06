@@ -65,6 +65,9 @@ export interface UseChatSessionReturn {
   error: Error | null;
   debugPrompt: DebugPromptInfo | null;
   refreshDebugPrompt: () => Promise<void>;
+  restartWithPrompt: (systemPrompt: string) => Promise<{ success: boolean; error?: string }>;
+  savePromptTemplate: (systemPrompt: string) => Promise<{ success: boolean; templateFile?: string; error?: string }>;
+  clearMessages: () => void;
   // Multi-user specific (only for relationship_shared)
   participants: ParticipantStatus[];
   setTyping: (isTyping: boolean) => void;
@@ -153,6 +156,76 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
     }
   }, [isAdmin, sessionId, messages.length, refreshDebugPrompt]);
 
+  // Restart session with modified prompt (admin only)
+  const restartWithPrompt = useCallback(async (systemPrompt: string): Promise<{ success: boolean; error?: string }> => {
+    if (!isAdmin || !sessionId) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    try {
+      const token = await user?.getIdToken();
+      if (!token) return { success: false, error: 'No auth token' };
+
+      const response = await fetch(`${API_URL}/api/conversations/${sessionId}/restart-with-prompt`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ systemPrompt }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        return { success: true };
+      } else {
+        return { success: false, error: data.error || 'Failed to restart session' };
+      }
+    } catch (err) {
+      console.error('Failed to restart with prompt:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }, [isAdmin, sessionId, user]);
+
+  // Save prompt to template file (admin only)
+  const savePromptTemplate = useCallback(async (systemPrompt: string): Promise<{ success: boolean; templateFile?: string; error?: string }> => {
+    if (!isAdmin || !sessionId) {
+      return { success: false, error: 'Not authorized' };
+    }
+
+    try {
+      const token = await user?.getIdToken();
+      if (!token) return { success: false, error: 'No auth token' };
+
+      const response = await fetch(`${API_URL}/api/conversations/${sessionId}/save-prompt-template`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ systemPrompt }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        return { success: true, templateFile: data.templateFile };
+      } else {
+        return { success: false, error: data.error || 'Failed to save template' };
+      }
+    } catch (err) {
+      console.error('Failed to save prompt template:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Unknown error' };
+    }
+  }, [isAdmin, sessionId, user]);
+
+  // Clear messages (used when restarting chat)
+  const clearMessages = useCallback(() => {
+    // The messages state is managed by useConversation hook
+    // We need to trigger a re-fetch of the conversation
+    // This is a simple approach - reload the page or trigger state reset
+    window.location.reload();
+  }, []);
+
   // Trigger callbacks when streaming state changes
   useEffect(() => {
     if (isStreaming) {
@@ -195,6 +268,9 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
     error,
     debugPrompt,
     refreshDebugPrompt,
+    restartWithPrompt,
+    savePromptTemplate,
+    clearMessages,
     // Multi-user specific
     participants,
     setTyping,
