@@ -14,6 +14,7 @@ import {
   getPromptTemplatesByCategory,
   getModeVariants,
 } from '../services/prompt-template';
+import { listAllUsers } from '../services/user';
 
 const router = Router();
 
@@ -290,6 +291,29 @@ router.put(
     } catch (error) {
       console.error('Error updating prompt template:', error);
       res.status(500).json({ error: 'Failed to update prompt template' });
+    }
+  }
+);
+
+// ============================================
+// User Management Routes (for impersonation)
+// ============================================
+
+/**
+ * GET /api/admin/users
+ * List all users for admin impersonation
+ */
+router.get(
+  '/users',
+  authenticateUser,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const users = await listAllUsers();
+      res.json({ users });
+    } catch (error) {
+      console.error('Error listing users:', error);
+      res.status(500).json({ error: 'Failed to list users' });
     }
   }
 );

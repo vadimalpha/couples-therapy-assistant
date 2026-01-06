@@ -1,14 +1,27 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { User } from 'firebase/auth';
 import authSystem from './AuthSystem';
 
+// Extended user type that can be either Firebase User or test login user
+interface TestUser {
+  uid: string;
+  email: string;
+  displayName: string | null;
+  isTestUser: true;
+}
+
+type AuthUser = User | TestUser;
+
 interface AuthContextType {
-  user: User | null;
+  user: AuthUser | null;
   loading: boolean;
   error: string | null;
+  isTestLogin: boolean;
   setError: (error: string | null) => void;
   signOut: () => Promise<void>;
+  testLogin: (email: string, password: string) => Promise<void>;
+  refreshTestLogin: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,31 +31,91 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [isTestLogin, setIsTestLogin] = useState<boolean>(false);
+
+  // Check for existing test login on mount
+  const checkTestLogin = useCallback(() => {
+    if (authSystem.isTestLogin()) {
+      const testUser = authSystem.getTestUser();
+      if (testUser) {
+        setUser({
+          uid: testUser.firebaseUid,
+          email: testUser.email,
+          displayName: testUser.displayName,
+          isTestUser: true
+        });
+        setIsTestLogin(true);
+        setLoading(false);
+        return true;
+      }
+    }
+    return false;
+  }, []);
 
   useEffect(() => {
-    // Subscribe to auth state changes
-    const unsubscribe = authSystem.onAuthStateChanged((user) => {
-      setUser(user);
+    // First check for test login
+    if (checkTestLogin()) {
+      return;
+    }
+
+    // Subscribe to Firebase auth state changes
+    const unsubscribe = authSystem.onAuthStateChanged((firebaseUser) => {
+      // Only update if not in test login mode
+      if (!authSystem.isTestLogin()) {
+        setUser(firebaseUser);
+        setIsTestLogin(false);
+      }
       setLoading(false);
     });
 
     // Cleanup subscription on unmount
     return () => unsubscribe();
-  }, []);
+  }, [checkTestLogin]);
 
   const handleSignOut = async () => {
-    await authSystem.signOut();
+    if (isTestLogin) {
+      authSystem.clearTestLogin();
+      setUser(null);
+      setIsTestLogin(false);
+    } else {
+      await authSystem.signOut();
+    }
+  };
+
+  const handleTestLogin = async (email: string, password: string) => {
+    try {
+      const testUser = await authSystem.testLogin(email, password);
+      setUser({
+        uid: testUser.firebaseUid,
+        email: testUser.email,
+        displayName: testUser.displayName,
+        isTestUser: true
+      });
+      setIsTestLogin(true);
+      setError(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Test login failed';
+      setError(message);
+      throw err;
+    }
+  };
+
+  const refreshTestLogin = () => {
+    checkTestLogin();
   };
 
   const value: AuthContextType = {
     user,
     loading,
     error,
+    isTestLogin,
     setError,
-    signOut: handleSignOut
+    signOut: handleSignOut,
+    testLogin: handleTestLogin,
+    refreshTestLogin
   };
 
   return (

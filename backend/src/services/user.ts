@@ -121,6 +121,27 @@ export async function getUserById(userId: string): Promise<User | null> {
   }
 }
 
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query(
+      'SELECT * FROM user WHERE email = $email',
+      { email }
+    );
+
+    const result = extractQueryResult<User>(resultRaw);
+    if (result.length > 0) {
+      return result[0];
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting user by email:', error);
+    throw error;
+  }
+}
+
 export async function updateUser(
   userId: string,
   data: Partial<Pick<User, 'displayName' | 'email'>>
@@ -192,6 +213,21 @@ export async function updateUserPrimaryRelationship(
     return updated[0];
   } catch (error) {
     console.error('Error updating user primary relationship:', error);
+    throw error;
+  }
+}
+
+export async function listAllUsers(): Promise<Pick<User, 'id' | 'email' | 'displayName'>[]> {
+  const db = getDatabase();
+
+  try {
+    const resultRaw = await db.query(
+      'SELECT id, email, displayName FROM user ORDER BY email ASC'
+    );
+
+    return extractQueryResult<Pick<User, 'id' | 'email' | 'displayName'>>(resultRaw);
+  } catch (error) {
+    console.error('Error listing all users:', error);
     throw error;
   }
 }

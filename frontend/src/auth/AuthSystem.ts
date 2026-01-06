@@ -17,6 +17,19 @@ interface UserData {
   displayName: string | null;
 }
 
+interface TestLoginUser {
+  id: string;
+  email: string;
+  displayName: string;
+  firebaseUid: string;
+}
+
+interface TestLoginResponse {
+  success: boolean;
+  token: string;
+  user: TestLoginUser;
+}
+
 class AuthSystem {
   private googleProvider: GoogleAuthProvider;
 
@@ -200,6 +213,90 @@ class AuthSystem {
    */
   getStoredUserId(): string | null {
     return localStorage.getItem('firebaseUID');
+  }
+
+  /**
+   * Test login - bypasses Firebase for admin testing
+   * Uses email + "password" to log in as any existing user
+   */
+  async testLogin(email: string, password: string): Promise<TestLoginUser> {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+    const response = await fetch(`${API_URL}/api/auth/test-login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Test login failed' }));
+      throw new Error(error.error || 'Test login failed');
+    }
+
+    const data: TestLoginResponse = await response.json();
+
+    // Store test token and user info in localStorage
+    localStorage.setItem('firebaseToken', data.token);
+    localStorage.setItem('firebaseUID', data.user.firebaseUid);
+    localStorage.setItem('userName', data.user.displayName);
+    localStorage.setItem('userEmail', data.user.email);
+    localStorage.setItem('isTestLogin', 'true');
+
+    return data.user;
+  }
+
+  /**
+   * Check if current session is a test login
+   */
+  isTestLogin(): boolean {
+    return localStorage.getItem('isTestLogin') === 'true';
+  }
+
+  /**
+   * Get test user from localStorage if in test login mode
+   */
+  getTestUser(): TestLoginUser | null {
+    if (!this.isTestLogin()) return null;
+
+    const token = localStorage.getItem('firebaseToken');
+    const uid = localStorage.getItem('firebaseUID');
+    const email = localStorage.getItem('userEmail');
+    const displayName = localStorage.getItem('userName');
+
+    if (!token || !uid || !email) return null;
+
+    return {
+      id: '', // Not stored, but not needed for display
+      firebaseUid: uid,
+      email,
+      displayName: displayName || email.split('@')[0]
+    };
+  }
+
+  /**
+   * Get list of users for test login selection
+   */
+  async getTestUsers(): Promise<Array<{ id: string; email: string; displayName: string }>> {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+    const response = await fetch(`${API_URL}/api/auth/test-users`);
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch test users');
+    }
+
+    const data = await response.json();
+    return data.users;
+  }
+
+  /**
+   * Clear test login session
+   */
+  clearTestLogin(): void {
+    this.clearLocalStorage();
+    localStorage.removeItem('isTestLogin');
   }
 }
 

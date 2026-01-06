@@ -168,3 +168,82 @@
 .login-link a:hover {
   text-decoration: underline;
 }
+
+/* Test Login Section */
+.test-login-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.test-login-toggle {
+  width: 100%;
+  padding: 10px;
+  background: transparent;
+  border: 1px dashed #cbd5e0;
+  border-radius: 6px;
+  color: #718096;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.test-login-toggle:hover {
+  border-color: #f6ad55;
+  color: #dd6b20;
+  background-color: #fffaf0;
+}
+
+.test-login-content {
+  margin-top: 16px;
+  padding: 16px;
+  background-color: #fffaf0;
+  border: 1px solid #f6ad55;
+  border-radius: 8px;
+}
+
+.test-login-hint {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: #dd6b20;
+  text-align: center;
+}
+
+.test-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.test-login-form select {
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background-color: white;
+  cursor: pointer;
+}
+
+.test-login-form select:focus {
+  outline: none;
+  border-color: #f6ad55;
+  box-shadow: 0 0 0 3px rgba(246, 173, 85, 0.2);
+}
+
+.btn-warning {
+  background-color: #f6ad55;
+  color: #744210;
+}
+
+.btn-warning:hover:not(:disabled) {
+  background-color: #ed8936;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(246, 173, 85, 0.4);
+}
+
+.loading-text {
+  color: #718096;
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}

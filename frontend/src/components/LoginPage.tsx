@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FirebaseError } from 'firebase/app';
 import authSystem from '../auth/AuthSystem';
 import { useAuth } from '../auth/AuthContext';
 import './Auth.css';
 
+interface TestUser {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
-  const { setError } = useAuth();
+  const { setError, testLogin } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  // Test login state
+  const [showTestLogin, setShowTestLogin] = useState(false);
+  const [testUsers, setTestUsers] = useState<TestUser[]>([]);
+  const [testEmail, setTestEmail] = useState('');
+  const [loadingTestUsers, setLoadingTestUsers] = useState(false);
 
   const getErrorMessage = (error: unknown): string => {
     if (error instanceof FirebaseError) {
@@ -70,6 +82,41 @@ const LoginPage: React.FC = () => {
       navigate('/');
     } catch (error) {
       const errorMessage = getErrorMessage(error);
+      setLocalError(errorMessage);
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load test users when test login section is opened
+  useEffect(() => {
+    if (showTestLogin && testUsers.length === 0) {
+      setLoadingTestUsers(true);
+      authSystem.getTestUsers()
+        .then(users => setTestUsers(users))
+        .catch(err => console.error('Failed to load test users:', err))
+        .finally(() => setLoadingTestUsers(false));
+    }
+  }, [showTestLogin, testUsers.length]);
+
+  const handleTestLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!testEmail) {
+      setLocalError('Please select or enter an email.');
+      return;
+    }
+
+    setLoading(true);
+    setLocalError(null);
+    setError(null);
+
+    try {
+      await testLogin(testEmail, 'password');
+      navigate('/');
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Test login failed';
       setLocalError(errorMessage);
       setError(errorMessage);
     } finally {
@@ -147,6 +194,68 @@ const LoginPage: React.FC = () => {
           <p>
             Don't have an account? <Link to="/signup">Sign up</Link>
           </p>
+        </div>
+
+        {/* Test Login Section */}
+        <div className="test-login-section">
+          <button
+            type="button"
+            className="test-login-toggle"
+            onClick={() => setShowTestLogin(!showTestLogin)}
+          >
+            🔧 {showTestLogin ? 'Hide' : 'Show'} Test Login
+          </button>
+
+          {showTestLogin && (
+            <div className="test-login-content">
+              <p className="test-login-hint">
+                Admin test mode: Log in as any user with password "password"
+              </p>
+
+              <form onSubmit={handleTestLogin} className="test-login-form">
+                <div className="form-group">
+                  <label htmlFor="test-email">Select User</label>
+                  {loadingTestUsers ? (
+                    <p className="loading-text">Loading users...</p>
+                  ) : (
+                    <select
+                      id="test-email"
+                      value={testEmail}
+                      onChange={(e) => setTestEmail(e.target.value)}
+                      disabled={loading}
+                    >
+                      <option value="">-- Select a user --</option>
+                      {testUsers.map((user) => (
+                        <option key={user.id} value={user.email}>
+                          {user.displayName} ({user.email})
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="test-email-manual">Or enter email manually</label>
+                  <input
+                    id="test-email-manual"
+                    type="email"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    disabled={loading}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn btn-warning"
+                  disabled={loading || !testEmail}
+                >
+                  {loading ? 'Logging in...' : 'Test Login'}
+                </button>
+              </form>
+            </div>
+          )}
         </div>
       </div>
     </main>
