@@ -18,8 +18,8 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || '',
 });
 
-// Model configuration - IMPORTANT: Use gpt-5.2 (latest model)
-const MODEL = 'gpt-5.2';
+// Model configuration - IMPORTANT: Use gpt-5.2 (latest model, released Dec 2025)
+const MODEL = 'gpt-5.2-2025-12-11';
 const INTAKE_MAX_COMPLETION_TOKENS = 1024;
 const EXPLORATION_MAX_COMPLETION_TOKENS = 1024;
 const GUIDANCE_MAX_COMPLETION_TOKENS = 2048;

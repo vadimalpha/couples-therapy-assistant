@@ -2,7 +2,7 @@
 
 ## ⚠️ CRITICAL - OpenAI Model
 
-**ALWAYS use `gpt-5.2`** - This is the latest model. Do NOT change to gpt-4o or any other model.
+**ALWAYS use `gpt-5.2-2025-12-11`** - This is the latest model (released Dec 2025). Do NOT change to gpt-4o or any other model.
 
 Location: `backend/src/services/chat-ai.ts` line 22
 
@@ -11,7 +11,7 @@ Location: `backend/src/services/chat-ai.ts` line 22
 **ALWAYS follow the testing plan**: `.claude/testing-plan.md`
 
 Key rules:
-- Use Puppeteer for all UI testing
+- **ONLY use Puppeteer for browser testing** - Do NOT use Playwright
 - Frontend URL: https://frontend-five-self-98.vercel.app/
 - **Reuse existing conflicts** - do not create new ones unless testing conflict creation
 - Use test accounts defined below
