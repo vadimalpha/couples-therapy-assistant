@@ -9,9 +9,15 @@ interface TestUser {
   email: string;
   displayName: string | null;
   isTestUser: true;
+  getIdToken: () => Promise<string>;
 }
 
-type AuthUser = User | TestUser;
+export type AuthUser = User | TestUser;
+
+// Type guard to check if user is a test user
+export function isTestUser(user: AuthUser | null): user is TestUser {
+  return user !== null && 'isTestUser' in user && user.isTestUser === true;
+}
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -45,7 +51,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           uid: testUser.firebaseUid,
           email: testUser.email,
           displayName: testUser.displayName,
-          isTestUser: true
+          isTestUser: true,
+          getIdToken: async () => authSystem.getStoredToken() || ''
         });
         setIsTestLogin(true);
         setLoading(false);
@@ -92,7 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         uid: testUser.firebaseUid,
         email: testUser.email,
         displayName: testUser.displayName,
-        isTestUser: true
+        isTestUser: true,
+        getIdToken: async () => authSystem.getStoredToken() || ''
       });
       setIsTestLogin(true);
       setError(null);
