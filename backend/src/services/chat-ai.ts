@@ -798,14 +798,22 @@ export async function generateRelationshipSynthesis(
     const partnerAGuidance = await getPartnerGuidance(context.partnerAId, context.conflictId);
     const partnerBGuidance = await getPartnerGuidance(context.partnerBId, context.conflictId);
 
-    const systemPrompt = await buildPrompt('relationship-synthesis.txt', {
-      conflictId: context.conflictId,
-      userId: context.partnerAId,
-      sessionType: 'relationship_shared',
-      includeRAG: true,
-      includePatterns: true,
-      guidanceMode: conflict.guidance_mode || 'conversational',
-    });
+    // Check for admin prompt override first
+    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
+    const systemPrompt = promptOverride
+      ? promptOverride
+      : await buildPrompt('relationship-synthesis.txt', {
+          conflictId: context.conflictId,
+          userId: context.partnerAId,
+          sessionType: 'relationship_shared',
+          includeRAG: true,
+          includePatterns: true,
+          guidanceMode: conflict.guidance_mode || 'conversational',
+        });
+
+    if (promptOverride) {
+      console.log(`[generateRelationshipSynthesis] Using admin prompt override for session ${context.sessionId}`);
+    }
 
     const synthesisContext = buildRelationshipSynthesisContext(
       partnerAExploration.messages,
