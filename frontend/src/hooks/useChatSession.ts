@@ -38,6 +38,7 @@ export interface DebugPromptInfo {
   outputTokens: number;
   cost: number;
   timestamp: string;
+  hasOverride?: boolean;
 }
 
 /**
@@ -139,7 +140,11 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
       if (response.ok) {
         const data = await response.json();
         if (data.promptLog) {
-          setDebugPrompt(data.promptLog);
+          // Include hasOverride from top-level response
+          setDebugPrompt({
+            ...data.promptLog,
+            hasOverride: data.hasOverride || false,
+          });
         }
       }
     } catch (err) {

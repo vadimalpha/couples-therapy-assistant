@@ -67,6 +67,13 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
     }
   }, [prompt?.systemPrompt, isEditing, isTesting]);
 
+  // Sync isTesting state with backend hasOverride on page load/refresh
+  useEffect(() => {
+    if (prompt?.hasOverride !== undefined) {
+      setIsTesting(prompt.hasOverride);
+    }
+  }, [prompt?.hasOverride]);
+
   const isModified = editedPrompt !== originalPrompt;
 
   const toggleSection = (section: string) => {

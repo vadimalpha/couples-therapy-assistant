@@ -9,6 +9,7 @@ import {
   GuidanceRefinementContext,
   setPromptOverride,
   clearPromptOverride,
+  getPromptOverride,
   MODEL,
 } from '../services/chat-ai';
 import * as fs from 'fs';
@@ -667,11 +668,15 @@ router.get(
         return;
       }
 
+      // Check if there's an active prompt override for this session
+      const hasOverride = !!getPromptOverride(session.id);
+
       // Return debug info
       res.json({
         sessionId: session.id,
         sessionType: session.sessionType,
         messageCount: session.messages?.length || 0,
+        hasOverride,
         promptLog: {
           logType: promptLog.logType,
           guidanceMode: promptLog.guidanceMode,
