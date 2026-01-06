@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminus - Reminders</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+        
+        .phone-container {
+            position: relative;
+            width: 320px;
+            height: 690px;
+            background-image: url('images/reminders.png');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+        
+        .clickable-area {
+            position: absolute;
+            cursor: pointer;
+        }
+        
+        .clickable-area:hover {
+            background-color: rgba(0, 122, 255, 0.1);
+        }
+        
+        /* Reminder Action Buttons */
+        .done-button {
+            width: 44px;
+            height: 26px;
+        }
+        
+        .snooze-button {
+            width: 50px;
+            height: 26px;
+        }
+        
+        .overdue-done {
+            left: 210px;
+            top: 192px;
+        }
+        
+        .overdue-snooze {
+            left: 260px;
+            top: 192px;
+        }
+        
+        /* FAB Button */
+        .fab-add {
+            right: 16px;
+            bottom: 106px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+        }
+        
+        /* Tab Bar Areas */
+        .tab-connections {
+            left: 0;
+            bottom: 0;
+            width: 64px;
+            height: 50px;
+        }
+        
+        .tab-calendar {
+            left: 64px;
+            bottom: 0;
+            width: 64px;
+            height: 50px;
+        }
+        
+        .tab-compass {
+            left: 128px;
+            bottom: 0;
+            width: 64px;
+            height: 50px;
+        }
+        
+        .tab-bell {
+            left: 192px;
+            bottom: 0;
+            width: 64px;
+            height: 50px;
+        }
+        
+        .tab-profile {
+            left: 256px;
+            bottom: 0;
+            width: 64px;
+            height: 50px;
+        }
+        
+        .nav-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="phone-container">
+        <!-- Reminder Actions (visual only for now) -->
+        <!-- <a href="#" class="clickable-area done-button overdue-done" title="Mark Done"></a>
+        <a href="#" class="clickable-area snooze-button overdue-snooze" title="Snooze"></a> -->
+        
+        <!-- FAB Add Button -->
+        <a href="add-connection.html" class="clickable-area fab-add" title="Add Reminder"></a>
+        
+        <!-- Tab Bar Navigation -->
+        <a href="connections.html" class="clickable-area tab-connections" title="Connections"></a>
+        <a href="activities.html" class="clickable-area tab-calendar" title="Activities"></a>
+        <a href="discover.html" class="clickable-area tab-compass" title="Discover"></a>
+    </div>
+    
+    <div class="nav-hint">Click tab icons or + button to navigate</div>
+</body>
+</html>

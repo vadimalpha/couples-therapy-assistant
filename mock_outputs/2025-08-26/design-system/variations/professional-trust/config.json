@@ -1,0 +1,52 @@
+{
+  "name": "Professional Trust",
+  "description": "Corporate, trustworthy appearance with traditional values",
+  "tokens": {
+    "colors": {
+      "primary": "#1e40af",
+      "secondary": "#059669",
+      "background": "#fafafa",
+      "surface": "#ffffff",
+      "text": "#111827"
+    },
+    "typography": {
+      "fontFamily": "\"IBM Plex Sans\", \"Helvetica\", sans-serif",
+      "scale": [
+        12,
+        14,
+        16,
+        18,
+        22,
+        28,
+        36
+      ]
+    },
+    "spacing": {
+      "unit": 8,
+      "scale": [
+        0,
+        0.5,
+        1,
+        1.5,
+        2,
+        3,
+        4,
+        6,
+        8,
+        12,
+        16
+      ]
+    }
+  },
+  "features": [
+    "Professional tone",
+    "Trust signals",
+    "Clear hierarchy",
+    "Conservative layout"
+  ],
+  "metadata": {
+    "created": "2025-08-26T16:09:29.452Z",
+    "version": "1.0.0",
+    "isSelected": false
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "name": "Bold & Dynamic",
+  "description": "Vibrant colors and strong contrasts with energetic feel",
+  "tokens": {
+    "colors": {
+      "primary": "#dc2626",
+      "secondary": "#7c3aed",
+      "background": "#0a0a0a",
+      "surface": "#171717",
+      "text": "#fafafa"
+    },
+    "typography": {
+      "fontFamily": "\"Space Grotesk\", \"Arial Black\", sans-serif",
+      "scale": [
+        12,
+        14,
+        16,
+        20,
+        28,
+        40,
+        64
+      ]
+    },
+    "spacing": {
+      "unit": 8,
+      "scale": [
+        0,
+        0.5,
+        1,
+        2,
+        3,
+        4,
+        6,
+        8,
+        12,
+        16,
+        24
+      ]
+    }
+  },
+  "features": [
+    "High contrast",
+    "Bold typography",
+    "Vibrant colors",
+    "Dynamic interactions"
+  ],
+  "metadata": {
+    "created": "2025-08-26T16:09:29.451Z",
+    "version": "1.0.0",
+    "isSelected": true
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "activeItems": {
+    "workflows": [],
+    "contexts": [],
+    "agents": [],
+    "mcp_servers": [],
+    "templates": []
+  },
+  "ui": {
+    "expandedSections": [
+      "workflows",
+      "contexts"
+    ],
+    "selectedView": "canvas",
+    "recentFiles": []
+  },
+  "lastModified": "2025-08-24T21:51:43.965Z"
+}

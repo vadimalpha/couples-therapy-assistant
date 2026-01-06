@@ -1,5 +1,21 @@
 # Couples Therapy Assistant - Claude Instructions
 
+## Deployment URLs
+
+| Environment | URL |
+|-------------|-----|
+| **Frontend** | https://frontend-five-self-98.vercel.app/ |
+| **Backend API** | https://weui-production.up.railway.app |
+| **WebSocket** | wss://weui-production.up.railway.app |
+| **Health Check** | https://weui-production.up.railway.app/health |
+
+## Git Remote
+
+The git remote is named `couples` (not `origin`):
+```bash
+git push couples main
+```
+
 ## Testing
 
 **ALWAYS follow the testing plan**: `.claude/testing-plan.md`
