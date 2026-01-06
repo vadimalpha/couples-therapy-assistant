@@ -141,6 +141,7 @@ export interface PatternInsights {
 
 // Prompt Logging Types
 export type PromptLogType =
+  | 'intake'
   | 'exploration'
   | 'individual_guidance'
   | 'joint_context_guidance'
