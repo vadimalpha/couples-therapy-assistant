@@ -91,7 +91,7 @@ const IntakeSummary: React.FC = () => {
   };
 
   const handleContinueEditing = () => {
-    navigate('/intake/chat', { state: { sessionId } });
+    navigate('/chat/intake');
   };
 
   if (loading) {

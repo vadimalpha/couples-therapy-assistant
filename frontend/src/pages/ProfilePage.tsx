@@ -77,7 +77,7 @@ const ProfilePage: React.FC = () => {
       }
 
       // Navigate to intake chat to complete new interview
-      navigate('/intake/chat');
+      navigate('/chat/intake');
     } catch (err) {
       console.error('Error refreshing intake:', err);
       setError(err instanceof Error ? err.message : 'Failed to refresh intake');

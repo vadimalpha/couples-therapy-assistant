@@ -203,13 +203,13 @@ const JointGuidancePage: React.FC = () => {
 
         <div className="joint-guidance-actions">
           <button
-            onClick={() => navigate(`/conflicts/${id}/guidance`)}
+            onClick={() => navigate(`/chat/guidance?conflictId=${id}`)}
             className="btn btn-secondary"
           >
             Refine My Guidance
           </button>
           <button
-            onClick={() => navigate(`/conflicts/${id}/shared`)}
+            onClick={() => navigate(`/chat/shared?conflictId=${id}`)}
             className="btn btn-primary"
           >
             Start Partner Chat

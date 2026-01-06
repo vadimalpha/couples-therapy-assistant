@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { useChatSession, SessionType } from '../hooks/useChatSession';
@@ -8,6 +8,8 @@ import { ChatModeHeader } from '../components/chat/ChatModeHeader';
 import { AdminDebugPanel } from '../components/admin/AdminDebugPanel';
 import ReadyButton from '../components/conflict/ReadyButton';
 import './UnifiedChatPage.css';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 // Admin emails for debug panel
 const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@couples-app.local', 'claude-partner@couples-app.local', 'claude.test.partnera@gmail.com', 'claude.test.partnerb@gmail.com'];
@@ -23,28 +25,33 @@ interface ConflictInfo {
  * UnifiedChatPage - Single page for all chat types
  *
  * Routes handled:
- * - /chat/intake/:sessionId
- * - /chat/exploration/:sessionId
- * - /chat/guidance/:sessionId
- * - /chat/shared/:sessionId
+ * - /chat/intake
+ * - /chat/exploration?conflictId=xxx
+ * - /chat/guidance?conflictId=xxx
+ * - /chat/shared?conflictId=xxx
  *
  * Features:
+ * - Session resolution from conflictId
  * - Mode-specific header with instructions
  * - Chat window (reusing existing ChatWindow component)
  * - Confirmation elements based on session type
  * - Admin debug panel (for admins only)
  */
 const UnifiedChatPage: React.FC = () => {
-  const { sessionType: sessionTypeParam, sessionId } = useParams<{
-    sessionType: string;
-    sessionId: string;
-  }>();
+  const { sessionType: sessionTypeParam } = useParams<{ sessionType: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user } = useAuth();
 
+  // Session resolution state
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [isResolvingSession, setIsResolvingSession] = useState(true);
+  const [resolutionError, setResolutionError] = useState<string | null>(null);
   const [conflictInfo, setConflictInfo] = useState<ConflictInfo | null>(null);
-  const [_isLoadingConflict, setIsLoadingConflict] = useState(false);
+  const [userRole, setUserRole] = useState<'a' | 'b'>('a');
+
+  // Get conflictId from query params
+  const conflictId = searchParams.get('conflictId') || undefined;
 
   // Map URL param to SessionType
   const sessionType: SessionType = useMemo(() => {
@@ -52,28 +59,192 @@ const UnifiedChatPage: React.FC = () => {
       case 'intake':
         return 'intake';
       case 'exploration':
-        // Check search params for partner role (a or b)
-        const role = searchParams.get('role');
-        return role === 'b' ? 'individual_b' : 'individual_a';
+        return userRole === 'b' ? 'individual_b' : 'individual_a';
       case 'guidance':
-        const guidanceRole = searchParams.get('role');
-        return guidanceRole === 'b' ? 'joint_context_b' : 'joint_context_a';
+        return userRole === 'b' ? 'joint_context_b' : 'joint_context_a';
       case 'shared':
         return 'relationship_shared';
       default:
         return 'intake';
     }
-  }, [sessionTypeParam, searchParams]);
-
-  // Conflict ID from search params (for exploration/guidance/shared)
-  const conflictId = searchParams.get('conflictId') || undefined;
+  }, [sessionTypeParam, userRole]);
 
   // Check if user is admin
   const isAdmin = useMemo(() => {
     return user?.email ? ADMIN_EMAILS.includes(user.email) : false;
   }, [user?.email]);
 
-  // Use the unified chat session hook
+  // Resolve session ID based on session type and conflict
+  const resolveSession = useCallback(async () => {
+    if (!user) return;
+
+    setIsResolvingSession(true);
+    setResolutionError(null);
+
+    try {
+      const token = await user.getIdToken();
+
+      // INTAKE: Get or create user's intake session
+      if (sessionTypeParam === 'intake') {
+        const response = await fetch(`${API_URL}/api/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (response.ok) {
+          const sessions = await response.json();
+          const intakeSession = sessions.find((s: any) => s.sessionType === 'intake');
+
+          if (intakeSession) {
+            setSessionId(intakeSession.id);
+          } else {
+            // Create new intake session
+            const createResponse = await fetch(`${API_URL}/api/conversations`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ sessionType: 'intake' }),
+            });
+
+            if (createResponse.ok) {
+              const newSession = await createResponse.json();
+              setSessionId(newSession.id);
+            } else {
+              throw new Error('Failed to create intake session');
+            }
+          }
+        }
+        return;
+      }
+
+      // For other types, we need conflictId
+      if (!conflictId) {
+        setResolutionError('No conflict specified');
+        return;
+      }
+
+      // Fetch conflict info
+      const conflictResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!conflictResponse.ok) {
+        throw new Error('Failed to load conflict');
+      }
+
+      const conflictData = await conflictResponse.json();
+      const conflict = conflictData.conflict;
+
+      setConflictInfo({
+        id: conflict.id,
+        title: conflict.title,
+        partnerAId: conflict.partner_a_id,
+        partnerBId: conflict.partner_b_id,
+      });
+
+      // Determine user's role
+      const isPartnerA = conflict.partner_a_id === user.uid;
+      setUserRole(isPartnerA ? 'a' : 'b');
+
+      // EXPLORATION: Get partner's exploration session
+      if (sessionTypeParam === 'exploration') {
+        const partnerASession = conflict.partner_a_session_id;
+        const partnerBSession = conflict.partner_b_session_id;
+        let userSession = isPartnerA ? partnerASession : partnerBSession;
+
+        // If Partner B doesn't have a session yet, join the conflict
+        if (!userSession && !isPartnerA && conflict.status === 'pending_partner_b') {
+          const joinResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/join`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+
+          if (joinResponse.ok) {
+            const joinData = await joinResponse.json();
+            userSession = joinData.sessionId;
+          } else {
+            throw new Error('Failed to join conflict');
+          }
+        }
+
+        if (userSession) {
+          setSessionId(userSession);
+        } else {
+          throw new Error('No exploration session found');
+        }
+        return;
+      }
+
+      // GUIDANCE: Get user's joint_context session
+      if (sessionTypeParam === 'guidance') {
+        const sessionsResponse = await fetch(`${API_URL}/api/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (sessionsResponse.ok) {
+          const sessions = await sessionsResponse.json();
+          const normalizeId = (cid: string | undefined) => {
+            if (!cid) return '';
+            return cid.startsWith('conflict:') ? cid : `conflict:${cid}`;
+          };
+          const targetConflictId = normalizeId(conflict.id);
+
+          // Find joint_context session for this conflict and user's role
+          const sessionTypeToFind = isPartnerA ? 'joint_context_a' : 'joint_context_b';
+          const jointSession = sessions.find((s: any) =>
+            s.sessionType === sessionTypeToFind &&
+            normalizeId(s.conflictId) === targetConflictId
+          );
+
+          if (jointSession) {
+            setSessionId(jointSession.id);
+          } else {
+            // Check if both partners have finalized - guidance may not be ready
+            if (conflict.status !== 'both_finalized') {
+              setResolutionError('Guidance is not ready yet. Both partners must complete their exploration first.');
+            } else {
+              setResolutionError('Guidance session not found');
+            }
+          }
+        }
+        return;
+      }
+
+      // SHARED: Get shared relationship session
+      if (sessionTypeParam === 'shared') {
+        const sharedResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/shared-session`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (sharedResponse.ok) {
+          const sharedData = await sharedResponse.json();
+          setSessionId(sharedData.sessionId);
+        } else if (sharedResponse.status === 404) {
+          setResolutionError('Shared conversation is not yet available. Both partners must complete their guidance first.');
+        } else {
+          throw new Error('Failed to load shared session');
+        }
+        return;
+      }
+
+    } catch (err) {
+      console.error('Session resolution failed:', err);
+      setResolutionError(err instanceof Error ? err.message : 'Failed to load session');
+    } finally {
+      setIsResolvingSession(false);
+    }
+  }, [user, sessionTypeParam, conflictId]);
+
+  // Resolve session on mount and when dependencies change
+  useEffect(() => {
+    resolveSession();
+  }, [resolveSession]);
+
+  // Use the unified chat session hook (only when sessionId is resolved)
   const {
     messages,
     sendMessage,
@@ -93,49 +264,13 @@ const UnifiedChatPage: React.FC = () => {
     conflictId,
   });
 
-  // Fetch conflict info if conflictId is provided
-  useEffect(() => {
-    const fetchConflictInfo = async () => {
-      if (!conflictId || !user) return;
-
-      setIsLoadingConflict(true);
-      try {
-        const token = await user.getIdToken();
-        const response = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:3001'}/api/conflicts/${conflictId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        if (response.ok) {
-          const data = await response.json();
-          setConflictInfo({
-            id: data.conflict.id,
-            title: data.conflict.title,
-            partnerAId: data.conflict.partner_a_id,
-            partnerBId: data.conflict.partner_b_id,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to fetch conflict info:', err);
-      } finally {
-        setIsLoadingConflict(false);
-      }
-    };
-
-    fetchConflictInfo();
-  }, [conflictId, user]);
-
   // Handle finalization for exploration sessions
   const handleFinalize = async () => {
     try {
       await finalize();
       // Navigate to guidance page after finalization
       if (conflictId) {
-        navigate(`/conflicts/${conflictId}/guidance`);
+        navigate(`/chat/guidance?conflictId=${conflictId}`);
       }
     } catch (err) {
       console.error('Failed to finalize:', err);
@@ -156,8 +291,8 @@ const UnifiedChatPage: React.FC = () => {
       case 'intake': return 'Intake Interview';
       case 'individual_a': return conflictInfo?.title || 'Explore Your Perspective';
       case 'individual_b': return conflictInfo?.title || 'Explore Your Perspective';
-      case 'joint_context_a': return 'Joint Guidance';
-      case 'joint_context_b': return 'Joint Guidance';
+      case 'joint_context_a': return 'Personalized Guidance';
+      case 'joint_context_b': return 'Personalized Guidance';
       case 'relationship_shared': return 'Relationship Chat';
       default: return 'Chat';
     }
@@ -170,16 +305,39 @@ const UnifiedChatPage: React.FC = () => {
     return 'active';
   }, [isConnected, isFinalized]);
 
-  // Loading state
-  if (!sessionId) {
+  // Loading state while resolving session
+  if (isResolvingSession) {
     return (
       <div className="unified-chat-page loading">
-        <p>Invalid session</p>
+        <div className="loading-spinner" />
+        <p>Loading conversation...</p>
       </div>
     );
   }
 
-  // Error state
+  // Error state - session resolution failed
+  if (resolutionError) {
+    return (
+      <div className="unified-chat-page error">
+        <h2>Unable to Load Chat</h2>
+        <p>{resolutionError}</p>
+        <button onClick={() => navigate('/')}>Return to Dashboard</button>
+      </div>
+    );
+  }
+
+  // No session resolved
+  if (!sessionId) {
+    return (
+      <div className="unified-chat-page error">
+        <h2>Session Not Found</h2>
+        <p>Unable to find or create a chat session.</p>
+        <button onClick={() => navigate('/')}>Return to Dashboard</button>
+      </div>
+    );
+  }
+
+  // Connection error state
   if (error && !isConnected) {
     return (
       <div className="unified-chat-page error">

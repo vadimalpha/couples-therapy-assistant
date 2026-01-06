@@ -140,10 +140,8 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
 
       const data = await response.json();
 
-      // Navigate to exploration chat with the new conflict ID and session ID
-      navigate(`/conflicts/${data.conflictId}/explore`, {
-        state: { sessionId: data.sessionId }
-      });
+      // Navigate to exploration chat with the new conflict ID
+      navigate(`/chat/exploration?conflictId=${data.conflictId}`);
     } catch (err) {
       console.error('Failed to create conflict:', err);
       setError(err instanceof Error ? err.message : 'Failed to create conversation');

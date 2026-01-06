@@ -93,7 +93,7 @@ const SharedRelationshipChat: React.FC<SharedRelationshipChatProps> = ({ conflic
         <h2>Not Available Yet</h2>
         <p>{fetchError}</p>
         <button
-          onClick={() => navigate(`/conflicts/${conflictId}/guidance`)}
+          onClick={() => navigate(`/chat/guidance?conflictId=${conflictId}`)}
           className="shared-chat-retry-button"
         >
           Back to Guidance

@@ -44,7 +44,7 @@ const IntakePage: React.FC = () => {
   }, [user, navigate, authLoading]);
 
   const handleStartIntake = () => {
-    navigate('/intake/chat');
+    navigate('/chat/intake');
   };
 
   const handleViewIntake = () => {
@@ -52,7 +52,7 @@ const IntakePage: React.FC = () => {
   };
 
   const handleRefreshIntake = () => {
-    navigate('/intake/chat');
+    navigate('/chat/intake');
   };
 
   if (loading || authLoading) {

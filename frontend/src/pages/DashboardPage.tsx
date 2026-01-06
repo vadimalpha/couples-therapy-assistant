@@ -779,17 +779,17 @@ export const DashboardPage: React.FC = () => {
 
                   // Continue/Start button for exploration
                   if (conflict.status === 'partner_a_chatting' && isPartnerA) {
-                    buttons.push({ label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                    buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'pending_partner_b' && !isPartnerA) {
-                    buttons.push({ label: 'Start', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                    buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
-                    buttons.push({ label: 'Continue', to: `/conflicts/${conflict.id}/explore`, variant: 'primary' });
+                    buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'pending_partner_b' && isPartnerA) {
                     // Partner A finished, show their individual guidance
-                    buttons.push({ label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'primary' });
+                    buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'partner_b_chatting' && isPartnerA) {
                     // Partner A finished, Partner B still exploring
-                    buttons.push({ label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' });
+                    buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' });
                   }
 
                   return (
@@ -824,9 +824,9 @@ export const DashboardPage: React.FC = () => {
                       meta={`Completed ${formatDate(conflict.updated_at)}`}
                       badge={getConflictBadge(conflict.status, isPartnerA)}
                       actionButtons={[
-                        { label: 'My Guidance', to: `/conflicts/${conflict.id}/guidance`, variant: 'outline' },
+                        { label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
                         { label: 'Joint Guidance', to: `/conflicts/${conflict.id}/joint-guidance`, variant: 'outline' },
-                        { label: 'Partner Chat', to: `/conflicts/${conflict.id}/shared`, variant: 'primary' },
+                        { label: 'Partner Chat', to: `/chat/shared?conflictId=${conflict.id}`, variant: 'primary' },
                       ]}
                     />
                   );

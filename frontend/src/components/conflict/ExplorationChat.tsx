@@ -51,7 +51,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
     senderName: msg.role === 'ai' ? 'AI Therapist' : undefined
   }));
 
-  // Fetch conflict details to get sessionId and title
+  // Fetch conflict details to get sessionId and redirect to UnifiedChatPage
   useEffect(() => {
     if (!conflictId) {
       console.error('Missing conflictId');
@@ -59,10 +59,9 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
       return;
     }
 
-    // If sessionId came from props, we trust it (it was passed programmatically)
-    // But if we don't have one, we MUST fetch to get the correct session for this user
+    // If sessionId came from props, redirect to unified chat
     if (sessionIdProp) {
-      setIsLoadingConflict(false);
+      navigate(`/chat/exploration/${sessionIdProp}?conflictId=${conflictId}`, { replace: true });
       return;
     }
 
@@ -88,6 +87,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
             const partnerBSession = data.conflict.partner_b_session_id;
 
             let userSession = isPartnerA ? partnerASession : partnerBSession;
+            const role = isPartnerA ? 'a' : 'b';
 
             // If Partner B doesn't have a session yet, join the conflict to create one
             if (!userSession && !isPartnerA && data.conflict.status === 'pending_partner_b') {
@@ -113,7 +113,9 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
             }
 
             if (userSession) {
-              setSessionId(userSession);
+              // Redirect to UnifiedChatPage with session info
+              navigate(`/chat/exploration/${userSession}?conflictId=${conflictId}&role=${role}`, { replace: true });
+              return;
             } else {
               console.error('No session found for this user in conflict');
               navigate('/');
@@ -179,25 +181,6 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
 
   return (
     <main id="main-content" className="exploration-chat-page">
-      {/* Test button for new unified chat UI */}
-      {sessionId && (
-        <div style={{ padding: '8px 16px', background: '#1a1a2e', borderBottom: '1px solid #333' }}>
-          <button
-            onClick={() => navigate(`/chat/exploration/${sessionId}`)}
-            style={{
-              padding: '6px 12px',
-              background: '#10a37f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Try New UI (with Debug Panel)
-          </button>
-        </div>
-      )}
       <div className="exploration-chat-container">
         <ChatWindow
           messages={messages}

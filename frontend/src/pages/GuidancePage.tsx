@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import GuidanceChat from '../components/guidance/GuidanceChat';
 import GuidanceStatus, { GuidanceStatusType } from '../components/guidance/GuidanceStatus';
 import { useAuth } from '../auth/AuthContext';
 import '../components/guidance/Guidance.css';
@@ -92,15 +91,15 @@ const GuidancePage: React.FC = () => {
             || jointContextSessions[0];
 
           if (jointContextSession && jointContextSession.messages?.length > 0) {
-            // Found joint context session with guidance
-            const guidanceMessage = jointContextSession.messages.find((msg: any) => msg.role === 'ai');
-            setGuidanceSession({
-              id: jointContextSession.id,
-              status: 'ready',
-              initialGuidance: guidanceMessage?.content,
-              partnerACompleted: true,
-              partnerBCompleted: true
-            });
+            // Redirect to unified chat page for guidance
+            const role = jointContextSession.sessionType === 'joint_context_a' ? 'a' : 'b';
+            navigate(`/chat/guidance/${jointContextSession.id}?conflictId=${id}&role=${role}`, { replace: true });
+            return;
+          } else if (jointContextSession) {
+            // Session exists but no messages yet - still redirect
+            const role = jointContextSession.sessionType === 'joint_context_a' ? 'a' : 'b';
+            navigate(`/chat/guidance/${jointContextSession.id}?conflictId=${id}&role=${role}`, { replace: true });
+            return;
           } else if (conflictData.conflict?.status === 'both_finalized') {
             // Both finalized but no guidance yet - synthesizing
             setGuidanceSession({
@@ -179,38 +178,12 @@ const GuidancePage: React.FC = () => {
 
   return (
     <main id="main-content" className="guidance-page">
-      {/* Test button for new unified chat UI */}
-      {guidanceSession.status === 'ready' && guidanceSession.id && (
-        <div style={{ padding: '8px 16px', background: '#1a1a2e', borderBottom: '1px solid #333' }}>
-          <button
-            onClick={() => navigate(`/chat/guidance/${guidanceSession.id}`)}
-            style={{
-              padding: '6px 12px',
-              background: '#10a37f',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Try New UI (with Debug Panel)
-          </button>
-        </div>
-      )}
       <div className="guidance-container">
-        {guidanceSession.status === 'ready' && guidanceSession.id ? (
-          <GuidanceChat
-            conflictId={conflict.id}
-            sessionId={guidanceSession.id}
-            initialGuidance={guidanceSession.initialGuidance}
-          />
-        ) : (
-          <GuidanceStatus
-            status={guidanceSession.status as GuidanceStatusType}
-            partnerCompleted={guidanceSession.partnerACompleted || guidanceSession.partnerBCompleted}
-          />
-        )}
+        {/* Show status while waiting for both partners to finalize */}
+        <GuidanceStatus
+          status={guidanceSession.status as GuidanceStatusType}
+          partnerCompleted={guidanceSession.partnerACompleted || guidanceSession.partnerBCompleted}
+        />
       </div>
     </main>
   );

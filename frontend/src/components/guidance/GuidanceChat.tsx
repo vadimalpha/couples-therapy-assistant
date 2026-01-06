@@ -94,7 +94,7 @@ const GuidanceChat: React.FC<GuidanceChatProps> = ({
   };
 
   const handleJoinSharedChat = () => {
-    navigate(`/conflicts/${conflictId}/shared`);
+    navigate(`/chat/shared?conflictId=${conflictId}`);
   };
 
   // Show status while waiting for synthesis

@@ -5,7 +5,6 @@ import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import DashboardPage from './pages/DashboardPage';
 import ConflictStartPage from './pages/ConflictStartPage';
-import GuidancePage from './pages/GuidancePage';
 import JointGuidancePage from './pages/JointGuidancePage';
 import ProfilePage from './pages/ProfilePage';
 import IntakePage from './pages/IntakePage';
@@ -15,10 +14,8 @@ import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import AdminLogsPage from './pages/AdminLogsPage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
 import UnifiedChatPage from './pages/UnifiedChatPage';
-import { ExplorationChat } from './components/conflict';
-import { IntakeChat, IntakeSummary } from './components/intake';
+import { IntakeSummary } from './components/intake';
 import { CrisisFooter, AppHeader } from './components/layout';
-import SharedRelationshipChat from './components/chat/SharedRelationshipChat';
 import './App.css';
 import './styles/accessibility.css';
 
@@ -62,14 +59,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Check if current route is a full-page chat experience
 const isChatRoute = (pathname: string): boolean => {
-  // Match chat routes: /conflicts/:id/explore, /conflicts/:id/guidance, /conflicts/:id/joint-guidance, /conflicts/:id/shared, /intake/chat, /chat/:type/:id
+  // Match chat routes: /chat/:sessionType, /conflicts/:id/joint-guidance
   const chatPatterns = [
-    /^\/conflicts\/[^/]+\/explore$/,
-    /^\/conflicts\/[^/]+\/guidance$/,
-    /^\/conflicts\/[^/]+\/joint-guidance$/,
-    /^\/conflicts\/[^/]+\/shared$/,
-    /^\/intake\/chat$/,
-    /^\/chat\/[^/]+\/[^/]+$/  // New unified chat route
+    /^\/chat\/[^/]+$/,  // Unified chat route: /chat/intake, /chat/exploration, etc.
+    /^\/conflicts\/[^/]+\/joint-guidance$/,  // Keep joint guidance as separate view
   ];
   return chatPatterns.some(pattern => pattern.test(pathname));
 };
@@ -114,26 +107,6 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
-            path="/conflicts/:id/explore"
-            element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <ExplorationChat />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/conflicts/:id/guidance"
-            element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <GuidancePage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/conflicts/:id/joint-guidance"
             element={
               <ProtectedRoute>
@@ -144,31 +117,11 @@ const AppContent: React.FC = () => {
             }
           />
           <Route
-            path="/conflicts/:id/shared"
-            element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <SharedRelationshipChat />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/intake"
             element={
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <IntakePage />
-                </AuthenticatedLayout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/intake/chat"
-            element={
-              <ProtectedRoute>
-                <AuthenticatedLayout>
-                  <IntakeChat />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             }
@@ -214,9 +167,9 @@ const AppContent: React.FC = () => {
             }
           />
 
-          {/* Unified chat route - new architecture */}
+          {/* Unified chat route - handles all chat types */}
           <Route
-            path="/chat/:sessionType/:sessionId"
+            path="/chat/:sessionType"
             element={
               <ProtectedRoute>
                 <AuthenticatedLayout>
