@@ -129,7 +129,10 @@ export function useConversation(sessionId: string): UseConversationReturn {
       tokenRef.current = token;
 
       // Validate token before sending
-      if (!token || typeof token !== 'string' || token.split('.').length !== 3) {
+      // Allow both JWT format (3 dot-separated parts) and TEST_TOKEN format
+      const isJWT = token.split('.').length === 3;
+      const isTestToken = token.startsWith('TEST_TOKEN:');
+      if (!token || typeof token !== 'string' || (!isJWT && !isTestToken)) {
         console.error('Invalid token format');
         throw new Error('Invalid authentication token format');
       }
