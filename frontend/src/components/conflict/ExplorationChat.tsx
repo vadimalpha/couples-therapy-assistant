@@ -26,7 +26,7 @@ const ExplorationChat: React.FC<ExplorationChatProps> = ({
   const conflictId = conflictIdProp || conflictIdParam;
   // Only use sessionId from props - NEVER from location.state to avoid stale Partner A sessions
   // Always fetch conflict details to determine the correct session for the current user
-  const [sessionId, setSessionId] = useState<string | undefined>(sessionIdProp);
+  const [sessionId, _setSessionId] = useState<string | undefined>(sessionIdProp);
   const [isLoadingConflict, setIsLoadingConflict] = useState(true); // Always load to verify correct session
 
   const [conflictTitle, setConflictTitle] = useState('Exploration Chat');
