@@ -78,11 +78,15 @@ export interface GuidanceSynthesisResult {
 const promptOverrides = new Map<string, string>();
 
 export function getPromptOverride(sessionId: string): string | undefined {
-  return promptOverrides.get(sessionId);
+  const override = promptOverrides.get(sessionId);
+  console.log(`[getPromptOverride] sessionId=${sessionId}, hasOverride=${!!override}, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
+  return override;
 }
 
 export function setPromptOverride(sessionId: string, systemPrompt: string): void {
+  console.log(`[setPromptOverride] sessionId=${sessionId}, promptLength=${systemPrompt.length}`);
   promptOverrides.set(sessionId, systemPrompt);
+  console.log(`[setPromptOverride] After set, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
 }
 
 export function clearPromptOverride(sessionId: string): void {
