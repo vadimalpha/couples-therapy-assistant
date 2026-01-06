@@ -8,6 +8,7 @@ import {
   handleDisconnect,
   handleFinalize,
 } from './handlers';
+import { TEST_TOKEN_PREFIX, decodeTestToken } from '../middleware/auth';
 
 export interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -48,6 +49,17 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
 
       if (!token) {
         return next(new Error('Authentication token required'));
+      }
+
+      // Check for test token first
+      if (token.startsWith(TEST_TOKEN_PREFIX)) {
+        const decoded = decodeTestToken(token);
+        if (decoded) {
+          console.log(`[WS_TEST_LOGIN] Authenticated as ${decoded.email}`);
+          socket.userId = decoded.uid;
+          return next();
+        }
+        return next(new Error('Invalid authentication token format'));
       }
 
       // Verify Firebase token

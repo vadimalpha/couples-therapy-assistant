@@ -6,7 +6,7 @@ import { AuthenticatedRequest } from '../types';
 let firebaseInitialized = false;
 
 // Test token prefix for admin test login
-const TEST_TOKEN_PREFIX = 'TEST_TOKEN:';
+export const TEST_TOKEN_PREFIX = 'TEST_TOKEN:';
 
 export function initializeFirebase(): void {
   if (firebaseInitialized) {
@@ -37,7 +37,7 @@ export function initializeFirebase(): void {
  * Decode and validate a test token
  * Format: TEST_TOKEN:base64({firebaseUid, email, userId, timestamp})
  */
-function decodeTestToken(token: string): DecodedIdToken | null {
+export function decodeTestToken(token: string): DecodedIdToken | null {
   try {
     const payload = token.substring(TEST_TOKEN_PREFIX.length);
     const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
