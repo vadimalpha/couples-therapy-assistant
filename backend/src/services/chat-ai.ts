@@ -289,7 +289,16 @@ export async function streamExplorationResponse(
       guidanceMode: context.guidanceMode || conflict?.guidance_mode || 'conversational',
     };
 
-    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
+    // Check for admin prompt override first
+    const promptOverride = getPromptOverride(context.sessionId);
+    const systemPrompt = promptOverride
+      ? promptOverride
+      : await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
+
+    if (promptOverride) {
+      console.log(`[streamExplorationResponse] Using admin prompt override for session ${context.sessionId}`);
+    }
+
     const openaiMessages = convertMessagesToOpenAI(messages);
 
     const userMessageContent = messages.length > 0
@@ -382,12 +391,22 @@ export async function streamGuidanceRefinementResponse(
     console.log(`[streamGuidanceRefinementResponse] User found: ${!!user}, Conflict found: ${!!conflict}`);
 
     console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
-    let systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
-      conflictId: context.conflictId || '',
-      userId: context.userId,
-      sessionType: context.sessionType,
-      includeRAG: true,
-    });
+
+    // Check for admin prompt override first
+    const promptOverride = getPromptOverride(context.sessionId);
+    let systemPrompt: string;
+
+    if (promptOverride) {
+      console.log(`[streamGuidanceRefinementResponse] Using admin prompt override for session ${context.sessionId}`);
+      systemPrompt = promptOverride;
+    } else {
+      systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
+        conflictId: context.conflictId || '',
+        userId: context.userId,
+        sessionType: context.sessionType,
+        includeRAG: true,
+      });
+    }
 
     // Extract and include the initial guidance in the system prompt
     // The initial guidance is the first AI message(s) before any user messages
