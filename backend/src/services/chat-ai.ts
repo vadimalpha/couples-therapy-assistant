@@ -755,6 +755,134 @@ export async function synthesizeJointContextGuidance(
 }
 
 /**
+ * Regenerate guidance for an existing joint_context session
+ * Used when admin restarts a session with a modified prompt
+ */
+export async function regenerateJointContextGuidance(
+  sessionId: string
+): Promise<{ guidance: string; usage: TokenUsage }> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  try {
+    // Get the existing joint_context session
+    const session = await conversationService.getSession(sessionId);
+    if (!session) {
+      throw new Error('Session not found');
+    }
+
+    if (session.sessionType !== 'joint_context_a' && session.sessionType !== 'joint_context_b') {
+      throw new Error('Session is not a joint_context session');
+    }
+
+    if (!session.conflictId) {
+      throw new Error('Session has no conflictId');
+    }
+
+    const conflict = await conflictService.getConflict(session.conflictId);
+    if (!conflict) {
+      throw new Error('Conflict not found');
+    }
+
+    if (!conflict.partner_a_session_id || !conflict.partner_b_session_id) {
+      throw new Error('Both partners must have exploration sessions');
+    }
+
+    const partnerASession = await conversationService.getSession(conflict.partner_a_session_id);
+    const partnerBSession = await conversationService.getSession(conflict.partner_b_session_id);
+
+    if (!partnerASession || !partnerBSession) {
+      throw new Error('Could not retrieve partner exploration sessions');
+    }
+
+    const isPartnerA = session.sessionType === 'joint_context_a';
+    const requestingPartner = isPartnerA ? partnerASession : partnerBSession;
+    const otherPartner = isPartnerA ? partnerBSession : partnerASession;
+
+    const requestingUserId = session.userId;
+    const otherUserId = isPartnerA ? conflict.partner_b_id : conflict.partner_a_id;
+
+    const requestingUser = await getUserById(requestingUserId);
+    const otherUser = otherUserId ? await getUserById(otherUserId) : null;
+
+    const requestingIntakeData = await getIntakeData(requestingUserId);
+    const otherIntakeData = otherUserId ? await getIntakeData(otherUserId) : null;
+
+    // Check for admin prompt override first
+    const promptOverride = getPromptOverride(sessionId);
+    const systemPrompt = promptOverride
+      ? promptOverride
+      : await buildPrompt('joint-context-synthesis.txt', {
+          conflictId: session.conflictId,
+          userId: requestingUserId,
+          sessionType: session.sessionType,
+          includeRAG: true,
+          includePatterns: true,
+          guidanceMode: conflict.guidance_mode || 'conversational',
+        });
+
+    if (promptOverride) {
+      console.log(`[regenerateJointContextGuidance] Using admin prompt override for session ${sessionId}`);
+    }
+
+    const context = buildJointContext(
+      requestingPartner.messages,
+      otherPartner.messages,
+      requestingIntakeData,
+      otherIntakeData,
+      requestingUser?.displayName,
+      otherUser?.displayName
+    );
+
+    const response = await openai.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: JOINT_CONTEXT_MAX_COMPLETION_TOKENS,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: context },
+      ],
+    });
+
+    const guidance = response.choices[0]?.message?.content || '';
+    const usage = calculateUsageFromResponse(response);
+
+    console.log(
+      `Joint-context guidance regenerated - Session: ${sessionId}, Input tokens: ${usage.inputTokens}, Output tokens: ${usage.outputTokens}, Cost: $${usage.totalCost.toFixed(4)}`
+    );
+
+    // Log the prompt
+    logPrompt({
+      userId: requestingUserId,
+      userEmail: requestingUser?.email,
+      userName: requestingUser?.displayName,
+      conflictId: session.conflictId,
+      conflictTitle: conflict.title,
+      sessionId,
+      sessionType: session.sessionType,
+      logType: 'joint_context_guidance_regenerated',
+      guidanceMode: conflict.guidance_mode,
+      systemPrompt,
+      userMessage: context,
+      aiResponse: guidance,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
+
+    // Add the guidance as a message to the existing session
+    await conversationService.addMessage(sessionId, 'ai', guidance);
+
+    return { guidance, usage };
+  } catch (error) {
+    console.error('Error regenerating joint-context guidance:', error);
+    throw new Error(
+      `Failed to regenerate joint-context guidance: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
  * Generate initial synthesis message for relationship_shared session
  */
 export async function generateRelationshipSynthesis(

@@ -11,6 +11,7 @@ import {
   clearPromptOverride,
   getPromptOverride,
   MODEL,
+  regenerateJointContextGuidance,
 } from '../services/chat-ai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -111,6 +112,27 @@ router.get(
         if (session.userId !== userId) {
           res.status(403).json({ error: 'Access denied' });
           return;
+        }
+      }
+
+      // For joint_context sessions with no messages, regenerate the guidance
+      // This handles the case where admin restarts the session with a modified prompt
+      if (
+        (session.sessionType === 'joint_context_a' || session.sessionType === 'joint_context_b') &&
+        (!session.messages || session.messages.length === 0)
+      ) {
+        console.log(`Regenerating guidance for empty joint_context session ${id}`);
+        try {
+          await regenerateJointContextGuidance(id);
+          // Refetch the session to get the new message
+          const updatedSession = await conversationService.getSession(id);
+          if (updatedSession) {
+            res.json(updatedSession);
+            return;
+          }
+        } catch (regenerateError) {
+          console.error('Error regenerating guidance:', regenerateError);
+          // Continue and return the empty session rather than failing
         }
       }
 

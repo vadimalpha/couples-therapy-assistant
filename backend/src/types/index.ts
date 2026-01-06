@@ -145,6 +145,7 @@ export type PromptLogType =
   | 'exploration'
   | 'individual_guidance'
   | 'joint_context_guidance'
+  | 'joint_context_guidance_regenerated'
   | 'guidance_refinement'
   | 'relationship_synthesis'
   | 'relationship_chat';
