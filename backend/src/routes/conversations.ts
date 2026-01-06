@@ -745,12 +745,13 @@ router.post(
       );
 
       // Store prompt override for this session
-      setPromptOverride(id, systemPrompt);
+      // Use fullId to ensure consistent format with WebSocket handlers
+      setPromptOverride(fullId, systemPrompt);
 
       res.json({
         success: true,
         message: 'Session restarted with modified prompt',
-        sessionId: id,
+        sessionId: fullId,
       });
     } catch (error) {
       console.error('Error restarting session:', error);
