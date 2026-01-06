@@ -9,6 +9,7 @@ import {
   GuidanceRefinementContext,
   setPromptOverride,
   clearPromptOverride,
+  MODEL,
 } from '../services/chat-ai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -677,7 +678,7 @@ router.get(
           systemPrompt: promptLog.systemPrompt,
           userMessage: promptLog.userMessage,
           aiResponse: promptLog.aiResponse,
-          model: 'gpt-4o',
+          model: MODEL,
           inputTokens: promptLog.inputTokens,
           outputTokens: promptLog.outputTokens,
           cost: promptLog.cost,

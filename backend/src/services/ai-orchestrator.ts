@@ -4,6 +4,7 @@ import { buildPrompt } from './prompt-builder';
 import { conversationService } from './conversation';
 import { conflictService } from './conflict';
 import { getUserById } from './user';
+import { MODEL } from './chat-ai';
 
 /**
  * AI Orchestrator Service
@@ -24,8 +25,7 @@ function getOpenAI(): OpenAI {
   return openai;
 }
 
-// Model configuration
-const MODEL = 'gpt-4o';
+// Token configuration (MODEL imported from chat-ai.ts)
 const MAX_COMPLETION_TOKENS = 1536; // Increased for couples dialogue
 const SYNTHESIS_MAX_TOKENS = 2048; // For initial synthesis
 
