@@ -35,11 +35,17 @@ export function initializeFirebase(): void {
 
 /**
  * Decode and validate a test token
- * Format: TEST_TOKEN:base64({firebaseUid, email, userId, timestamp})
+ * Format: TEST_TOKEN:base64url({firebaseUid, email, userId, timestamp})
  */
 export function decodeTestToken(token: string): DecodedIdToken | null {
   try {
-    const payload = token.substring(TEST_TOKEN_PREFIX.length);
+    let payload = token.substring(TEST_TOKEN_PREFIX.length);
+    // Convert URL-safe base64 back to standard base64
+    payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+    // Add padding if needed
+    while (payload.length % 4) {
+      payload += '=';
+    }
     const decoded = JSON.parse(Buffer.from(payload, 'base64').toString('utf-8'));
 
     // Basic validation

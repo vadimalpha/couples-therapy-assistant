@@ -10,6 +10,7 @@ const TEST_PASSWORD = 'password';
 
 /**
  * Generate a test token for admin test login
+ * Uses URL-safe base64 encoding to prevent issues with special characters
  */
 function generateTestToken(user: { id: string; firebaseUid: string; email: string }): string {
   const payload = {
@@ -18,7 +19,9 @@ function generateTestToken(user: { id: string; firebaseUid: string; email: strin
     email: user.email,
     timestamp: Date.now(),
   };
-  return 'TEST_TOKEN:' + Buffer.from(JSON.stringify(payload)).toString('base64');
+  // Use URL-safe base64: replace + with -, / with _, remove =
+  const base64 = Buffer.from(JSON.stringify(payload)).toString('base64');
+  return 'TEST_TOKEN:' + base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 /**
