@@ -33,7 +33,7 @@ DEFINE FIELD IF NOT EXISTS conflictId ON prompt_log TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS conflictTitle ON prompt_log TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS sessionId ON prompt_log TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS sessionType ON prompt_log TYPE option<string>;
-DEFINE FIELD IF NOT EXISTS logType ON prompt_log TYPE string ASSERT $value IN ['exploration', 'individual_guidance', 'joint_context_guidance', 'relationship_synthesis', 'relationship_chat'];
+DEFINE FIELD IF NOT EXISTS logType ON prompt_log TYPE string ASSERT $value IN ['intake', 'exploration', 'guidance_refinement', 'individual_guidance', 'joint_context_guidance', 'relationship_synthesis', 'relationship_chat'];
 DEFINE FIELD IF NOT EXISTS guidanceMode ON prompt_log TYPE option<string>;
 DEFINE FIELD IF NOT EXISTS systemPrompt ON prompt_log TYPE string;
 DEFINE FIELD IF NOT EXISTS userMessage ON prompt_log TYPE string;
