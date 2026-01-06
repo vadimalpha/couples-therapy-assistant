@@ -290,7 +290,7 @@ export async function streamExplorationResponse(
     };
 
     // Check for admin prompt override first
-    const promptOverride = getPromptOverride(context.sessionId);
+    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
     const systemPrompt = promptOverride
       ? promptOverride
       : await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
@@ -393,7 +393,7 @@ export async function streamGuidanceRefinementResponse(
     console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
 
     // Check for admin prompt override first
-    const promptOverride = getPromptOverride(context.sessionId);
+    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
     let systemPrompt: string;
 
     if (promptOverride) {
