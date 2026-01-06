@@ -244,6 +244,13 @@
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
+.section-hint {
+  font-size: 11px;
+  color: #6b7280;
+  font-style: italic;
+  margin-left: 4px;
+}
+
 .section-chevron {
   width: 14px;
   height: 14px;

@@ -328,13 +328,14 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                 )}
               </div>
 
-              {/* User Message section */}
+              {/* Context / Variables section */}
               <div className="debug-section">
                 <button
                   className="section-header"
                   onClick={() => toggleSection('userMessage')}
                 >
-                  <span>User Message</span>
+                  <span>Context / Variables</span>
+                  <span className="section-hint">(exploration, intake, guidance)</span>
                   <span className="section-size">
                     {prompt.userMessage.length.toLocaleString()} chars
                   </span>
