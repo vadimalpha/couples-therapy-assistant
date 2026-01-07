@@ -10,10 +10,13 @@ type RelationshipType = 'partner' | 'family' | 'friend';
 interface Conflict {
   id: string;
   title: string;
+  description?: string;
   status: 'partner_a_chatting' | 'pending_partner_b' | 'partner_b_chatting' | 'both_finalized';
   privacy: 'private' | 'shared';
   partner_a_id: string;
   partner_b_id?: string;
+  partnerName?: string | null;
+  partnerEmail?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -61,6 +64,8 @@ interface ActionButton {
 
 interface ConflictItemProps {
   title: string;
+  description?: string;
+  partnerName?: string | null;
   meta: string;
   badge?: {
     label: string;
@@ -72,6 +77,8 @@ interface ConflictItemProps {
 
 const ConflictItem: React.FC<ConflictItemProps> = ({
   title,
+  description,
+  partnerName,
   meta,
   badge,
   actionButton,
@@ -80,6 +87,12 @@ const ConflictItem: React.FC<ConflictItemProps> = ({
   <div className="conflict-item">
     <div className="conflict-info">
       <div className="conflict-title">{title}</div>
+      {partnerName && (
+        <div className="conflict-partner">with {partnerName}</div>
+      )}
+      {description && (
+        <div className="conflict-description">{description}</div>
+      )}
       <div className="conflict-meta">{meta}</div>
     </div>
     {badge && (
@@ -411,9 +424,8 @@ function formatDate(dateString: string): string {
 function getConflictBadge(status: Conflict['status'], isPartnerA: boolean): ConflictItemProps['badge'] {
   switch (status) {
     case 'partner_a_chatting':
-      return isPartnerA
-        ? { label: 'Your Turn', variant: 'info' }
-        : { label: 'Waiting for Partner', variant: 'warning' };
+      // Both partners can explore simultaneously
+      return { label: 'Your Turn', variant: 'info' };
     case 'pending_partner_b':
       return isPartnerA
         ? { label: 'Waiting for Partner', variant: 'warning' }
@@ -780,6 +792,9 @@ export const DashboardPage: React.FC = () => {
                   // Continue/Start button for exploration
                   if (conflict.status === 'partner_a_chatting' && isPartnerA) {
                     buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
+                  } else if (conflict.status === 'partner_a_chatting' && !isPartnerA) {
+                    // Partner B can start immediately while Partner A is still chatting
+                    buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'pending_partner_b' && !isPartnerA) {
                     buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
                   } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
@@ -796,6 +811,8 @@ export const DashboardPage: React.FC = () => {
                     <ConflictItem
                       key={conflict.id}
                       title={conflict.title}
+                      description={conflict.description}
+                      partnerName={conflict.partnerName}
                       meta={`Started ${formatDate(conflict.created_at)}`}
                       badge={getConflictBadge(conflict.status, isPartnerA)}
                       actionButtons={buttons}
@@ -821,6 +838,8 @@ export const DashboardPage: React.FC = () => {
                     <ConflictItem
                       key={conflict.id}
                       title={conflict.title}
+                      description={conflict.description}
+                      partnerName={conflict.partnerName}
                       meta={`Completed ${formatDate(conflict.updated_at)}`}
                       badge={getConflictBadge(conflict.status, isPartnerA)}
                       actionButtons={[

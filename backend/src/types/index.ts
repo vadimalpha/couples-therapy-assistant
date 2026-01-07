@@ -93,6 +93,7 @@ export type GuidanceMode = 'structured' | 'conversational' | 'test';
 export interface Conflict {
   id: string;
   title: string;
+  description?: string;
   privacy: ConflictPrivacy;
   guidance_mode: GuidanceMode;
   status: ConflictStatus;

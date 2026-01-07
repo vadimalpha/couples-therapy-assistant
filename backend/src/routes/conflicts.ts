@@ -4,6 +4,7 @@ import { authenticateUser } from '../middleware/auth';
 import { conflictService } from '../services/conflict';
 import { conversationService } from '../services/conversation';
 import { generateRelationshipSynthesis } from '../services/chat-ai';
+import { getUserByFirebaseUid } from '../services/user';
 
 const router = Router();
 
@@ -16,7 +17,7 @@ router.post(
   authenticateUser,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { title, privacy, relationshipId, guidanceMode } = req.body;
+      const { title, privacy, relationshipId, guidanceMode, description } = req.body;
       const userId = req.user?.uid;
 
       if (!userId) {
@@ -54,7 +55,8 @@ router.post(
         title,
         privacy,
         relationshipId,
-        mode
+        mode,
+        description
       );
 
       res.status(201).json(conflict);
@@ -154,7 +156,33 @@ router.get(
 
       const conflicts = await conflictService.getUserConflicts(userId);
 
-      res.json(conflicts);
+      // Enrich conflicts with partner info
+      const enrichedConflicts = await Promise.all(
+        conflicts.map(async (conflict) => {
+          // Determine which partner to look up (the one that isn't the current user)
+          const isPartnerA = conflict.partner_a_id === userId;
+          const partnerFirebaseUid = isPartnerA ? conflict.partner_b_id : conflict.partner_a_id;
+
+          let partnerName: string | null = null;
+          let partnerEmail: string | null = null;
+
+          if (partnerFirebaseUid) {
+            const partner = await getUserByFirebaseUid(partnerFirebaseUid);
+            if (partner) {
+              partnerName = partner.displayName || null;
+              partnerEmail = partner.email || null;
+            }
+          }
+
+          return {
+            ...conflict,
+            partnerName,
+            partnerEmail,
+          };
+        })
+      );
+
+      res.json(enrichedConflicts);
     } catch (error) {
       console.error('Error fetching user conflicts:', error);
       res.status(500).json({ error: 'Failed to fetch conflicts' });
@@ -255,7 +283,8 @@ router.post(
         return;
       }
 
-      if (conflict.status !== 'pending_partner_b') {
+      // Allow joining when Partner A is still chatting OR when waiting for Partner B
+      if (!['partner_a_chatting', 'pending_partner_b'].includes(conflict.status)) {
         res.status(400).json({
           error: 'Cannot join conflict in current status',
           status: conflict.status

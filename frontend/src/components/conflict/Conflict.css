@@ -92,6 +92,11 @@
   opacity: 0.6;
 }
 
+.form-textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
 .form-help-text {
   font-size: 12px;
   color: var(--text-muted);

@@ -62,6 +62,20 @@
   margin-bottom: var(--space-1);
 }
 
+.conflict-partner {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+.conflict-description {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  font-style: italic;
+  margin-top: var(--space-1);
+  line-height: 1.4;
+}
+
 .conflict-meta {
   font-size: var(--text-sm);
   color: var(--text-tertiary);

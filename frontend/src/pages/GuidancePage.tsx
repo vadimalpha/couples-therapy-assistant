@@ -100,21 +100,20 @@ const GuidancePage: React.FC = () => {
             const role = jointContextSession.sessionType === 'joint_context_a' ? 'a' : 'b';
             navigate(`/chat/guidance/${jointContextSession.id}?conflictId=${id}&role=${role}`, { replace: true });
             return;
-          } else if (conflictData.conflict?.status === 'both_finalized') {
-            // Both finalized but no guidance yet - synthesizing
-            setGuidanceSession({
-              id: '',
-              status: 'synthesizing',
-              partnerACompleted: true,
-              partnerBCompleted: true
-            });
           } else {
-            // Not all partners have finalized
+            // Check if current user has finalized their exploration
+            const conflict = conflictData.conflict;
+            const isPartnerA = conflict?.partner_a_id === user?.uid;
             const partnerADone = !!conflictData.partnerASession?.finalizedAt;
             const partnerBDone = !!conflictData.partnerBSession?.finalizedAt;
+
+            // If current user has finalized, show synthesizing (guidance being generated)
+            // Otherwise show pending (complete exploration first)
+            const currentUserFinalized = isPartnerA ? partnerADone : partnerBDone;
+
             setGuidanceSession({
               id: '',
-              status: 'pending',
+              status: currentUserFinalized ? 'synthesizing' : 'pending',
               partnerACompleted: partnerADone,
               partnerBCompleted: partnerBDone
             });

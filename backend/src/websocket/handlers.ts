@@ -445,14 +445,34 @@ export async function handleFinalize(
       }
 
       // Determine next status based on current status and which partner finalized
-      if (session.sessionType === 'individual_a' && conflict.status === 'partner_a_chatting') {
-        // Partner A finished exploring - wait for Partner B
-        await conflictService.updateStatus(session.conflictId, 'pending_partner_b');
-        console.log(`Conflict ${session.conflictId} status updated to pending_partner_b`);
+      if (session.sessionType === 'individual_a') {
+        if (conflict.status === 'partner_a_chatting') {
+          // Partner A finished exploring, Partner B hasn't joined yet - wait for Partner B
+          await conflictService.updateStatus(session.conflictId, 'pending_partner_b');
+          console.log(`Conflict ${session.conflictId} status updated to pending_partner_b`);
+        } else if (conflict.status === 'partner_b_chatting') {
+          // Partner A finished, Partner B already joined/exploring - check if B also finalized
+          const partnerBSession = conflict.partner_b_session_id
+            ? await conversationService.getSession(conflict.partner_b_session_id)
+            : null;
+          if (partnerBSession?.status === 'finalized') {
+            await conflictService.updateStatus(session.conflictId, 'both_finalized');
+            console.log(`Conflict ${session.conflictId} status updated to both_finalized (A finished, B was already done)`);
+          } else {
+            console.log(`Partner A finalized but Partner B still exploring in conflict ${session.conflictId}`);
+          }
+        }
       } else if (session.sessionType === 'individual_b' && conflict.status === 'partner_b_chatting') {
-        // Partner B finished exploring - both are now finalized
-        await conflictService.updateStatus(session.conflictId, 'both_finalized');
-        console.log(`Conflict ${session.conflictId} status updated to both_finalized`);
+        // Partner B finished exploring - check if Partner A also finalized
+        const partnerASession = conflict.partner_a_session_id
+          ? await conversationService.getSession(conflict.partner_a_session_id)
+          : null;
+        if (partnerASession?.status === 'finalized') {
+          await conflictService.updateStatus(session.conflictId, 'both_finalized');
+          console.log(`Conflict ${session.conflictId} status updated to both_finalized`);
+        } else {
+          console.log(`Partner B finalized but Partner A still exploring in conflict ${session.conflictId}`);
+        }
       }
 
       console.log(`Exploration session finalized for user ${socket.userId}`);

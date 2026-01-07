@@ -22,6 +22,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
   const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [isShared, setIsShared] = useState(false);
   const [guidanceMode, setGuidanceMode] = useState<GuidanceMode>('conversational');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -127,6 +128,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
         },
         body: JSON.stringify({
           title: title.trim(),
+          description: description.trim() || undefined,
           privacy: isShared ? 'shared' : 'private',
           relationshipId: selectedRelationshipId,
           guidanceMode
@@ -176,6 +178,25 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
             />
             <span className="form-help-text">
               {title.length}/200 characters
+            </span>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="description" className="form-label">
+              Brief description for your partner (optional)
+            </label>
+            <textarea
+              id="description"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g., I want to discuss how we've been communicating lately..."
+              className="form-input form-textarea"
+              disabled={isSubmitting}
+              maxLength={200}
+              rows={2}
+            />
+            <span className="form-help-text">
+              {description.length}/200 characters - This helps your partner understand the context
             </span>
           </div>
 

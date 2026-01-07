@@ -41,12 +41,13 @@ export class ConflictService {
     title: string,
     privacy: ConflictPrivacy,
     relationshipId: string,
-    guidanceMode: GuidanceMode = 'conversational'
+    guidanceMode: GuidanceMode = 'conversational',
+    description?: string
   ): Promise<Conflict> {
     const db = getDatabase();
     const now = new Date().toISOString();
 
-    const conflictData = {
+    const conflictData: Record<string, unknown> = {
       title,
       privacy,
       guidance_mode: guidanceMode,
@@ -56,6 +57,10 @@ export class ConflictService {
       created_at: now,
       updated_at: now,
     };
+
+    if (description) {
+      conflictData.description = description;
+    }
 
     const result = await db.query('CREATE conflict CONTENT $data', {
       data: conflictData,
@@ -319,9 +324,10 @@ export class ConflictService {
       throw new Error('Partner B already invited');
     }
 
-    if (conflict.status !== 'pending_partner_b') {
+    // Allow Partner B to join when Partner A is still chatting OR when waiting for Partner B
+    if (!['partner_a_chatting', 'pending_partner_b'].includes(conflict.status)) {
       throw new Error(
-        'Conflict must be in pending_partner_b status to invite Partner B'
+        'Conflict must be in partner_a_chatting or pending_partner_b status to invite Partner B'
       );
     }
 
@@ -373,7 +379,7 @@ export class ConflictService {
 
     // Validate status transitions
     const validTransitions: Record<ConflictStatus, ConflictStatus[]> = {
-      partner_a_chatting: ['pending_partner_b'],
+      partner_a_chatting: ['pending_partner_b', 'partner_b_chatting'],  // B can join while A chatting
       pending_partner_b: ['partner_b_chatting'],
       partner_b_chatting: ['both_finalized'],
       both_finalized: [],
