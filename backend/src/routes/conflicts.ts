@@ -4,7 +4,8 @@ import { authenticateUser } from '../middleware/auth';
 import { conflictService } from '../services/conflict';
 import { conversationService } from '../services/conversation';
 import { generateRelationshipSynthesis } from '../services/chat-ai';
-import { getUserByFirebaseUid } from '../services/user';
+import { getUserByFirebaseUid, getUserById } from '../services/user';
+import { getRelationshipById } from '../services/relationship';
 
 const router = Router();
 
@@ -167,10 +168,29 @@ router.get(
           let partnerEmail: string | null = null;
 
           if (partnerFirebaseUid) {
+            // Partner already assigned to conflict - look them up directly
             const partner = await getUserByFirebaseUid(partnerFirebaseUid);
             if (partner) {
               partnerName = partner.displayName || null;
               partnerEmail = partner.email || null;
+            }
+          } else if (conflict.relationship_id && isPartnerA) {
+            // Partner B hasn't joined yet - get partner from relationship
+            // (Only for Partner A viewing, since Partner B won't see conflicts they haven't joined)
+            const currentUser = await getUserByFirebaseUid(userId);
+            if (currentUser) {
+              const relationship = await getRelationshipById(conflict.relationship_id);
+              if (relationship) {
+                // Find the other user in the relationship
+                const partnerId = relationship.user1Id === currentUser.id
+                  ? relationship.user2Id
+                  : relationship.user1Id;
+                const partner = await getUserById(partnerId);
+                if (partner) {
+                  partnerName = partner.displayName || null;
+                  partnerEmail = partner.email || null;
+                }
+              }
             }
           }
 

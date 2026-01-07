@@ -353,9 +353,10 @@ export function useConversation(sessionId: string): UseConversationReturn {
     }
 
     await new Promise<void>((resolve, reject) => {
+      // Longer timeout (30s) because finalize triggers guidance synthesis which includes OpenAI API call
       const timeout = setTimeout(() => {
-        reject(new Error('Finalize timeout'));
-      }, 5000);
+        reject(new Error('Finalize timeout - please try again'));
+      }, 30000);
 
       socketRef.current?.emit('finalize', { sessionId }, (response: any) => {
         clearTimeout(timeout);

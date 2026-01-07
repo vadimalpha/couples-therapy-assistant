@@ -286,17 +286,18 @@ const UnifiedChatPage: React.FC = () => {
   }, [messages]);
 
   // Get chat title based on session type
+  // Note: Don't include conflict title here - it's already shown in ChatModeHeader
   const chatTitle = useMemo(() => {
     switch (sessionType) {
       case 'intake': return 'Intake Interview';
-      case 'individual_a': return conflictInfo?.title || 'Explore Your Perspective';
-      case 'individual_b': return conflictInfo?.title || 'Explore Your Perspective';
-      case 'joint_context_a': return 'Personalized Guidance';
-      case 'joint_context_b': return 'Personalized Guidance';
-      case 'relationship_shared': return 'Relationship Chat';
+      case 'individual_a': return 'Exploration';
+      case 'individual_b': return 'Exploration';
+      case 'joint_context_a': return 'Guidance';
+      case 'joint_context_b': return 'Guidance';
+      case 'relationship_shared': return 'Partner Chat';
       default: return 'Chat';
     }
-  }, [sessionType, conflictInfo?.title]);
+  }, [sessionType]);
 
   // Get session status for ChatWindow
   const sessionStatus: SessionStatus = useMemo(() => {
