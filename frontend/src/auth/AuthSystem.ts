@@ -56,8 +56,10 @@ class AuthSystem {
           console.error('Failed to sync user to backend:', err);
         });
       } else {
-        // User is signed out, clear localStorage
-        this.clearLocalStorage();
+        // User is signed out, clear localStorage (but preserve test login)
+        if (!this.isTestLogin()) {
+          this.clearLocalStorage();
+        }
       }
     });
   }
