@@ -17,6 +17,7 @@ const ADMIN_EMAILS = ['vadim@cvetlo.com', 'vadim@alphapoint.com', 'claude-test@c
 interface ConflictInfo {
   id: string;
   title: string;
+  description?: string;
   partnerAId: string;
   partnerBId?: string;
 }
@@ -139,6 +140,7 @@ const UnifiedChatPage: React.FC = () => {
       setConflictInfo({
         id: conflict.id,
         title: conflict.title,
+        description: conflict.description,
         partnerAId: conflict.partner_a_id,
         partnerBId: conflict.partner_b_id,
       });
@@ -355,6 +357,7 @@ const UnifiedChatPage: React.FC = () => {
       <ChatModeHeader
         sessionType={sessionType}
         conflictTitle={conflictInfo?.title}
+        conflictDescription={conflictInfo?.description}
         isFinalized={isFinalized}
       />
 

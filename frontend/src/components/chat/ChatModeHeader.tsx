@@ -5,6 +5,7 @@ import './ChatModeHeader.css';
 interface ChatModeHeaderProps {
   sessionType: SessionType;
   conflictTitle?: string;
+  conflictDescription?: string;
   partnerName?: string;
   isFinalized?: boolean;
 }
@@ -21,11 +22,20 @@ interface ChatModeHeaderProps {
 export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
   sessionType,
   conflictTitle,
+  conflictDescription,
   partnerName,
   isFinalized,
 }) => {
   const label = getSessionTypeLabel(sessionType);
   const description = getSessionTypeDescription(sessionType);
+
+  // Check if this is an exploration or guidance session with a conflict
+  const isConflictSession = (
+    sessionType === 'individual_a' ||
+    sessionType === 'individual_b' ||
+    sessionType === 'joint_context_a' ||
+    sessionType === 'joint_context_b'
+  ) && conflictTitle;
 
   // Get mode-specific icon
   const getIcon = () => {
@@ -62,22 +72,53 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
     }
   };
 
-  // Get mode-specific subtitle
-  const getSubtitle = () => {
+  // Get mode tag (e.g., "Your Perspective · Exploration")
+  const getModeTag = () => {
+    if (sessionType === 'individual_a' || sessionType === 'individual_b') {
+      return 'Your Perspective · Exploration';
+    }
+    if (sessionType === 'joint_context_a' || sessionType === 'joint_context_b') {
+      return 'Personalized Guidance';
+    }
     if (sessionType === 'relationship_shared' && partnerName) {
-      return `With ${partnerName}`;
-    }
-    if ((sessionType === 'individual_a' || sessionType === 'individual_b') && conflictTitle) {
-      return conflictTitle;
-    }
-    if ((sessionType === 'joint_context_a' || sessionType === 'joint_context_b') && conflictTitle) {
-      return conflictTitle;
+      return `Partner Chat · With ${partnerName}`;
     }
     return null;
   };
 
-  const subtitle = getSubtitle();
+  // For conflict sessions, show conflict-focused layout
+  if (isConflictSession) {
+    return (
+      <div className={`chat-mode-header mode-${sessionType}${isFinalized ? ' finalized' : ''}`}>
+        <div className="mode-header-content">
+          <div className="mode-icon-container">
+            {getIcon()}
+          </div>
+          <div className="mode-text">
+            <div className="conflict-title-row">
+              <span className="conflict-title-main">{conflictTitle}</span>
+              {conflictDescription && (
+                <span className="conflict-description-inline">
+                  Description: "{conflictDescription}"
+                </span>
+              )}
+            </div>
+            <span className="mode-tag">{getModeTag()}</span>
+          </div>
+        </div>
+        {isFinalized && (
+          <div className="mode-finalized-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 13l4 4L19 7" />
+            </svg>
+            <span>Completed</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
+  // Default layout for intake and other sessions
   return (
     <div className={`chat-mode-header mode-${sessionType}${isFinalized ? ' finalized' : ''}`}>
       <div className="mode-header-content">
@@ -86,7 +127,6 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
         </div>
         <div className="mode-text">
           <h2 className="mode-title">{label}</h2>
-          {subtitle && <span className="mode-subtitle">{subtitle}</span>}
           <p className="mode-description">{description}</p>
         </div>
       </div>

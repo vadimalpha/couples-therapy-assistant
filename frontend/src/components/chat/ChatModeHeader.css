@@ -60,6 +60,32 @@
   max-width: 500px;
 }
 
+/* Conflict-focused layout for exploration/guidance */
+.conflict-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.conflict-title-main {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--chat-accent-color, #10a37f);
+}
+
+.conflict-description-inline {
+  font-size: 13px;
+  color: var(--chat-text-secondary, #b4b4b4);
+}
+
+.mode-tag {
+  font-size: 12px;
+  color: var(--chat-text-tertiary, #8e8e8e);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
 .mode-finalized-badge {
   display: flex;
   align-items: center;
@@ -181,6 +207,18 @@
 
   .mode-description {
     font-size: 12px;
+  }
+
+  .conflict-title-main {
+    font-size: 15px;
+  }
+
+  .conflict-description-inline {
+    font-size: 11px;
+  }
+
+  .mode-tag {
+    font-size: 11px;
   }
 }
 
