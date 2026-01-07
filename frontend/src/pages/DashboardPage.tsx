@@ -62,6 +62,13 @@ interface ActionButton {
   variant?: 'primary' | 'secondary' | 'outline';
 }
 
+interface SoloConversation {
+  id: string;
+  sessionType: 'solo_free' | 'solo_contextual' | 'solo_coached';
+  created_at: string;
+  updated_at: string;
+}
+
 interface ConflictItemProps {
   title: string;
   description?: string;
@@ -450,6 +457,7 @@ export const DashboardPage: React.FC = () => {
   const [relationships, setRelationships] = useState<RelationshipWithPartner[]>([]);
   const [pendingInvitations, setPendingInvitations] = useState<PendingInvitation[]>([]);
   const [receivedInvitations, setReceivedInvitations] = useState<ReceivedInvitation[]>([]);
+  const [soloConversations, setSoloConversations] = useState<SoloConversation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -467,8 +475,8 @@ export const DashboardPage: React.FC = () => {
       setError(null);
       const token = await user.getIdToken();
 
-      // Fetch conflicts, relationships, sent invitations, and received invitations in parallel
-      const [conflictsRes, relationshipsRes, sentInvitationsRes, receivedInvitationsRes] = await Promise.all([
+      // Fetch conflicts, relationships, sent invitations, received invitations, and solo conversations in parallel
+      const [conflictsRes, relationshipsRes, sentInvitationsRes, receivedInvitationsRes, soloRes] = await Promise.all([
         fetch(`${API_URL}/api/conflicts`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
@@ -479,6 +487,9 @@ export const DashboardPage: React.FC = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch(`${API_URL}/api/relationships/invitations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/api/conversations`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -503,6 +514,16 @@ export const DashboardPage: React.FC = () => {
       if (receivedInvitationsRes.ok) {
         const receivedData = await receivedInvitationsRes.json();
         setReceivedInvitations(receivedData.invitations || []);
+      }
+
+      if (soloRes.ok) {
+        const allConversations = await soloRes.json();
+        // Filter for solo conversation types only
+        const soloTypes = ['solo_free', 'solo_contextual', 'solo_coached'];
+        const soloChats = allConversations.filter(
+          (c: SoloConversation) => soloTypes.includes(c.sessionType)
+        );
+        setSoloConversations(soloChats);
       }
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
@@ -717,11 +738,16 @@ export const DashboardPage: React.FC = () => {
     <main id="main-content" className="dashboard-container">
       <div className="dashboard-header">
         <h1 className="heading-2">Dashboard</h1>
-        {hasPartner && (
-          <Link to="/conflicts/new" className="btn btn-primary">
-            + New Conflict
+        <div className="dashboard-header-actions">
+          <Link to="/solo/new" className="btn btn-secondary">
+            + Personal Chat
           </Link>
-        )}
+          {hasPartner && (
+            <Link to="/conflicts/new" className="btn btn-primary">
+              + New Conflict
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Received Invitations Section */}
@@ -772,6 +798,35 @@ export const DashboardPage: React.FC = () => {
           />
         </div>
       </section>
+
+      {/* Personal Chats Section */}
+      {soloConversations.length > 0 && (
+        <section className="dashboard-section">
+          <h2 className="section-title">Personal Chats</h2>
+          <div className="solo-chats-list">
+            {soloConversations.map((chat) => (
+              <div key={chat.id} className="solo-chat-item">
+                <div className="solo-chat-info">
+                  <span className="solo-chat-type">
+                    {chat.sessionType === 'solo_free' && 'Free Chat'}
+                    {chat.sessionType === 'solo_contextual' && 'Contextual Chat'}
+                    {chat.sessionType === 'solo_coached' && 'Guided Reflection'}
+                  </span>
+                  <span className="solo-chat-date">
+                    {formatDate(chat.updated_at)}
+                  </span>
+                </div>
+                <Link
+                  to={`/chat/solo/${chat.id}`}
+                  className="btn btn-outline btn-sm"
+                >
+                  Continue
+                </Link>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Conflicts Section */}
       {!hasConflicts ? (

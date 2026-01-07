@@ -51,6 +51,9 @@ router.post(
         'joint_context_a',
         'joint_context_b',
         'relationship_shared',
+        'solo_free',
+        'solo_contextual',
+        'solo_coached',
       ];
 
       if (!validTypes.includes(sessionType)) {
@@ -836,6 +839,9 @@ router.post(
         'joint_context_a': 'guidance-refinement-prompt.txt',
         'joint_context_b': 'guidance-refinement-prompt.txt',
         'relationship_shared': 'relationship-system-prompt.txt',
+        'solo_free': 'solo-free-prompt.txt',
+        'solo_contextual': 'solo-contextual-prompt.txt',
+        'solo_coached': 'solo-coached-prompt.txt',
       };
 
       const templateFile = templateMap[session.sessionType];

@@ -16,9 +16,11 @@ import {
   streamExplorationResponse,
   streamRelationshipResponse,
   streamGuidanceRefinementResponse,
+  streamSoloResponse,
   ExplorationContext,
   RelationshipContext,
-  GuidanceRefinementContext
+  GuidanceRefinementContext,
+  SoloContext
 } from '../services/chat-ai';
 import { getUserById } from '../services/user';
 import { SessionType } from '../types';
@@ -201,11 +203,12 @@ async function triggerAIResponse(
     const sessionType = session.sessionType as SessionType;
     console.log(`[triggerAIResponse] Session found: type=${sessionType}, conflictId=${session.conflictId}, messageCount=${session.messages?.length || 0}`);
 
-    // Only generate AI responses for exploration, guidance refinement, and relationship sessions
+    // Only generate AI responses for exploration, guidance refinement, relationship, and solo sessions
     const supportedSessionTypes = [
       'individual_a', 'individual_b',
       'joint_context_a', 'joint_context_b',
-      'relationship_shared'
+      'relationship_shared',
+      'solo_free', 'solo_contextual', 'solo_coached'
     ];
     if (!supportedSessionTypes.includes(sessionType)) {
       return;
@@ -307,6 +310,26 @@ async function triggerAIResponse(
 
       console.log(
         `AI relationship response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
+    } else if (sessionType === 'solo_free' || sessionType === 'solo_contextual' || sessionType === 'solo_coached') {
+      // Solo chat - use streamSoloResponse
+      const soloContext: SoloContext = {
+        userId,
+        sessionId: sessionId,
+        sessionType: sessionType as 'solo_free' | 'solo_contextual' | 'solo_coached',
+      };
+
+      const result = await streamSoloResponse(
+        session.messages,
+        soloContext,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI solo response - Session: ${sessionId}, Type: ${sessionType}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
       );
     }
 

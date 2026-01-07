@@ -23,6 +23,9 @@ const getTemplateName = (sessionType: SessionType): string => {
     'joint_context_a': 'guidance-refinement-prompt.txt',
     'joint_context_b': 'guidance-refinement-prompt.txt',
     'relationship_shared': 'relationship-system-prompt.txt',
+    'solo_free': 'solo-free-prompt.txt',
+    'solo_contextual': 'solo-contextual-prompt.txt',
+    'solo_coached': 'solo-coached-prompt.txt',
   };
   return templateMap[sessionType] || 'unknown';
 };

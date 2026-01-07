@@ -27,6 +27,7 @@ const GUIDANCE_MAX_COMPLETION_TOKENS = 2048;
 const JOINT_CONTEXT_MAX_COMPLETION_TOKENS = 3072;
 const RELATIONSHIP_MAX_COMPLETION_TOKENS = 1536;
 const SYNTHESIS_MAX_COMPLETION_TOKENS = 2048;
+const SOLO_MAX_COMPLETION_TOKENS = 2048;
 
 export interface TokenUsage {
   inputTokens: number;
@@ -70,6 +71,12 @@ export interface GuidanceSynthesisResult {
   guidance: string;
   usage: TokenUsage;
   sessionId: string;
+}
+
+export interface SoloContext {
+  userId: string;
+  sessionId?: string;
+  sessionType: 'solo_free' | 'solo_contextual' | 'solo_coached';
 }
 
 /**
@@ -512,6 +519,194 @@ export async function streamGuidanceRefinementResponse(
     throw new Error(
       `Failed to stream guidance refinement response: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+}
+
+/**
+ * Stream AI response for solo (personal) chat sessions
+ * Supports three modes: solo_free, solo_contextual, solo_coached
+ */
+export async function streamSoloResponse(
+  messages: ConversationMessage[],
+  context: SoloContext,
+  onChunk: (chunk: string) => void
+): Promise<{ fullContent: string; usage: TokenUsage }> {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY not configured');
+  }
+
+  try {
+    const user = await getUserById(context.userId);
+
+    // Determine which prompt file to use based on session type
+    const promptFileMap: Record<string, string> = {
+      solo_free: 'solo-free-prompt.txt',
+      solo_contextual: 'solo-contextual-prompt.txt',
+      solo_coached: 'solo-coached-prompt.txt',
+    };
+    const promptFile = promptFileMap[context.sessionType];
+
+    // Check for admin prompt override first
+    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
+    let systemPrompt: string;
+
+    if (promptOverride) {
+      console.log(`[streamSoloResponse] Using admin prompt override for session ${context.sessionId}`);
+      systemPrompt = promptOverride;
+    } else {
+      systemPrompt = await buildPrompt(promptFile, {
+        conflictId: '',
+        userId: context.userId,
+        sessionType: context.sessionType,
+        includeRAG: false,
+        includePatterns: false,
+      });
+    }
+
+    // For solo_contextual, inject past conversation history
+    if (context.sessionType === 'solo_contextual' && !promptOverride) {
+      const conversationHistory = await buildSoloConversationHistory(context.userId);
+      systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', conversationHistory);
+    } else if (!promptOverride) {
+      // Remove placeholder if not contextual
+      systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', '');
+    }
+
+    const openaiMessages = convertMessagesToOpenAI(messages);
+
+    const userMessageContent = messages.length > 0
+      ? messages[messages.length - 1].content
+      : '';
+
+    // Build messages array - only include system message if prompt is not empty
+    const apiMessages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+    if (systemPrompt.trim()) {
+      apiMessages.push({ role: 'system', content: systemPrompt });
+    }
+    apiMessages.push(...openaiMessages);
+
+    const stream = await openai.chat.completions.create({
+      model: MODEL,
+      max_completion_tokens: SOLO_MAX_COMPLETION_TOKENS,
+      messages: apiMessages,
+      stream: true,
+      stream_options: { include_usage: true },
+    });
+
+    let fullContent = '';
+    let usage: TokenUsage = { inputTokens: 0, outputTokens: 0, totalCost: 0 };
+
+    for await (const chunk of stream) {
+      const delta = chunk.choices[0]?.delta?.content;
+      if (delta) {
+        fullContent += delta;
+        onChunk(delta);
+      }
+
+      if (chunk.usage) {
+        usage = {
+          inputTokens: chunk.usage.prompt_tokens || 0,
+          outputTokens: chunk.usage.completion_tokens || 0,
+          totalCost: calculateCost(
+            chunk.usage.prompt_tokens || 0,
+            chunk.usage.completion_tokens || 0
+          ),
+        };
+      }
+    }
+
+    // Log the prompt
+    logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      sessionId: context.sessionId,
+      sessionType: context.sessionType,
+      logType: 'solo_chat',
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+    });
+
+    return { fullContent, usage };
+  } catch (error) {
+    console.error('Error streaming solo response:', error);
+    throw new Error(
+      `Failed to stream solo response: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Build conversation history summary for solo_contextual sessions
+ */
+async function buildSoloConversationHistory(userId: string): Promise<string> {
+  try {
+    const sessions = await conversationService.getUserSessions(userId);
+
+    // Filter to relevant sessions (intake, solo, exploration)
+    const relevantSessions = sessions.filter(s =>
+      ['intake', 'solo_free', 'solo_contextual', 'solo_coached', 'individual_a', 'individual_b'].includes(s.sessionType)
+    );
+
+    if (relevantSessions.length === 0) {
+      return 'No previous conversations found.';
+    }
+
+    let history = '';
+
+    // Include intake data summary if available
+    const intakeSession = relevantSessions.find(s => s.sessionType === 'intake');
+    if (intakeSession && intakeSession.messages.length > 0) {
+      history += '### From their intake conversation:\n';
+      // Get key user messages from intake
+      const userMessages = intakeSession.messages.filter(m => m.role === 'user').slice(0, 5);
+      userMessages.forEach(m => {
+        history += `- ${m.content.substring(0, 200)}${m.content.length > 200 ? '...' : ''}\n`;
+      });
+      history += '\n';
+    }
+
+    // Include recent solo conversations
+    const soloSessions = relevantSessions
+      .filter(s => s.sessionType.startsWith('solo_'))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 3);
+
+    if (soloSessions.length > 0) {
+      history += '### From recent personal chats:\n';
+      soloSessions.forEach(session => {
+        const userMessages = session.messages.filter(m => m.role === 'user').slice(0, 3);
+        userMessages.forEach(m => {
+          history += `- ${m.content.substring(0, 200)}${m.content.length > 200 ? '...' : ''}\n`;
+        });
+      });
+      history += '\n';
+    }
+
+    // Include recent exploration themes (without revealing partner details)
+    const explorationSessions = relevantSessions
+      .filter(s => s.sessionType === 'individual_a' || s.sessionType === 'individual_b')
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 2);
+
+    if (explorationSessions.length > 0) {
+      history += '### Themes from relationship discussions:\n';
+      explorationSessions.forEach(session => {
+        const userMessages = session.messages.filter(m => m.role === 'user').slice(0, 2);
+        userMessages.forEach(m => {
+          history += `- ${m.content.substring(0, 150)}${m.content.length > 150 ? '...' : ''}\n`;
+        });
+      });
+    }
+
+    return history || 'No previous conversations found.';
+  } catch (error) {
+    console.error('Error building solo conversation history:', error);
+    return 'Unable to retrieve conversation history.';
   }
 }
 

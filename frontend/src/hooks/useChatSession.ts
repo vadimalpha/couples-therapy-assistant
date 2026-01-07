@@ -11,7 +11,10 @@ export type SessionType =
   | 'individual_b'
   | 'joint_context_a'
   | 'joint_context_b'
-  | 'relationship_shared';
+  | 'relationship_shared'
+  | 'solo_free'        // Personal chat - no specific structure
+  | 'solo_contextual'  // Personal chat with past conversation context
+  | 'solo_coached';    // Personal chat with therapeutic guidance
 
 /**
  * Participant status for multi-user sessions
@@ -287,7 +290,14 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
  * Helper function to determine if a session type is a single-user session
  */
 export function isSingleUserSession(sessionType: SessionType): boolean {
-  return ['intake', 'individual_a', 'individual_b', 'joint_context_a', 'joint_context_b'].includes(sessionType);
+  return ['intake', 'individual_a', 'individual_b', 'joint_context_a', 'joint_context_b', 'solo_free', 'solo_contextual', 'solo_coached'].includes(sessionType);
+}
+
+/**
+ * Helper function to determine if a session type is a solo (personal) session
+ */
+export function isSoloSession(sessionType: SessionType): boolean {
+  return ['solo_free', 'solo_contextual', 'solo_coached'].includes(sessionType);
 }
 
 /**
@@ -308,6 +318,9 @@ export function getSessionTypeLabel(sessionType: SessionType): string {
     joint_context_a: 'Personalized Guidance',
     joint_context_b: 'Personalized Guidance',
     relationship_shared: 'Together Conversation',
+    solo_free: 'Personal Chat',
+    solo_contextual: 'Personal Chat',
+    solo_coached: 'Guided Reflection',
   };
   return labels[sessionType] || sessionType;
 }
@@ -323,6 +336,9 @@ export function getSessionTypeDescription(sessionType: SessionType): string {
     joint_context_a: 'Ask questions about your personalized guidance.',
     joint_context_b: 'Ask questions about your personalized guidance.',
     relationship_shared: 'Work through this together with your partner.',
+    solo_free: 'Talk about anything on your mind. No specific structure.',
+    solo_contextual: 'AI remembers your journey and can reference past conversations.',
+    solo_coached: 'Structured therapeutic guidance using proven methods.',
   };
   return descriptions[sessionType] || '';
 }

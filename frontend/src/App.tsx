@@ -14,6 +14,8 @@ import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import AdminLogsPage from './pages/AdminLogsPage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
 import UnifiedChatPage from './pages/UnifiedChatPage';
+import NewSoloChatPage from './pages/NewSoloChatPage';
+import SoloChatPage from './pages/SoloChatPage';
 import { IntakeSummary } from './components/intake';
 import { CrisisFooter, AppHeader } from './components/layout';
 import './App.css';
@@ -59,9 +61,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Check if current route is a full-page chat experience
 const isChatRoute = (pathname: string): boolean => {
-  // Match chat routes: /chat/:sessionType, /conflicts/:id/joint-guidance
+  // Match chat routes: /chat/:sessionType, /chat/solo/:sessionId, /conflicts/:id/joint-guidance
   const chatPatterns = [
     /^\/chat\/[^/]+$/,  // Unified chat route: /chat/intake, /chat/exploration, etc.
+    /^\/chat\/solo\/[^/]+$/,  // Solo chat route: /chat/solo/:sessionId
     /^\/conflicts\/[^/]+\/joint-guidance$/,  // Keep joint guidance as separate view
   ];
   return chatPatterns.some(pattern => pattern.test(pathname));
@@ -174,6 +177,28 @@ const AppContent: React.FC = () => {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <UnifiedChatPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Solo chat routes */}
+          <Route
+            path="/solo/new"
+            element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <NewSoloChatPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/solo/:sessionId"
+            element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <SoloChatPage />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             }

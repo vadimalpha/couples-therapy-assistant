@@ -55,7 +55,10 @@ export type SessionType =
   | 'individual_b'
   | 'joint_context_a'
   | 'joint_context_b'
-  | 'relationship_shared';
+  | 'relationship_shared'
+  | 'solo_free'
+  | 'solo_contextual'
+  | 'solo_coached';
 
 export type MessageRole = 'user' | 'ai' | 'partner-a' | 'partner-b';
 
@@ -149,7 +152,8 @@ export type PromptLogType =
   | 'joint_context_guidance_regenerated'
   | 'guidance_refinement'
   | 'relationship_synthesis'
-  | 'relationship_chat';
+  | 'relationship_chat'
+  | 'solo_chat';
 
 export interface PromptLog {
   id: string;
