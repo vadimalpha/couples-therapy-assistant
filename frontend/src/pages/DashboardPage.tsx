@@ -65,8 +65,8 @@ interface ActionButton {
 interface SoloConversation {
   id: string;
   sessionType: 'solo_free' | 'solo_contextual' | 'solo_coached';
-  created_at: string;
-  updated_at: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface ConflictItemProps {
@@ -813,7 +813,7 @@ export const DashboardPage: React.FC = () => {
                     {chat.sessionType === 'solo_coached' && 'Guided Reflection'}
                   </span>
                   <span className="solo-chat-date">
-                    {formatDate(chat.updated_at)}
+                    {formatDate(chat.updatedAt)}
                   </span>
                 </div>
                 <Link
