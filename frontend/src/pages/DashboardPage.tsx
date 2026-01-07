@@ -86,18 +86,20 @@ const ConflictItem: React.FC<ConflictItemProps> = ({
 }) => (
   <div className="conflict-item">
     <div className="conflict-info">
-      <div className="conflict-title">{title}</div>
-      {partnerName && (
-        <div className="conflict-partner">with {partnerName}</div>
-      )}
+      <div className="conflict-header-row">
+        <span className="conflict-title">{title}</span>
+        {partnerName && <span className="conflict-partner">with {partnerName}</span>}
+      </div>
       {description && (
         <div className="conflict-description">{description}</div>
       )}
-      <div className="conflict-meta">{meta}</div>
+      <div className="conflict-meta-row">
+        <span className="conflict-meta">{meta}</span>
+        {badge && (
+          <span className={`badge badge-${badge.variant} badge-inline`}>{badge.label}</span>
+        )}
+      </div>
     </div>
-    {badge && (
-      <span className={`badge badge-${badge.variant}`}>{badge.label}</span>
-    )}
     <div className="conflict-actions">
       {actionButton && (
         <Link to={actionButton.to} className={`btn btn-${actionButton.variant || 'primary'} btn-sm`}>

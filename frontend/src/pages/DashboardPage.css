@@ -2,7 +2,7 @@
 .dashboard-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: var(--space-8) var(--space-4);
+  padding: var(--space-4) var(--space-4);
 }
 
 /* Dashboard Header */
@@ -10,19 +10,36 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+
+.dashboard-header .heading-2 {
+  font-size: var(--text-xl);
 }
 
 /* Dashboard Grid */
 .dashboard-grid {
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 @media (min-width: 768px) {
   .dashboard-grid {
     grid-template-columns: 1fr 1fr;
   }
+}
+
+/* Card overrides for dashboard */
+.dashboard-grid .card {
+  border-radius: var(--radius-lg);
+}
+
+.dashboard-grid .card-header {
+  padding: var(--space-3);
+}
+
+.dashboard-grid .card-header .heading-4 {
+  font-size: var(--text-base);
 }
 
 /* Conflict List */
@@ -36,11 +53,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3);
   border-bottom: 1px solid var(--border-subtle);
-  cursor: pointer;
   transition: background var(--transition-fast);
-  flex-wrap: wrap;
 }
 
 .conflict-item:hover {
@@ -56,33 +71,54 @@
   min-width: 0;
 }
 
+.conflict-header-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
 .conflict-title {
   font-weight: var(--font-medium);
   color: var(--text-primary);
-  margin-bottom: var(--space-1);
+  font-size: var(--text-base);
 }
 
 .conflict-partner {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
 }
 
 .conflict-description {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
-  font-style: italic;
-  margin-top: var(--space-1);
-  line-height: 1.4;
+  margin-top: 2px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
+}
+
+.conflict-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: 2px;
 }
 
 .conflict-meta {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
 }
 
+.badge-inline {
+  font-size: 10px;
+  padding: 1px 6px;
+}
+
 .conflict-empty {
-  padding: var(--space-6);
+  padding: var(--space-4);
   text-align: center;
   color: var(--text-tertiary);
   font-size: var(--text-sm);
@@ -91,9 +127,14 @@
 /* Conflict Actions */
 .conflict-actions {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex-shrink: 0;
   align-items: center;
+}
+
+.conflict-actions .btn-sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
 }
 
 /* Outline button variant */
@@ -111,32 +152,34 @@
 /* Empty State */
 .empty-state {
   text-align: center;
-  padding: var(--space-12) var(--space-6);
+  padding: var(--space-8) var(--space-4);
 }
 
 .empty-state-icon {
-  width: 80px;
-  height: 80px;
-  margin: 0 auto var(--space-6);
+  width: 60px;
+  height: 60px;
+  margin: 0 auto var(--space-4);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-3xl);
+  font-size: var(--text-2xl);
 }
 
 .empty-state .heading-3 {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-lg);
 }
 
 .empty-state-text {
   color: var(--text-tertiary);
-  margin-bottom: var(--space-6);
-  max-width: 360px;
+  margin-bottom: var(--space-4);
+  max-width: 320px;
   margin-left: auto;
   margin-right: auto;
+  font-size: var(--text-sm);
 }
 
 /* Pattern Alert */
@@ -233,41 +276,50 @@
 
 /* Partner Connected Card */
 .partner-connected-card {
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-4);
 }
 
 .partner-connected-content {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4);
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 
 .partner-avatar {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   background: linear-gradient(135deg, var(--accent-100) 0%, var(--accent-200) 100%);
   border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-xl);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--accent-300);
+  flex-shrink: 0;
 }
 
 .partner-details {
   flex: 1;
+  min-width: 0;
 }
 
 .partner-name {
   font-weight: var(--font-medium);
   color: var(--text-primary);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .partner-email {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Loading State */
@@ -323,34 +375,34 @@
 
 /* Dashboard Section */
 .dashboard-section {
-  margin-bottom: var(--space-8);
+  margin-bottom: var(--space-4);
 }
 
 .section-title {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
   font-weight: var(--font-semibold);
   color: var(--text-primary);
-  margin-bottom: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 /* Relationships Grid */
 .relationships-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-3);
 }
 
 /* Relationship Card */
 .relationship-card {
   background: var(--bg-primary);
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-lg);
-  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
   transition: box-shadow var(--transition-fast);
 }
 
 .relationship-card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .relationship-card.is-primary {
@@ -362,29 +414,29 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
 }
 
 .relationship-type-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
 }
 
 .primary-badge {
-  font-size: var(--text-xs);
+  font-size: 10px;
   font-weight: var(--font-medium);
   background: var(--accent-200);
   color: white;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: var(--radius-full);
 }
 
 .pending-badge {
-  font-size: var(--text-xs);
+  font-size: 10px;
   font-weight: var(--font-medium);
   background: var(--warning-500, #f59e0b);
   color: white;
-  padding: 2px 8px;
+  padding: 1px 6px;
   border-radius: var(--radius-full);
 }
 
@@ -399,14 +451,14 @@
 }
 
 .pending-icon {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
 }
 
 .pending-message {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-tertiary);
   text-align: center;
-  padding-top: var(--space-3);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -443,14 +495,14 @@
 }
 
 .received-icon {
-  font-size: var(--text-lg);
+  font-size: var(--text-base);
 }
 
 .received-message {
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   color: var(--text-secondary);
   text-align: center;
-  padding-top: var(--space-3);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -487,15 +539,21 @@
 .relationship-card-content {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
 }
 
 .relationship-card-actions {
   display: flex;
-  gap: var(--space-2);
-  padding-top: var(--space-3);
+  gap: var(--space-1);
+  padding-top: var(--space-2);
   border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+}
+
+.relationship-card-actions .btn {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
 }
 
 .btn-outline-danger {
@@ -522,17 +580,18 @@
 /* Add Relationship Button */
 .add-relationship-button {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 150px;
+  min-height: 100px;
   background: var(--bg-tertiary);
   border: 2px dashed var(--border-default);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   cursor: pointer;
   color: var(--text-tertiary);
   transition: all var(--transition-fast);
+  font-size: var(--text-sm);
 }
 
 .add-relationship-button:hover {
@@ -542,13 +601,13 @@
 }
 
 .add-icon {
-  font-size: var(--text-2xl);
+  font-size: var(--text-lg);
   font-weight: var(--font-light);
 }
 
 /* Add Relationship Card */
 .add-relationship-card {
-  min-height: 150px;
+  min-height: auto;
 }
 
 .add-relationship-card .card-header {
