@@ -34,6 +34,7 @@ export interface LogPromptParams {
  */
 export async function logPrompt(params: LogPromptParams): Promise<void> {
   try {
+    console.log(`[logPrompt] Received - hasTemplate: ${!!params.promptTemplate}, templateLength: ${params.promptTemplate?.length}, hasVariables: ${!!params.promptVariables}, variableKeys: ${params.promptVariables ? Object.keys(params.promptVariables).join(',') : 'none'}`);
     const db = getDatabase();
     const now = new Date().toISOString();
 
