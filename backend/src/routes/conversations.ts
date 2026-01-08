@@ -227,6 +227,78 @@ router.get(
 );
 
 /**
+ * Test endpoint to verify logPrompt saves template/variables (admin only)
+ * POST /api/conversations/test-log-template
+ */
+router.post(
+  '/test-log-template',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userEmail = req.user?.email;
+      const userId = req.user?.uid;
+
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      const { logPrompt } = await import('../services/prompt-logger');
+      const { getDatabase } = await import('../services/db');
+
+      // Create a test log with hardcoded template/variables
+      const testTemplate = 'TEST TEMPLATE with {{VAR1}} and {{VAR2}}';
+      const testVariables = { VAR1: 'value1', VAR2: 'value2' };
+      const testSessionId = `test-session-${Date.now()}`;
+
+      await logPrompt({
+        userId: userId || 'test-user',
+        logType: 'exploration',
+        systemPrompt: 'Test system prompt',
+        userMessage: 'Test user message',
+        aiResponse: 'Test AI response',
+        inputTokens: 100,
+        outputTokens: 50,
+        cost: 0.001,
+        sessionId: testSessionId,
+        promptTemplate: testTemplate,
+        promptVariables: testVariables,
+      });
+
+      // Query it back immediately
+      const db = getDatabase();
+      const result = await db.query<any[]>(
+        `SELECT * FROM prompt_log WHERE sessionId = $sessionId ORDER BY createdAt DESC LIMIT 1`,
+        { sessionId: testSessionId.replace(/:/g, '__') }
+      );
+
+      const savedLog = result?.[0]?.[0];
+
+      res.json({
+        success: true,
+        testSessionId,
+        inputTemplate: testTemplate,
+        inputVariables: testVariables,
+        savedLog: savedLog ? {
+          id: savedLog.id,
+          hasTemplate: !!savedLog.promptTemplate,
+          templateValue: savedLog.promptTemplate,
+          hasVariables: !!savedLog.promptVariables,
+          variablesValue: savedLog.promptVariables,
+          allKeys: Object.keys(savedLog),
+        } : null,
+      });
+    } catch (error) {
+      console.error('Error testing logPrompt:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Test failed',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+);
+
+/**
  * Get a conversation session by ID
  * GET /api/conversations/:id
  */
