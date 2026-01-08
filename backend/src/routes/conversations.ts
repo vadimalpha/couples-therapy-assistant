@@ -974,7 +974,10 @@ router.get(
           timestamp: promptLog.timestamp,
           // New fields for template debugging
           promptTemplate: promptLog.promptTemplate || null,
-          promptVariables: promptLog.promptVariables || null,
+          // Parse promptVariables JSON string back to object for frontend
+          promptVariables: promptLog.promptVariables
+            ? JSON.parse(promptLog.promptVariables)
+            : null,
         },
       });
     } catch (error) {
