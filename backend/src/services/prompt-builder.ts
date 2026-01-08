@@ -340,3 +340,4 @@ export async function getPatternInsights(
 ): Promise<PatternInsight[]> {
   return detectPatterns(relationshipId);
 }
+
