@@ -125,6 +125,56 @@ router.get(
 );
 
 /**
+ * Test endpoint to query recent prompt logs (admin only)
+ * GET /api/conversations/test-prompt-logs
+ */
+router.get(
+  '/test-prompt-logs',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userEmail = req.user?.email;
+
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      const { getDatabase } = await import('../services/db');
+      const db = getDatabase();
+
+      const result = await db.query<any[]>(
+        `SELECT id, logType, sessionId, createdAt,
+                promptTemplate IS NOT NONE AND promptTemplate != NONE as hasTemplate,
+                promptVariables IS NOT NONE AND promptVariables != NONE as hasVariables
+         FROM prompt_log
+         ORDER BY createdAt DESC
+         LIMIT 10`
+      );
+
+      const logs = result?.[0] || [];
+
+      res.json({
+        count: logs.length,
+        logs: logs.map((log: any) => ({
+          id: log.id,
+          logType: log.logType,
+          sessionId: log.sessionId,
+          createdAt: log.createdAt,
+          hasTemplate: log.hasTemplate,
+          hasVariables: log.hasVariables,
+        })),
+      });
+    } catch (error) {
+      console.error('Error querying prompt logs:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Query failed',
+      });
+    }
+  }
+);
+
+/**
  * Get a conversation session by ID
  * GET /api/conversations/:id
  */
