@@ -70,59 +70,6 @@ interface SoloConversation {
   updatedAt: string;
 }
 
-interface ConflictItemProps {
-  title: string;
-  description?: string;
-  partnerName?: string | null;
-  meta: string;
-  badge?: {
-    label: string;
-    variant: 'warning' | 'success' | 'info';
-  };
-  actionButton?: ActionButton;
-  actionButtons?: ActionButton[];
-}
-
-const ConflictItem: React.FC<ConflictItemProps> = ({
-  title,
-  description,
-  partnerName,
-  meta,
-  badge,
-  actionButton,
-  actionButtons,
-}) => (
-  <div className="conflict-item">
-    <div className="conflict-info">
-      <div className="conflict-header-row">
-        <span className="conflict-title">{title}</span>
-        {partnerName && <span className="conflict-partner">with {partnerName}</span>}
-      </div>
-      {description && (
-        <div className="conflict-description">{description}</div>
-      )}
-      <div className="conflict-meta-row">
-        <span className="conflict-meta">{meta}</span>
-        {badge && (
-          <span className={`badge badge-${badge.variant} badge-inline`}>{badge.label}</span>
-        )}
-      </div>
-    </div>
-    <div className="conflict-actions">
-      {actionButton && (
-        <Link to={actionButton.to} className={`btn btn-${actionButton.variant || 'primary'} btn-sm`}>
-          {actionButton.label}
-        </Link>
-      )}
-      {actionButtons && actionButtons.map((btn, idx) => (
-        <Link key={idx} to={btn.to} className={`btn btn-${btn.variant || 'primary'} btn-sm`}>
-          {btn.label}
-        </Link>
-      ))}
-    </div>
-  </div>
-);
-
 const EmptyState: React.FC<{ hasPartner: boolean }> = ({ hasPartner }) => (
   <div className="empty-state">
     <div className="empty-state-icon">💬</div>
@@ -431,7 +378,7 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function getConflictBadge(status: Conflict['status'], isPartnerA: boolean): ConflictItemProps['badge'] {
+function getConflictBadge(status: Conflict['status'], isPartnerA: boolean): { label: string; variant: 'warning' | 'success' | 'info' } | undefined {
   switch (status) {
     case 'partner_a_chatting':
       // Both partners can explore simultaneously
@@ -751,7 +698,6 @@ export const DashboardPage: React.FC = () => {
   const completedConflicts = conflicts.filter(
     (c) => c.status === 'both_finalized'
   );
-  const hasConflicts = conflicts.length > 0;
   const hasPartner = relationships.some(r => r.type === 'partner');
 
   // Sort all items by creation date (newest first)
@@ -769,8 +715,6 @@ export const DashboardPage: React.FC = () => {
       ? sortedConflicts.filter((c) => c.status !== 'both_finalized')
       : sortedConflicts.filter((c) => c.status === 'both_finalized');
 
-  // Combined invitations count
-  const totalInvitesCount = receivedInvitations.length + pendingInvitations.length;
 
   // Helper to get solo chat display info
   const getSoloChatLabel = (sessionType: string) => {
@@ -982,7 +926,6 @@ export const DashboardPage: React.FC = () => {
               const isPartnerA = conflict.partner_a_id === user?.uid;
               const badge = getConflictBadge(conflict.status, isPartnerA);
               const buttons = getConflictButtons(conflict);
-              const isCompleted = conflict.status === 'both_finalized';
 
               return (
                 <div key={conflict.id} className="chat-row conflict-row">
