@@ -229,6 +229,47 @@ export class ConversationService {
   }
 
   /**
+   * Update a conversation session with partial data
+   * Used for updating subject, status, or other fields
+   */
+  async updateSession(
+    sessionId: string,
+    updates: Partial<Pick<ConversationSession, 'subject' | 'status'>>
+  ): Promise<ConversationSession | null> {
+    const db = getDatabase();
+
+    const fullId = sessionId.startsWith('conversation:')
+      ? sessionId
+      : `conversation:${sessionId}`;
+
+    // Build SET clause dynamically based on provided updates
+    const setClauses: string[] = [];
+    const params: Record<string, any> = { sessionId: fullId };
+
+    if (updates.subject !== undefined) {
+      setClauses.push('subject = $subject');
+      params.subject = updates.subject;
+    }
+    if (updates.status !== undefined) {
+      setClauses.push('status = $status');
+      params.status = updates.status;
+    }
+
+    if (setClauses.length === 0) {
+      // No updates to apply
+      return this.getSession(sessionId);
+    }
+
+    const result = await db.query(
+      `UPDATE type::thing($sessionId) SET ${setClauses.join(', ')}`,
+      params
+    );
+
+    const sessions = extractQueryResult<ConversationSession>(result);
+    return sessions.length > 0 ? sessions[0] : null;
+  }
+
+  /**
    * Check if both partners have finalized and queue joint context guidance jobs
    */
   private async checkAndQueueJointContextGuidance(

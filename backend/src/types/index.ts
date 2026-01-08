@@ -80,6 +80,7 @@ export interface ConversationSession {
   messages: ConversationMessage[];
   createdAt: string;
   finalizedAt?: string;
+  subject?: string; // Auto-generated subject for solo chats
   [key: string]: unknown;
 }
 

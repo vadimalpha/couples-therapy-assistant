@@ -17,6 +17,7 @@ import {
   streamRelationshipResponse,
   streamGuidanceRefinementResponse,
   streamSoloResponse,
+  generateChatSubject,
   ExplorationContext,
   RelationshipContext,
   GuidanceRefinementContext,
@@ -319,6 +320,10 @@ async function triggerAIResponse(
         sessionType: sessionType as 'solo_free' | 'solo_contextual' | 'solo_coached',
       };
 
+      // Check if this is the first message (need to generate subject)
+      const isFirstSoloMessage = !session.subject && session.messages.length === 1;
+      const userMessageContent = session.messages[0]?.content || '';
+
       const result = await streamSoloResponse(
         session.messages,
         soloContext,
@@ -331,6 +336,18 @@ async function triggerAIResponse(
       console.log(
         `AI solo response - Session: ${sessionId}, Type: ${sessionType}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
       );
+
+      // Generate subject for first solo chat message
+      if (isFirstSoloMessage && fullContent) {
+        try {
+          const subject = await generateChatSubject(userMessageContent, fullContent);
+          await conversationService.updateSession(sessionId, { subject });
+          console.log(`Generated subject for solo chat ${sessionId}: "${subject}"`);
+        } catch (subjectError) {
+          console.error('Failed to generate chat subject:', subjectError);
+          // Non-critical - continue without subject
+        }
+      }
     }
 
     // Save the AI message to the database (do this before stream-end so it's persisted)

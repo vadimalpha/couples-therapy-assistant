@@ -676,6 +676,43 @@ export async function streamSoloResponse(
 }
 
 /**
+ * Generate a short subject/title for a solo chat based on the first exchange
+ * Uses a quick LLM call to create a 3-5 word descriptive subject
+ */
+export async function generateChatSubject(
+  userMessage: string,
+  aiResponse: string
+): Promise<string> {
+  if (!process.env.OPENAI_API_KEY) {
+    return 'Personal Chat';
+  }
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini', // Use smaller model for quick subject generation
+      max_completion_tokens: 20,
+      messages: [
+        {
+          role: 'system',
+          content: 'Generate a 3-5 word title/subject for this conversation. Be concise and descriptive. Output only the title, nothing else.',
+        },
+        {
+          role: 'user',
+          content: `User message: "${userMessage.substring(0, 200)}"\n\nAI response: "${aiResponse.substring(0, 200)}"`,
+        },
+      ],
+    });
+
+    const subject = response.choices[0]?.message?.content?.trim() || 'Personal Chat';
+    // Remove quotes if the model added them
+    return subject.replace(/^["']|["']$/g, '');
+  } catch (error) {
+    console.error('Error generating chat subject:', error);
+    return 'Personal Chat';
+  }
+}
+
+/**
  * Build conversation history summary for solo_contextual sessions
  */
 async function buildSoloConversationHistory(userId: string): Promise<string> {
@@ -1485,6 +1522,7 @@ async function buildSystemPromptHelper(
   }
 
   const rendered = buildSystemPromptWithContext(promptResult.rendered, context);
+  console.log(`[buildSystemPromptHelper] promptResult - hasTemplate: ${!!promptResult.template}, templateLength: ${promptResult.template?.length}, hasVariables: ${!!promptResult.variables}, variableKeys: ${promptResult.variables ? Object.keys(promptResult.variables).join(',') : 'none'}`);
   return {
     rendered,
     template: promptResult.template,

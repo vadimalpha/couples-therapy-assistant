@@ -65,6 +65,7 @@ interface ActionButton {
 interface SoloConversation {
   id: string;
   sessionType: 'solo_free' | 'solo_contextual' | 'solo_coached';
+  subject?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -450,6 +451,9 @@ function getConflictBadge(status: Conflict['status'], isPartnerA: boolean): Conf
   }
 }
 
+type ViewMode = 'individual' | 'partner';
+type PartnerFilter = 'all' | 'in_progress' | 'completed';
+
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -466,6 +470,22 @@ export const DashboardPage: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [inviteProcessing, setInviteProcessing] = useState(false);
+
+  // View mode and filter state
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem('dashboard-view-mode');
+    return (saved === 'individual' || saved === 'partner') ? saved : 'partner';
+  });
+  const [partnerFilter, setPartnerFilter] = useState<PartnerFilter>('all');
+
+  // Collapsible sections state
+  const [connectionsCollapsed, setConnectionsCollapsed] = useState(true);
+  const [invitesCollapsed, setInvitesCollapsed] = useState(true);
+
+  // Persist view mode
+  useEffect(() => {
+    localStorage.setItem('dashboard-view-mode', viewMode);
+  }, [viewMode]);
 
   const fetchData = async () => {
     if (!user) return;
@@ -734,184 +754,263 @@ export const DashboardPage: React.FC = () => {
   const hasConflicts = conflicts.length > 0;
   const hasPartner = relationships.some(r => r.type === 'partner');
 
+  // Sort all items by creation date (newest first)
+  const sortedSoloChats = [...soloConversations].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  const sortedConflicts = [...conflicts].sort(
+    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  // Filter conflicts based on partner filter
+  const filteredConflicts = partnerFilter === 'all'
+    ? sortedConflicts
+    : partnerFilter === 'in_progress'
+      ? sortedConflicts.filter((c) => c.status !== 'both_finalized')
+      : sortedConflicts.filter((c) => c.status === 'both_finalized');
+
+  // Combined invitations count
+  const totalInvitesCount = receivedInvitations.length + pendingInvitations.length;
+
+  // Helper to get solo chat display info
+  const getSoloChatLabel = (sessionType: string) => {
+    switch (sessionType) {
+      case 'solo_free': return { label: 'Free Chat', icon: '💭' };
+      case 'solo_contextual': return { label: 'Contextual', icon: '💬' };
+      case 'solo_coached': return { label: 'Guided', icon: '🧘' };
+      default: return { label: 'Chat', icon: '💭' };
+    }
+  };
+
+  // Helper to get conflict action buttons
+  const getConflictButtons = (conflict: Conflict): ActionButton[] => {
+    const isPartnerA = conflict.partner_a_id === user?.uid;
+    const buttons: ActionButton[] = [];
+
+    if (conflict.status === 'both_finalized') {
+      buttons.push(
+        { label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
+        { label: 'Joint Guidance', to: `/conflicts/${conflict.id}/joint-guidance`, variant: 'outline' },
+        { label: 'Partner Chat', to: `/chat/shared?conflictId=${conflict.id}`, variant: 'primary' }
+      );
+    } else {
+      if (conflict.status === 'partner_a_chatting' && isPartnerA) {
+        buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
+      } else if (conflict.status === 'partner_a_chatting' && !isPartnerA) {
+        buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
+      } else if (conflict.status === 'pending_partner_b' && !isPartnerA) {
+        buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
+      } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
+        buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
+      } else if (conflict.status === 'pending_partner_b' && isPartnerA) {
+        buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'primary' });
+      } else if (conflict.status === 'partner_b_chatting' && isPartnerA) {
+        buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' });
+      }
+    }
+    return buttons;
+  };
+
   return (
     <main id="main-content" className="dashboard-container">
+      {/* Collapsible Connections Section */}
+      {(relationships.length > 0 || pendingInvitations.length > 0) && (
+        <section className="collapsible-section">
+          <button
+            className="collapsible-header"
+            onClick={() => setConnectionsCollapsed(!connectionsCollapsed)}
+            aria-expanded={!connectionsCollapsed}
+          >
+            <span className="collapsible-arrow">{connectionsCollapsed ? '▶' : '▼'}</span>
+            <span className="collapsible-title">Your Connections ({relationships.length + pendingInvitations.length})</span>
+          </button>
+          {!connectionsCollapsed && (
+            <div className="collapsible-content">
+              <div className="relationships-grid">
+                {relationships.map((rel) => (
+                  <RelationshipCard
+                    key={rel.id}
+                    relationship={rel}
+                    onSetPrimary={handleSetPrimary}
+                    onRemove={handleRemove}
+                    onNewConflict={handleNewConflict}
+                    isLoading={actionLoading}
+                  />
+                ))}
+                {pendingInvitations.map((inv) => (
+                  <PendingInvitationCard
+                    key={inv.id}
+                    invitation={inv}
+                    onResend={handleResendInvitation}
+                    isResending={resendLoading}
+                  />
+                ))}
+                <AddRelationshipCard
+                  onInvite={handleInvite}
+                  isLoading={inviteLoading}
+                  error={inviteError}
+                  success={inviteSuccess}
+                />
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Collapsible Pending Invitations Section (received invitations) */}
+      {receivedInvitations.length > 0 && (
+        <section className="collapsible-section invitations-section">
+          <button
+            className="collapsible-header"
+            onClick={() => setInvitesCollapsed(!invitesCollapsed)}
+            aria-expanded={!invitesCollapsed}
+          >
+            <span className="collapsible-arrow">{invitesCollapsed ? '▶' : '▼'}</span>
+            <span className="collapsible-title">Pending Invitations ({receivedInvitations.length})</span>
+            <span className="collapsible-badge">Action Required</span>
+          </button>
+          {!invitesCollapsed && (
+            <div className="collapsible-content">
+              <div className="relationships-grid">
+                {receivedInvitations.map((inv) => (
+                  <ReceivedInvitationCard
+                    key={inv.id}
+                    invitation={inv}
+                    onAccept={handleAcceptInvitation}
+                    onDecline={handleDeclineInvitation}
+                    isProcessing={inviteProcessing}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Main Header with Toggle */}
       <div className="dashboard-header">
-        <h1 className="heading-2">Dashboard</h1>
+        <div className="view-toggle">
+          <button
+            className={`toggle-btn ${viewMode === 'individual' ? 'active' : ''}`}
+            onClick={() => setViewMode('individual')}
+          >
+            Individual
+          </button>
+          <button
+            className={`toggle-btn ${viewMode === 'partner' ? 'active' : ''}`}
+            onClick={() => setViewMode('partner')}
+          >
+            Partner
+          </button>
+        </div>
         <div className="dashboard-header-actions">
-          <Link to="/solo/new" className="btn btn-secondary">
-            + Personal Chat
-          </Link>
-          {hasPartner && (
-            <Link to="/conflicts/new" className="btn btn-primary">
-              + New Conflict
+          {viewMode === 'individual' ? (
+            <Link to="/solo/new" className="btn btn-primary">
+              + Personal Chat
             </Link>
+          ) : (
+            hasPartner && (
+              <Link to="/conflicts/new" className="btn btn-primary">
+                + New Conflict
+              </Link>
+            )
           )}
         </div>
       </div>
 
-      {/* Received Invitations Section */}
-      {receivedInvitations.length > 0 && (
-        <section className="dashboard-section invitations-section">
-          <h2 className="section-title">Pending Invitations</h2>
-          <div className="relationships-grid">
-            {receivedInvitations.map((inv) => (
-              <ReceivedInvitationCard
-                key={inv.id}
-                invitation={inv}
-                onAccept={handleAcceptInvitation}
-                onDecline={handleDeclineInvitation}
-                isProcessing={inviteProcessing}
-              />
-            ))}
-          </div>
-        </section>
+      {/* Partner Sub-tabs */}
+      {viewMode === 'partner' && (
+        <div className="partner-tabs">
+          <button
+            className={`tab-btn ${partnerFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setPartnerFilter('all')}
+          >
+            All ({sortedConflicts.length})
+          </button>
+          <button
+            className={`tab-btn ${partnerFilter === 'in_progress' ? 'active' : ''}`}
+            onClick={() => setPartnerFilter('in_progress')}
+          >
+            In Progress ({inProgressConflicts.length})
+          </button>
+          <button
+            className={`tab-btn ${partnerFilter === 'completed' ? 'active' : ''}`}
+            onClick={() => setPartnerFilter('completed')}
+          >
+            Completed ({completedConflicts.length})
+          </button>
+        </div>
       )}
 
-      {/* Relationships Section */}
-      <section className="dashboard-section">
-        <h2 className="section-title">Your Connections</h2>
-        <div className="relationships-grid">
-          {relationships.map((rel) => (
-            <RelationshipCard
-              key={rel.id}
-              relationship={rel}
-              onSetPrimary={handleSetPrimary}
-              onRemove={handleRemove}
-              onNewConflict={handleNewConflict}
-              isLoading={actionLoading}
-            />
-          ))}
-          {pendingInvitations.map((inv) => (
-            <PendingInvitationCard
-              key={inv.id}
-              invitation={inv}
-              onResend={handleResendInvitation}
-              isResending={resendLoading}
-            />
-          ))}
-          <AddRelationshipCard
-            onInvite={handleInvite}
-            isLoading={inviteLoading}
-            error={inviteError}
-            success={inviteSuccess}
-          />
-        </div>
-      </section>
-
-      {/* Personal Chats Section */}
-      {soloConversations.length > 0 && (
-        <section className="dashboard-section">
-          <h2 className="section-title">Personal Chats</h2>
-          <div className="solo-chats-list">
-            {soloConversations.map((chat) => (
-              <div key={chat.id} className="solo-chat-item">
-                <div className="solo-chat-info">
-                  <span className="solo-chat-type">
-                    {chat.sessionType === 'solo_free' && 'Free Chat'}
-                    {chat.sessionType === 'solo_contextual' && 'Contextual Chat'}
-                    {chat.sessionType === 'solo_coached' && 'Guided Reflection'}
-                  </span>
-                  <span className="solo-chat-date">
-                    {formatDate(chat.updatedAt)}
-                  </span>
-                </div>
-                <Link
-                  to={`/chat/solo/${chat.id}`}
-                  className="btn btn-outline btn-sm"
-                >
-                  Continue
+      {/* Content Area */}
+      <div className="chat-rows-container">
+        {viewMode === 'individual' ? (
+          // Individual View - Solo Chats
+          sortedSoloChats.length === 0 ? (
+            <div className="empty-rows">
+              <p>No personal chats yet</p>
+              <Link to="/solo/new" className="btn btn-primary">Start a Personal Chat</Link>
+            </div>
+          ) : (
+            sortedSoloChats.map((chat) => {
+              const { label, icon } = getSoloChatLabel(chat.sessionType);
+              return (
+                <Link key={chat.id} to={`/chat/solo/${chat.id}`} className="chat-row">
+                  <span className="chat-row-icon">{icon}</span>
+                  <span className="chat-row-subject">{chat.subject || label}</span>
+                  <span className="chat-row-type">{label}</span>
+                  <span className="chat-row-date">{formatDate(chat.createdAt)}</span>
                 </Link>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Conflicts Section */}
-      {!hasConflicts ? (
-        <EmptyState hasPartner={hasPartner} />
-      ) : (
-        <div className="dashboard-grid">
-          {/* In Progress */}
-          <div className="card">
-            <div className="card-header">
-              <h3 className="heading-4">In Progress</h3>
-            </div>
-            <div className="conflict-list">
-              {inProgressConflicts.length === 0 ? (
-                <div className="conflict-empty">No conflicts in progress</div>
+              );
+            })
+          )
+        ) : (
+          // Partner View - Conflicts
+          filteredConflicts.length === 0 ? (
+            <div className="empty-rows">
+              {hasPartner ? (
+                <>
+                  <p>No conflicts {partnerFilter !== 'all' ? `${partnerFilter === 'in_progress' ? 'in progress' : 'completed'}` : 'yet'}</p>
+                  <Link to="/conflicts/new" className="btn btn-primary">Start New Conflict</Link>
+                </>
               ) : (
-                inProgressConflicts.map((conflict) => {
-                  const isPartnerA = conflict.partner_a_id === user?.uid;
-                  const buttons: ActionButton[] = [];
-
-                  // Continue/Start button for exploration
-                  if (conflict.status === 'partner_a_chatting' && isPartnerA) {
-                    buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
-                  } else if (conflict.status === 'partner_a_chatting' && !isPartnerA) {
-                    // Partner B can start immediately while Partner A is still chatting
-                    buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
-                  } else if (conflict.status === 'pending_partner_b' && !isPartnerA) {
-                    buttons.push({ label: 'Start', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
-                  } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
-                    buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
-                  } else if (conflict.status === 'pending_partner_b' && isPartnerA) {
-                    // Partner A finished, show their individual guidance
-                    buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'primary' });
-                  } else if (conflict.status === 'partner_b_chatting' && isPartnerA) {
-                    // Partner A finished, Partner B still exploring
-                    buttons.push({ label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' });
-                  }
-
-                  return (
-                    <ConflictItem
-                      key={conflict.id}
-                      title={conflict.title}
-                      description={conflict.description}
-                      partnerName={conflict.partnerName}
-                      meta={`Started ${formatDate(conflict.created_at)}`}
-                      badge={getConflictBadge(conflict.status, isPartnerA)}
-                      actionButtons={buttons}
-                    />
-                  );
-                })
+                <EmptyState hasPartner={false} />
               )}
             </div>
-          </div>
+          ) : (
+            filteredConflicts.map((conflict) => {
+              const isPartnerA = conflict.partner_a_id === user?.uid;
+              const badge = getConflictBadge(conflict.status, isPartnerA);
+              const buttons = getConflictButtons(conflict);
+              const isCompleted = conflict.status === 'both_finalized';
 
-          {/* Completed */}
-          <div className="card">
-            <div className="card-header">
-              <h3 className="heading-4">Completed</h3>
-            </div>
-            <div className="conflict-list">
-              {completedConflicts.length === 0 ? (
-                <div className="conflict-empty">No completed conflicts</div>
-              ) : (
-                completedConflicts.map((conflict) => {
-                  const isPartnerA = conflict.partner_a_id === user?.uid;
-                  return (
-                    <ConflictItem
-                      key={conflict.id}
-                      title={conflict.title}
-                      description={conflict.description}
-                      partnerName={conflict.partnerName}
-                      meta={`Completed ${formatDate(conflict.updated_at)}`}
-                      badge={getConflictBadge(conflict.status, isPartnerA)}
-                      actionButtons={[
-                        { label: 'My Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
-                        { label: 'Joint Guidance', to: `/conflicts/${conflict.id}/joint-guidance`, variant: 'outline' },
-                        { label: 'Partner Chat', to: `/chat/shared?conflictId=${conflict.id}`, variant: 'primary' },
-                      ]}
-                    />
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+              return (
+                <div key={conflict.id} className="chat-row conflict-row">
+                  <div className="chat-row-main">
+                    <span className="chat-row-subject">{conflict.title}</span>
+                    {conflict.partnerName && (
+                      <span className="chat-row-partner">with {conflict.partnerName}</span>
+                    )}
+                  </div>
+                  <div className="chat-row-meta">
+                    {badge && (
+                      <span className={`badge badge-${badge.variant} badge-sm`}>{badge.label}</span>
+                    )}
+                    <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
+                  </div>
+                  <div className="chat-row-actions">
+                    {buttons.map((btn, idx) => (
+                      <Link key={idx} to={btn.to} className={`btn btn-${btn.variant || 'primary'} btn-sm`}>
+                        {btn.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )
+        )}
+      </div>
     </main>
   );
 };

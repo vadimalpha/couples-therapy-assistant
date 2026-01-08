@@ -20,6 +20,7 @@ const SoloChatPage: React.FC = () => {
 
   // Session state
   const [sessionType, setSessionType] = useState<SessionType | null>(null);
+  const [sessionSubject, setSessionSubject] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -59,6 +60,7 @@ const SoloChatPage: React.FC = () => {
         }
 
         setSessionType(session.sessionType as SessionType);
+        setSessionSubject(session.subject || null);
       } catch (err) {
         console.error('Failed to fetch session:', err);
         setLoadError(err instanceof Error ? err.message : 'Failed to load session');
@@ -95,15 +97,16 @@ const SoloChatPage: React.FC = () => {
     }));
   }, [messages]);
 
-  // Get chat title based on session type
+  // Get chat title - use subject if available, otherwise fallback to type-based title
   const chatTitle = useMemo(() => {
+    if (sessionSubject) return sessionSubject;
     switch (sessionType) {
       case 'solo_free': return 'Free Chat';
       case 'solo_contextual': return 'Contextual Chat';
       case 'solo_coached': return 'Guided Reflection';
       default: return 'Personal Chat';
     }
-  }, [sessionType]);
+  }, [sessionType, sessionSubject]);
 
   // Get session status for ChatWindow
   const sessionStatus: SessionStatus = useMemo(() => {
