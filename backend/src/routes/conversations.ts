@@ -12,6 +12,8 @@ import {
   getPromptOverride,
   MODEL,
   regenerateJointContextGuidance,
+  buildSystemPromptHelper,
+  ExplorationContext,
 } from '../services/chat-ai';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -116,6 +118,55 @@ router.get(
       });
     } catch (error) {
       console.error('Error testing buildPrompt:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Test failed',
+        stack: error instanceof Error ? error.stack : undefined,
+      });
+    }
+  }
+);
+
+/**
+ * Test endpoint to verify buildSystemPromptHelper (admin only)
+ * GET /api/conversations/test-helper
+ */
+router.get(
+  '/test-helper',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userEmail = req.user?.email;
+      const userId = req.user?.uid;
+
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      // Test buildSystemPromptHelper directly with a mock context
+      const mockContext: ExplorationContext = {
+        userId: userId || 'test-user',
+        conflictId: 'test-conflict',
+        sessionId: 'test-session',
+        sessionType: 'individual_a',
+        guidanceMode: 'conversational',
+      };
+
+      const result = await buildSystemPromptHelper('exploration-system-prompt.txt', mockContext);
+
+      res.json({
+        success: true,
+        hasRendered: !!result.rendered,
+        renderedLength: result.rendered?.length,
+        hasTemplate: !!result.template,
+        templateLength: result.template?.length,
+        templatePreview: result.template?.substring(0, 100),
+        hasVariables: !!result.variables,
+        variableKeys: result.variables ? Object.keys(result.variables) : [],
+        variables: result.variables,
+      });
+    } catch (error) {
+      console.error('Error testing buildSystemPromptHelper:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Test failed',
         stack: error instanceof Error ? error.stack : undefined,

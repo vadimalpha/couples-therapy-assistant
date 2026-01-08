@@ -1491,13 +1491,13 @@ export async function streamRelationshipResponse(
 
 // Helper functions
 
-interface SystemPromptResult {
+export interface SystemPromptResult {
   rendered: string;
   template: string;
   variables: Record<string, string>;
 }
 
-async function buildSystemPromptHelper(
+export async function buildSystemPromptHelper(
   promptFile: string,
   context: ExplorationContext
 ): Promise<SystemPromptResult> {
