@@ -378,7 +378,8 @@ export async function streamExplorationResponse(
     }
 
     // Log the prompt
-    console.log(`[streamExplorationResponse] Template debug - hasTemplate: ${!!promptTemplate}, templateLength: ${promptTemplate?.length}, hasVariables: ${!!promptVariables}, variableKeys: ${promptVariables ? Object.keys(promptVariables).join(',') : 'none'}`);
+    console.log(`[streamExplorationResponse] PRE-LOG - promptTemplate type: ${typeof promptTemplate}, promptVariables type: ${typeof promptVariables}`);
+    console.log(`[streamExplorationResponse] PRE-LOG - hasTemplate: ${!!promptTemplate}, templateLength: ${promptTemplate?.length}, hasVariables: ${!!promptVariables}, variableKeys: ${promptVariables ? Object.keys(promptVariables).join(',') : 'none'}`);
     logPrompt({
       userId: context.userId,
       userEmail: user?.email,

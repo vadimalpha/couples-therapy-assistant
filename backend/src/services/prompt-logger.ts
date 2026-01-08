@@ -73,6 +73,7 @@ export async function logPrompt(params: LogPromptParams): Promise<void> {
     if (params.promptTemplate) content.promptTemplate = params.promptTemplate;
     if (params.promptVariables) content.promptVariables = params.promptVariables;
 
+    console.log(`[logPrompt] Content before save - hasTemplate: ${!!content.promptTemplate}, hasVariables: ${!!content.promptVariables}, contentKeys: ${Object.keys(content).join(',')}`);
     await db.query('CREATE prompt_log CONTENT $content', { content });
   } catch (error) {
     // Log but don't throw - logging shouldn't break main functionality
