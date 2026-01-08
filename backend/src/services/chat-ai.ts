@@ -130,13 +130,14 @@ export async function streamIntakeResponse(
 
   try {
     // Build system prompt using the prompt builder
-    let systemPrompt = await buildPrompt('intake-system-prompt.txt', {
+    const promptResult = await buildPrompt('intake-system-prompt.txt', {
       conflictId: '',
       userId: context.userId,
       sessionType: 'intake',
       includeRAG: false,
       includePatterns: false,
     });
+    let systemPrompt = promptResult.rendered;
 
     // Add refresh context if applicable
     if (context.isRefresh && context.previousIntakeData) {
@@ -208,6 +209,8 @@ export async function streamIntakeResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     return { fullContent, usage };
@@ -243,7 +246,8 @@ export async function generateExplorationResponse(
       guidanceMode: context.guidanceMode || conflict?.guidance_mode || 'conversational',
     };
 
-    const systemPrompt = await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
+    const promptResult = await buildSystemPromptHelper('exploration-system-prompt.txt', enrichedContext);
+    const systemPrompt = promptResult.rendered;
     const openaiMessages = convertMessagesToOpenAI(messages);
 
     const userMessageContent = messages.length > 0
@@ -279,6 +283,8 @@ export async function generateExplorationResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     return { content, usage };
@@ -317,12 +323,18 @@ export async function streamExplorationResponse(
 
     // Check for admin prompt override first
     const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    const systemPrompt = promptOverride
-      ? promptOverride
-      : await buildSystemPrompt('exploration-system-prompt.txt', enrichedContext);
+    let systemPrompt: string;
+    let promptTemplate: string | undefined;
+    let promptVariables: Record<string, string> | undefined;
 
     if (promptOverride) {
       console.log(`[streamExplorationResponse] Using admin prompt override for session ${context.sessionId}`);
+      systemPrompt = promptOverride;
+    } else {
+      const promptResult = await buildSystemPromptHelper('exploration-system-prompt.txt', enrichedContext);
+      systemPrompt = promptResult.rendered;
+      promptTemplate = promptResult.template;
+      promptVariables = promptResult.variables;
     }
 
     const openaiMessages = convertMessagesToOpenAI(messages);
@@ -382,6 +394,8 @@ export async function streamExplorationResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
     });
 
     return { fullContent, usage };
@@ -421,17 +435,22 @@ export async function streamGuidanceRefinementResponse(
     // Check for admin prompt override first
     const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
     let systemPrompt: string;
+    let promptTemplate: string | undefined;
+    let promptVariables: Record<string, string> | undefined;
 
     if (promptOverride) {
       console.log(`[streamGuidanceRefinementResponse] Using admin prompt override for session ${context.sessionId}`);
       systemPrompt = promptOverride;
     } else {
-      systemPrompt = await buildPrompt('guidance-refinement-prompt.txt', {
+      const promptResult = await buildPrompt('guidance-refinement-prompt.txt', {
         conflictId: context.conflictId || '',
         userId: context.userId,
         sessionType: context.sessionType,
         includeRAG: true,
       });
+      systemPrompt = promptResult.rendered;
+      promptTemplate = promptResult.template;
+      promptVariables = promptResult.variables;
     }
 
     // Extract and include the initial guidance in the system prompt
@@ -511,6 +530,8 @@ export async function streamGuidanceRefinementResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
     });
 
     return { fullContent, usage };
@@ -549,27 +570,38 @@ export async function streamSoloResponse(
     // Check for admin prompt override first
     const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
     let systemPrompt: string;
+    let promptTemplate: string | undefined;
+    let promptVariables: Record<string, string> | undefined;
 
     if (promptOverride) {
       console.log(`[streamSoloResponse] Using admin prompt override for session ${context.sessionId}`);
       systemPrompt = promptOverride;
     } else {
-      systemPrompt = await buildPrompt(promptFile, {
+      const promptResult = await buildPrompt(promptFile, {
         conflictId: '',
         userId: context.userId,
         sessionType: context.sessionType,
         includeRAG: false,
         includePatterns: false,
       });
+      systemPrompt = promptResult.rendered;
+      promptTemplate = promptResult.template;
+      promptVariables = { ...promptResult.variables };
     }
 
     // For solo_contextual, inject past conversation history
     if (context.sessionType === 'solo_contextual' && !promptOverride) {
       const conversationHistory = await buildSoloConversationHistory(context.userId);
       systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', conversationHistory);
+      if (promptVariables) {
+        promptVariables['CONVERSATION_HISTORY'] = conversationHistory;
+      }
     } else if (!promptOverride) {
       // Remove placeholder if not contextual
       systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', '');
+      if (promptVariables) {
+        promptVariables['CONVERSATION_HISTORY'] = '';
+      }
     }
 
     const openaiMessages = convertMessagesToOpenAI(messages);
@@ -629,6 +661,8 @@ export async function streamSoloResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
     });
 
     return { fullContent, usage };
@@ -747,7 +781,7 @@ export async function synthesizeIndividualGuidance(
       ? await conflictService.getConflict(explorationSession.conflictId)
       : null;
 
-    const systemPrompt = await buildPrompt('individual-guidance-prompt.txt', {
+    const promptResult = await buildPrompt('individual-guidance-prompt.txt', {
       conflictId: explorationSession.conflictId || '',
       userId: explorationSession.userId,
       sessionType: explorationSession.sessionType,
@@ -755,6 +789,7 @@ export async function synthesizeIndividualGuidance(
       includePatterns: false,
       guidanceMode: conflict?.guidance_mode || 'conversational',
     });
+    const systemPrompt = promptResult.rendered;
 
     const context = buildIndividualContext(
       explorationSession.messages,
@@ -795,6 +830,8 @@ export async function synthesizeIndividualGuidance(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     const jointContextSession = await conversationService.createSession(
@@ -868,7 +905,7 @@ export async function synthesizeJointContextGuidance(
     const requestingIntakeData = await getIntakeData(partnerId);
     const otherIntakeData = otherUserId ? await getIntakeData(otherUserId) : null;
 
-    const systemPrompt = await buildPrompt('joint-context-synthesis.txt', {
+    const promptResult = await buildPrompt('joint-context-synthesis.txt', {
       conflictId,
       userId: partnerId,
       sessionType: isPartnerA ? 'joint_context_a' : 'joint_context_b',
@@ -876,6 +913,7 @@ export async function synthesizeJointContextGuidance(
       includePatterns: true,
       guidanceMode: conflict.guidance_mode || 'conversational',
     });
+    const systemPrompt = promptResult.rendered;
 
     const context = buildJointContext(
       requestingPartner.messages,
@@ -918,6 +956,8 @@ export async function synthesizeJointContextGuidance(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     const jointContextSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
@@ -1006,19 +1046,25 @@ export async function regenerateJointContextGuidance(
 
     // Check for admin prompt override first
     const promptOverride = getPromptOverride(sessionId);
-    const systemPrompt = promptOverride
-      ? promptOverride
-      : await buildPrompt('joint-context-synthesis.txt', {
-          conflictId: session.conflictId,
-          userId: requestingUserId,
-          sessionType: session.sessionType,
-          includeRAG: true,
-          includePatterns: true,
-          guidanceMode: conflict.guidance_mode || 'conversational',
-        });
+    let systemPrompt: string;
+    let promptTemplate: string | undefined;
+    let promptVariables: Record<string, string> | undefined;
 
     if (promptOverride) {
       console.log(`[regenerateJointContextGuidance] Using admin prompt override for session ${sessionId}`);
+      systemPrompt = promptOverride;
+    } else {
+      const promptResult = await buildPrompt('joint-context-synthesis.txt', {
+        conflictId: session.conflictId,
+        userId: requestingUserId,
+        sessionType: session.sessionType,
+        includeRAG: true,
+        includePatterns: true,
+        guidanceMode: conflict.guidance_mode || 'conversational',
+      });
+      systemPrompt = promptResult.rendered;
+      promptTemplate = promptResult.template;
+      promptVariables = promptResult.variables;
     }
 
     const context = buildJointContext(
@@ -1063,6 +1109,8 @@ export async function regenerateJointContextGuidance(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
     });
 
     // Add the guidance as a message to the existing session
@@ -1123,19 +1171,25 @@ export async function generateRelationshipSynthesis(
 
     // Check for admin prompt override first
     const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    const systemPrompt = promptOverride
-      ? promptOverride
-      : await buildPrompt('relationship-synthesis.txt', {
-          conflictId: context.conflictId,
-          userId: context.partnerAId,
-          sessionType: 'relationship_shared',
-          includeRAG: true,
-          includePatterns: true,
-          guidanceMode: conflict.guidance_mode || 'conversational',
-        });
+    let systemPrompt: string;
+    let promptTemplate: string | undefined;
+    let promptVariables: Record<string, string> | undefined;
 
     if (promptOverride) {
       console.log(`[generateRelationshipSynthesis] Using admin prompt override for session ${context.sessionId}`);
+      systemPrompt = promptOverride;
+    } else {
+      const promptResult = await buildPrompt('relationship-synthesis.txt', {
+        conflictId: context.conflictId,
+        userId: context.partnerAId,
+        sessionType: 'relationship_shared',
+        includeRAG: true,
+        includePatterns: true,
+        guidanceMode: conflict.guidance_mode || 'conversational',
+      });
+      systemPrompt = promptResult.rendered;
+      promptTemplate = promptResult.template;
+      promptVariables = promptResult.variables;
     }
 
     const synthesisContext = buildRelationshipSynthesisContext(
@@ -1181,6 +1235,8 @@ export async function generateRelationshipSynthesis(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
     });
 
     return { content, usage };
@@ -1208,7 +1264,7 @@ export async function generateRelationshipResponse(
     const partnerBUser = await getUserById(context.partnerBId);
     const conflict = await conflictService.getConflict(context.conflictId);
 
-    const systemPrompt = await buildPrompt('relationship-chat.txt', {
+    const promptResult = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
       userId: context.partnerAId,
       sessionType: 'relationship_shared',
@@ -1217,7 +1273,7 @@ export async function generateRelationshipResponse(
     });
 
     const enrichedSystemPrompt = buildSystemPromptWithSenderContext(
-      systemPrompt,
+      promptResult.rendered,
       partnerAUser?.displayName,
       partnerBUser?.displayName
     );
@@ -1269,6 +1325,8 @@ export async function generateRelationshipResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     return { content, usage };
@@ -1297,7 +1355,7 @@ export async function streamRelationshipResponse(
     const partnerBUser = await getUserById(context.partnerBId);
     const conflict = await conflictService.getConflict(context.conflictId);
 
-    const systemPrompt = await buildPrompt('relationship-chat.txt', {
+    const promptResult = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
       userId: context.partnerAId,
       sessionType: 'relationship_shared',
@@ -1306,7 +1364,7 @@ export async function streamRelationshipResponse(
     });
 
     const enrichedSystemPrompt = buildSystemPromptWithSenderContext(
-      systemPrompt,
+      promptResult.rendered,
       partnerAUser?.displayName,
       partnerBUser?.displayName
     );
@@ -1379,6 +1437,8 @@ export async function streamRelationshipResponse(
       inputTokens: usage.inputTokens,
       outputTokens: usage.outputTokens,
       cost: usage.totalCost,
+      promptTemplate: promptResult.template,
+      promptVariables: promptResult.variables,
     });
 
     return { fullContent, usage };
@@ -1392,13 +1452,19 @@ export async function streamRelationshipResponse(
 
 // Helper functions
 
-async function buildSystemPrompt(
+interface SystemPromptResult {
+  rendered: string;
+  template: string;
+  variables: Record<string, string>;
+}
+
+async function buildSystemPromptHelper(
   promptFile: string,
   context: ExplorationContext
-): Promise<string> {
-  let systemPrompt: string;
+): Promise<SystemPromptResult> {
+  let promptResult;
   if (context.conflictId) {
-    systemPrompt = await buildPrompt(promptFile, {
+    promptResult = await buildPrompt(promptFile, {
       conflictId: context.conflictId,
       userId: context.userId,
       sessionType: context.sessionType as any,
@@ -1407,7 +1473,7 @@ async function buildSystemPrompt(
       guidanceMode: context.guidanceMode,
     });
   } else {
-    systemPrompt = await buildPrompt(promptFile, {
+    promptResult = await buildPrompt(promptFile, {
       conflictId: '',
       userId: context.userId,
       sessionType: context.sessionType as any,
@@ -1417,7 +1483,12 @@ async function buildSystemPrompt(
     });
   }
 
-  return buildSystemPromptWithContext(systemPrompt, context);
+  const rendered = buildSystemPromptWithContext(promptResult.rendered, context);
+  return {
+    rendered,
+    template: promptResult.template,
+    variables: promptResult.variables,
+  };
 }
 
 function buildSystemPromptWithContext(

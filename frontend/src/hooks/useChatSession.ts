@@ -42,6 +42,9 @@ export interface DebugPromptInfo {
   cost: number;
   timestamp: string;
   hasOverride?: boolean;
+  // New fields for template debugging
+  promptTemplate?: string | null;
+  promptVariables?: Record<string, string> | null;
 }
 
 /**

@@ -59,6 +59,10 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
   const [isSaving, setIsSaving] = useState(false);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Template vs Rendered view toggle
+  const [viewMode, setViewMode] = useState<'template' | 'rendered'>('template');
+  // Track which variables are expanded in template view
+  const [expandedVariables, setExpandedVariables] = useState<Set<string>>(new Set());
 
   // Sync edited prompt with original when prompt changes
   useEffect(() => {
@@ -78,6 +82,84 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
   }, [prompt?.hasOverride]);
 
   const isModified = editedPrompt !== originalPrompt;
+  const hasTemplateData = !!prompt?.promptTemplate && !!prompt?.promptVariables;
+
+  const toggleVariable = (varName: string) => {
+    setExpandedVariables((prev) => {
+      const next = new Set(prev);
+      if (next.has(varName)) {
+        next.delete(varName);
+      } else {
+        next.add(varName);
+      }
+      return next;
+    });
+  };
+
+  /**
+   * Parse template and render with inline expandable variable blocks
+   */
+  const renderTemplateWithVariables = () => {
+    if (!prompt?.promptTemplate || !prompt?.promptVariables) {
+      return <pre className="section-content">{editedPrompt}</pre>;
+    }
+
+    const template = prompt.promptTemplate;
+    const variables = prompt.promptVariables;
+
+    // Split template by variable placeholders
+    const parts: Array<{ type: 'text' | 'variable'; content: string; varName?: string }> = [];
+    let lastIndex = 0;
+    const varPattern = /\{\{(\w+)\}\}/g;
+    let match;
+
+    while ((match = varPattern.exec(template)) !== null) {
+      // Add text before the variable
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: template.slice(lastIndex, match.index) });
+      }
+      // Add the variable
+      parts.push({ type: 'variable', content: match[0], varName: match[1] });
+      lastIndex = match.index + match[0].length;
+    }
+    // Add remaining text
+    if (lastIndex < template.length) {
+      parts.push({ type: 'text', content: template.slice(lastIndex) });
+    }
+
+    return (
+      <div className="template-view">
+        {parts.map((part, index) => {
+          if (part.type === 'text') {
+            return <span key={index} className="template-text">{part.content}</span>;
+          }
+          const varName = part.varName!;
+          const varValue = variables[varName] || '';
+          const isVarExpanded = expandedVariables.has(varName);
+          const isEmpty = !varValue || varValue.trim() === '';
+
+          return (
+            <span key={index} className="template-variable-wrapper">
+              <button
+                className={`template-variable-button ${isVarExpanded ? 'expanded' : ''}`}
+                onClick={() => toggleVariable(varName)}
+              >
+                {part.content}
+                <span className="variable-indicator">
+                  {isEmpty ? '(empty)' : isVarExpanded ? '▲' : '▼'}
+                </span>
+              </button>
+              {isVarExpanded && !isEmpty && (
+                <div className="template-variable-content">
+                  <pre>{varValue}</pre>
+                </div>
+              )}
+            </span>
+          );
+        })}
+      </div>
+    );
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) => ({
@@ -272,6 +354,23 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                 </button>
                 {expandedSections.systemPrompt && (
                   <div className="section-content-wrapper">
+                    {/* View mode toggle - only show if template data available */}
+                    {hasTemplateData && !isEditing && (
+                      <div className="view-mode-toggle">
+                        <button
+                          className={`view-toggle-btn ${viewMode === 'template' ? 'active' : ''}`}
+                          onClick={() => setViewMode('template')}
+                        >
+                          Template
+                        </button>
+                        <button
+                          className={`view-toggle-btn ${viewMode === 'rendered' ? 'active' : ''}`}
+                          onClick={() => setViewMode('rendered')}
+                        >
+                          Rendered
+                        </button>
+                      </div>
+                    )}
                     {isEditing ? (
                       <textarea
                         className="prompt-editor"
@@ -279,6 +378,8 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                         onChange={(e) => setEditedPrompt(e.target.value)}
                         rows={20}
                       />
+                    ) : viewMode === 'template' && hasTemplateData ? (
+                      renderTemplateWithVariables()
                     ) : (
                       <pre className="section-content">{editedPrompt}</pre>
                     )}

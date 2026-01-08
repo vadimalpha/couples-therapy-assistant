@@ -47,6 +47,15 @@ export interface PatternInsight {
 }
 
 /**
+ * Result from building a prompt - includes template, variables, and rendered output
+ */
+export interface PromptBuildResult {
+  template: string;                        // Raw template with {{placeholders}}
+  variables: Record<string, string>;       // Variable values that were substituted
+  rendered: string;                        // Final rendered prompt
+}
+
+/**
  * Mode-aware templates that have separate versions for structured/conversational/test
  */
 const MODE_AWARE_TEMPLATES = [
@@ -74,11 +83,12 @@ function getTemplateFileName(
 
 /**
  * Build prompt with RAG context and patterns injected
+ * Returns structured result with template, variables, and rendered prompt
  */
 export async function buildPrompt(
   templatePath: string,
   context: PromptContext
-): Promise<string> {
+): Promise<PromptBuildResult> {
   // Get mode-aware template filename
   const actualTemplatePath = getTemplateFileName(
     templatePath,
@@ -92,13 +102,16 @@ export async function buildPrompt(
   );
 
   let prompt = template;
+  const variables: Record<string, string> = {};
 
   // Inject RAG context if requested
   if (context.includeRAG) {
     const ragSection = await buildRAGSection(context.conflictId, context.userId);
+    variables['RAG_CONTEXT'] = ragSection;
     prompt = prompt.replace('{{RAG_CONTEXT}}', ragSection);
   } else {
     // Remove placeholder if not using RAG
+    variables['RAG_CONTEXT'] = '';
     prompt = prompt.replace('{{RAG_CONTEXT}}', '');
   }
 
@@ -118,16 +131,23 @@ export async function buildPrompt(
     if (users.length > 0 && users[0].relationshipId) {
       const relationshipId = users[0].relationshipId;
       const patternSection = await buildPatternSection(relationshipId);
+      variables['PATTERN_INSIGHTS'] = patternSection;
       prompt = prompt.replace('{{PATTERN_INSIGHTS}}', patternSection);
     } else {
+      variables['PATTERN_INSIGHTS'] = '';
       prompt = prompt.replace('{{PATTERN_INSIGHTS}}', '');
     }
   } else {
     // Remove placeholder if not using patterns
+    variables['PATTERN_INSIGHTS'] = '';
     prompt = prompt.replace('{{PATTERN_INSIGHTS}}', '');
   }
 
-  return prompt;
+  return {
+    template,
+    variables,
+    rendered: prompt,
+  };
 }
 
 /**

@@ -713,6 +713,9 @@ router.get(
           outputTokens: promptLog.outputTokens,
           cost: promptLog.cost,
           timestamp: promptLog.timestamp,
+          // New fields for template debugging
+          promptTemplate: promptLog.promptTemplate || null,
+          promptVariables: promptLog.promptVariables || null,
         },
       });
     } catch (error) {

@@ -24,6 +24,9 @@ export interface LogPromptParams {
   inputTokens: number;
   outputTokens: number;
   cost: number;
+  // New fields for template debugging
+  promptTemplate?: string;                    // Raw template with {{placeholders}}
+  promptVariables?: Record<string, string>;   // Variable values that were substituted
 }
 
 /**
@@ -65,6 +68,9 @@ export async function logPrompt(params: LogPromptParams): Promise<void> {
     if (params.sessionId) content.sessionId = toSafeString(params.sessionId);
     if (params.sessionType) content.sessionType = params.sessionType;
     if (params.guidanceMode) content.guidanceMode = params.guidanceMode;
+    // Template debugging fields
+    if (params.promptTemplate) content.promptTemplate = params.promptTemplate;
+    if (params.promptVariables) content.promptVariables = params.promptVariables;
 
     await db.query('CREATE prompt_log CONTENT $content', { content });
   } catch (error) {

@@ -626,3 +626,111 @@
   background-color: #4f4f4f;
   color: #ececec;
 }
+
+/* View mode toggle */
+.view-mode-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background-color: #252525;
+  border-bottom: 1px solid #333;
+}
+
+.view-toggle-btn {
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  background-color: transparent;
+  border: 1px solid #424242;
+  border-radius: 4px;
+  color: #8e8e8e;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.view-toggle-btn:hover {
+  background-color: #3f3f3f;
+  color: #b4b4b4;
+}
+
+.view-toggle-btn.active {
+  background-color: #3b82f6;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* Template view */
+.template-view {
+  padding: 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #b4b4b4;
+  background-color: #1a1a1a;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 500px;
+  overflow-y: auto;
+  line-height: 1.6;
+}
+
+.template-text {
+  /* Default text styling */
+}
+
+.template-variable-wrapper {
+  display: inline;
+}
+
+.template-variable-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background-color: #2d4a3e;
+  border: 1px solid #3d6b5b;
+  border-radius: 4px;
+  color: #6ee7b7;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  vertical-align: baseline;
+}
+
+.template-variable-button:hover {
+  background-color: #3d6b5b;
+  border-color: #4ade80;
+}
+
+.template-variable-button.expanded {
+  background-color: #3d6b5b;
+  border-color: #4ade80;
+}
+
+.variable-indicator {
+  font-size: 10px;
+  color: #6ee7b7;
+  opacity: 0.7;
+}
+
+.template-variable-content {
+  display: block;
+  margin: 8px 0;
+  padding: 12px;
+  background-color: #1f2d27;
+  border: 1px solid #3d6b5b;
+  border-radius: 6px;
+  border-left: 3px solid #4ade80;
+}
+
+.template-variable-content pre {
+  margin: 0;
+  padding: 0;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #a3a3a3;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 200px;
+  overflow-y: auto;
+}

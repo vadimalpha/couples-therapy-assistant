@@ -92,13 +92,14 @@ export async function generateRelationshipSynthesis(
     const partnerBGuidance = await getPartnerGuidance(context.partnerBId, context.conflictId);
 
     // Build system prompt with RAG and pattern context
-    const systemPrompt = await buildPrompt('relationship-synthesis.txt', {
+    const promptResult = await buildPrompt('relationship-synthesis.txt', {
       conflictId: context.conflictId,
       userId: context.partnerAId, // Use either partner for context loading
       sessionType: 'relationship_shared',
       includeRAG: true,
       includePatterns: true,
     });
+    const systemPrompt = promptResult.rendered;
 
     // Build context for synthesis
     const synthesisContext = buildRelationshipSynthesisContext(
@@ -166,7 +167,7 @@ export async function generateRelationshipResponse(
     const partnerBUser = await getUserById(context.partnerBId);
 
     // Build system prompt with RAG and pattern context
-    const systemPrompt = await buildPrompt('relationship-chat.txt', {
+    const promptResult = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
       userId: context.partnerAId, // Use either partner for context loading
       sessionType: 'relationship_shared',
@@ -176,7 +177,7 @@ export async function generateRelationshipResponse(
 
     // Add sender context to system prompt
     const enrichedSystemPrompt = buildSystemPromptWithSenderContext(
-      systemPrompt,
+      promptResult.rendered,
       partnerAUser?.displayName,
       partnerBUser?.displayName
     );
@@ -245,7 +246,7 @@ export async function streamRelationshipResponse(
     const partnerBUser = await getUserById(context.partnerBId);
 
     // Build system prompt with RAG and pattern context
-    const systemPrompt = await buildPrompt('relationship-chat.txt', {
+    const streamPromptResult = await buildPrompt('relationship-chat.txt', {
       conflictId: context.conflictId,
       userId: context.partnerAId,
       sessionType: 'relationship_shared',
@@ -255,7 +256,7 @@ export async function streamRelationshipResponse(
 
     // Add sender context to system prompt
     const enrichedSystemPrompt = buildSystemPromptWithSenderContext(
-      systemPrompt,
+      streamPromptResult.rendered,
       partnerAUser?.displayName,
       partnerBUser?.displayName
     );
