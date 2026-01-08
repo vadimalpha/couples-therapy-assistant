@@ -143,6 +143,7 @@ export async function buildPrompt(
     prompt = prompt.replace('{{PATTERN_INSIGHTS}}', '');
   }
 
+  console.log(`[buildPrompt] Returning - templateLength: ${template?.length}, variableKeys: ${Object.keys(variables).join(',')}, renderedLength: ${prompt?.length}`);
   return {
     template,
     variables,
