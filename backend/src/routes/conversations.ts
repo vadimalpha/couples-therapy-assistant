@@ -16,6 +16,7 @@ import {
 import * as fs from 'fs';
 import * as path from 'path';
 import { contentFilter } from '../services/content-filter';
+import { buildPrompt } from '../services/prompt-builder';
 
 const router = Router();
 
@@ -722,6 +723,54 @@ router.get(
       console.error('Error getting debug prompt:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to get debug prompt',
+      });
+    }
+  }
+);
+
+/**
+ * Test endpoint to verify buildPrompt function (admin only)
+ * GET /api/conversations/test-build-prompt
+ */
+router.get(
+  '/test-build-prompt',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userEmail = req.user?.email;
+      const userId = req.user?.uid;
+
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      // Test buildPrompt directly
+      const result = await buildPrompt('exploration-system-prompt.txt', {
+        conflictId: 'test',
+        userId: userId || 'test-user',
+        sessionType: 'individual_a',
+        includeRAG: false,
+        includePatterns: false,
+        guidanceMode: 'conversational',
+      });
+
+      res.json({
+        success: true,
+        hasTemplate: !!result.template,
+        templateLength: result.template?.length,
+        templatePreview: result.template?.substring(0, 200),
+        hasVariables: !!result.variables,
+        variableKeys: result.variables ? Object.keys(result.variables) : [],
+        variables: result.variables,
+        hasRendered: !!result.rendered,
+        renderedLength: result.rendered?.length,
+      });
+    } catch (error) {
+      console.error('Error testing buildPrompt:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Test failed',
+        stack: error instanceof Error ? error.stack : undefined,
       });
     }
   }
