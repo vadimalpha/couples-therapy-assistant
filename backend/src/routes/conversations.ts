@@ -274,6 +274,31 @@ router.post(
 
       const savedLog = result?.[0]?.[0];
 
+      // Also test direct DB insert (bypass logPrompt)
+      const directSessionId = `direct-test-${Date.now()}`;
+      const directContent = {
+        userId: userId || 'test-user',
+        logType: 'exploration',
+        systemPrompt: 'Direct test',
+        userMessage: 'Direct test',
+        aiResponse: 'Direct test',
+        inputTokens: 10,
+        outputTokens: 5,
+        cost: 0.0001,
+        createdAt: new Date().toISOString(),
+        sessionId: directSessionId,
+        promptTemplate: 'DIRECT {{TEST}}',
+        promptVariables: { TEST: 'direct_value' },
+      };
+
+      await db.query('CREATE prompt_log CONTENT $content', { content: directContent });
+
+      const directResult = await db.query<any[]>(
+        `SELECT * FROM prompt_log WHERE sessionId = $sessionId LIMIT 1`,
+        { sessionId: directSessionId }
+      );
+      const directLog = directResult?.[0]?.[0];
+
       res.json({
         success: true,
         testSessionId,
@@ -287,6 +312,17 @@ router.post(
           variablesValue: savedLog.promptVariables,
           allKeys: Object.keys(savedLog),
         } : null,
+        directTest: {
+          sessionId: directSessionId,
+          inputContent: directContent,
+          savedLog: directLog ? {
+            hasTemplate: !!directLog.promptTemplate,
+            templateValue: directLog.promptTemplate,
+            hasVariables: !!directLog.promptVariables,
+            variablesValue: directLog.promptVariables,
+            allKeys: Object.keys(directLog),
+          } : null,
+        },
       });
     } catch (error) {
       console.error('Error testing logPrompt:', error);
