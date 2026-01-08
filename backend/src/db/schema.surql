@@ -43,6 +43,9 @@ DEFINE FIELD IF NOT EXISTS inputTokens ON prompt_log TYPE int;
 DEFINE FIELD IF NOT EXISTS outputTokens ON prompt_log TYPE int;
 DEFINE FIELD IF NOT EXISTS cost ON prompt_log TYPE float;
 DEFINE FIELD IF NOT EXISTS createdAt ON prompt_log TYPE string;
+-- Template debugging fields (added for Admin Debug Panel)
+DEFINE FIELD IF NOT EXISTS promptTemplate ON prompt_log TYPE option<string>;
+DEFINE FIELD IF NOT EXISTS promptVariables ON prompt_log TYPE option<object>;
 
 -- Indexes for efficient querying
 DEFINE INDEX IF NOT EXISTS prompt_log_user_idx ON prompt_log FIELDS userId;
