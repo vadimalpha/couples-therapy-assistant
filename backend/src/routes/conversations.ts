@@ -144,25 +144,26 @@ router.get(
       const db = getDatabase();
 
       const result = await db.query<any[]>(
-        `SELECT id, logType, sessionId, createdAt,
-                promptTemplate IS NOT NONE AND promptTemplate != NONE as hasTemplate,
-                promptVariables IS NOT NONE AND promptVariables != NONE as hasVariables
+        `SELECT id, logType, sessionId, createdAt, promptTemplate, promptVariables
          FROM prompt_log
          ORDER BY createdAt DESC
-         LIMIT 10`
+         LIMIT 5`
       );
 
       const logs = result?.[0] || [];
 
       res.json({
+        version: '1.0.6',
         count: logs.length,
         logs: logs.map((log: any) => ({
           id: log.id,
           logType: log.logType,
           sessionId: log.sessionId,
           createdAt: log.createdAt,
-          hasTemplate: log.hasTemplate,
-          hasVariables: log.hasVariables,
+          hasTemplate: !!log.promptTemplate,
+          templateLength: log.promptTemplate?.length,
+          hasVariables: !!log.promptVariables,
+          variableKeys: log.promptVariables ? Object.keys(log.promptVariables) : null,
         })),
       });
     } catch (error) {
