@@ -288,7 +288,7 @@ router.post(
         createdAt: new Date().toISOString(),
         sessionId: directSessionId,
         promptTemplate: 'DIRECT {{TEST}}',
-        promptVariables: { TEST: 'direct_value' },
+        promptVariables: JSON.stringify({ TEST: 'direct_value' }),
       };
 
       await db.query('CREATE prompt_log CONTENT $content', { content: directContent });

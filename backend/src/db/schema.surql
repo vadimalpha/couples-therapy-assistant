@@ -45,8 +45,8 @@ DEFINE FIELD IF NOT EXISTS cost ON prompt_log TYPE float;
 DEFINE FIELD IF NOT EXISTS createdAt ON prompt_log TYPE string;
 -- Template debugging fields (added for Admin Debug Panel)
 DEFINE FIELD IF NOT EXISTS promptTemplate ON prompt_log TYPE option<string>;
--- Use OVERWRITE to update existing field definition, and FLEXIBLE to allow nested properties
-DEFINE FIELD OVERWRITE promptVariables ON prompt_log FLEXIBLE TYPE option<object>;
+-- Store variables as JSON string (SurrealDB SCHEMAFULL doesn't preserve nested object properties)
+DEFINE FIELD OVERWRITE promptVariables ON prompt_log TYPE option<string>;
 
 -- Indexes for efficient querying
 DEFINE INDEX IF NOT EXISTS prompt_log_user_idx ON prompt_log FIELDS userId;

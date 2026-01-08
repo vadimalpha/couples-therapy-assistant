@@ -71,7 +71,8 @@ export async function logPrompt(params: LogPromptParams): Promise<void> {
     if (params.guidanceMode) content.guidanceMode = params.guidanceMode;
     // Template debugging fields
     if (params.promptTemplate) content.promptTemplate = params.promptTemplate;
-    if (params.promptVariables) content.promptVariables = params.promptVariables;
+    // Stringify variables since SurrealDB SCHEMAFULL doesn't preserve nested object properties
+    if (params.promptVariables) content.promptVariables = JSON.stringify(params.promptVariables);
 
     console.log(`[logPrompt] Content before save - hasTemplate: ${!!content.promptTemplate}, hasVariables: ${!!content.promptVariables}, contentKeys: ${Object.keys(content).join(',')}`);
     await db.query('CREATE prompt_log CONTENT $content', { content });
