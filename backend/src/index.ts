@@ -72,7 +72,7 @@ app.get('/health', async (req: Request, res: Response) => {
     timestamp,
     dbConnected,
     openaiConfigured,
-    version: '1.0.4'
+    version: '1.0.5'
   });
 });
 
