@@ -209,7 +209,7 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
           const isVarModified = variableOverrides[varName] !== undefined;
 
           return (
-            <span key={index} className="template-variable-wrapper">
+            <div key={index} className="template-variable-wrapper">
               <button
                 className={`template-variable-button ${isVarExpanded ? 'expanded' : ''} ${isVarModified ? 'modified' : ''}`}
                 onClick={() => toggleVariable(varName)}
@@ -283,7 +283,7 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                   )}
                 </div>
               )}
-            </span>
+            </div>
           );
         })}
       </div>

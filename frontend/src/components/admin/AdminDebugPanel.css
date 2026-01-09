@@ -678,7 +678,9 @@
 }
 
 .template-variable-wrapper {
-  display: inline;
+  /* Use inline-block to allow containing block children */
+  display: inline-block;
+  vertical-align: top;
 }
 
 .template-variable-button {
