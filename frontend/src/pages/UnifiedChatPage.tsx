@@ -156,7 +156,8 @@ const UnifiedChatPage: React.FC = () => {
         let userSession = isPartnerA ? partnerASession : partnerBSession;
 
         // If Partner B doesn't have a session yet, join the conflict
-        if (!userSession && !isPartnerA && conflict.status === 'pending_partner_b') {
+        // Partner B can join while Partner A is still chatting (concurrent exploration)
+        if (!userSession && !isPartnerA && ['partner_a_chatting', 'pending_partner_b'].includes(conflict.status)) {
           const joinResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/join`, {
             method: 'POST',
             headers: {
