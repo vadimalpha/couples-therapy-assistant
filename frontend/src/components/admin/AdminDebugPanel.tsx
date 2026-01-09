@@ -519,12 +519,54 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                       </div>
                     )}
                     {isEditing ? (
-                      <textarea
-                        className="prompt-editor"
-                        value={editedPrompt}
-                        onChange={(e) => setEditedPrompt(e.target.value)}
-                        rows={20}
-                      />
+                      hasTemplateData ? (
+                        <div className="template-editor">
+                          <div className="template-editor-section">
+                            <label className="editor-label">Template (use {'{{VARIABLE_NAME}}'} for injection points)</label>
+                            <textarea
+                              className="prompt-editor"
+                              value={editedTemplate}
+                              onChange={(e) => setEditedTemplate(e.target.value)}
+                              rows={15}
+                            />
+                          </div>
+                          <div className="variables-editor-section">
+                            <label className="editor-label">Variables</label>
+                            {Object.keys(prompt?.promptVariables || {}).map((varName) => (
+                              <div key={varName} className="variable-editor-row">
+                                <div className="variable-editor-header">
+                                  <code className="variable-name-tag">{`{{${varName}}}`}</code>
+                                  <span className="variable-char-count">
+                                    {getEffectiveVariableValue(varName).length} chars
+                                  </span>
+                                  {variableOverrides[varName] !== undefined && (
+                                    <button
+                                      className="variable-reset-btn"
+                                      onClick={() => clearVariableOverride(varName)}
+                                    >
+                                      Reset
+                                    </button>
+                                  )}
+                                </div>
+                                <textarea
+                                  className="variable-editor-textarea"
+                                  value={getEffectiveVariableValue(varName)}
+                                  onChange={(e) => handleVariableEdit(varName, e.target.value)}
+                                  rows={4}
+                                  placeholder="(empty - variable will not be injected)"
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <textarea
+                          className="prompt-editor"
+                          value={editedPrompt}
+                          onChange={(e) => setEditedPrompt(e.target.value)}
+                          rows={20}
+                        />
+                      )
                     ) : viewMode === 'template' && hasTemplateData ? (
                       renderTemplateWithVariables()
                     ) : (

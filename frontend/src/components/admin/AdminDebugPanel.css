@@ -864,3 +864,84 @@
   background-color: #5f5f5f;
   color: #ececec;
 }
+
+/* Template Editor Styles */
+.template-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-editor-section,
+.variables-editor-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.editor-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #a0a0a0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.variables-editor-section {
+  border-top: 1px solid #3a3a3a;
+  padding-top: 16px;
+}
+
+.variable-editor-row {
+  background-color: #1a1a1a;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.variable-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.variable-name-tag {
+  background-color: #2d4a3e;
+  border: 1px solid #3d6b5b;
+  color: #6ee7b7;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.variable-char-count {
+  font-size: 11px;
+  color: #666;
+}
+
+.variable-editor-textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  color: #ececec;
+  background-color: #0f0f0f;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.variable-editor-textarea:focus {
+  outline: none;
+  border-color: #4ade80;
+  background-color: #1a1a1a;
+}
+
+.variable-editor-textarea::placeholder {
+  color: #555;
+  font-style: italic;
+}
