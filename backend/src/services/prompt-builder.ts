@@ -235,21 +235,23 @@ export async function buildRAGSection(
       ? conflictId
       : `conflict:${conflictId}`;
 
-    // Get current conflict details
+    // Get current conflict details (title + description for better search matching)
     const conflictResult = await db.query(
-      'SELECT title FROM type::thing($conflictId)',
+      'SELECT title, description FROM type::thing($conflictId)',
       { conflictId: fullConflictId }
     );
 
-    const conflicts = extractQueryResult<{ title: string }>(conflictResult);
+    const conflicts = extractQueryResult<{ title: string; description?: string }>(conflictResult);
     if (conflicts.length === 0) {
       return '';
     }
 
-    const conflictTitle = conflicts[0].title;
+    // Combine title and description for richer semantic search
+    const conflict = conflicts[0];
+    const searchQuery = [conflict.title, conflict.description].filter(Boolean).join('. ');
 
     // Search for similar past content
-    const similarContent = await searchSimilar(userId, conflictTitle, 5);
+    const similarContent = await searchSimilar(userId, searchQuery, 5);
 
     if (similarContent.length === 0) {
       return '';
@@ -257,8 +259,8 @@ export async function buildRAGSection(
 
     // Filter results based on options
     const filteredContent = similarContent.filter(item => {
-      // Always filter by similarity threshold
-      if (item.similarity <= 0.6) return false;
+      // Always filter by similarity threshold (0.5 is reasonable for semantic matching)
+      if (item.similarity <= 0.5) return false;
 
       // Filter out intake content if disabled
       if (!includeIntake) {
