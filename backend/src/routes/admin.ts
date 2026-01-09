@@ -1,6 +1,6 @@
 import { Router, Response, NextFunction } from 'express';
 import { authenticateUser } from '../middleware/auth';
-import { AuthenticatedRequest } from '../types';
+import { AuthenticatedRequest, IntakeData } from '../types';
 import {
   getPromptLogs,
   getPromptLogCount,
@@ -15,6 +15,8 @@ import {
   getModeVariants,
 } from '../services/prompt-template';
 import { listAllUsers } from '../services/user';
+import { getDatabase } from '../services/db';
+import { embedIntakeData, embedAndStore } from '../services/embeddings';
 
 const router = Router();
 
@@ -314,6 +316,141 @@ router.get(
     } catch (error) {
       console.error('Error listing users:', error);
       res.status(500).json({ error: 'Failed to list users' });
+    }
+  }
+);
+
+// ============================================
+// Embeddings Backfill Routes
+// ============================================
+
+/**
+ * Helper to extract results from SurrealDB query response
+ */
+function extractQueryResult<T>(result: unknown): T[] {
+  if (!result || !Array.isArray(result) || result.length === 0) {
+    return [];
+  }
+  if (result[0] && typeof result[0] === 'object' && 'result' in result[0]) {
+    return (result[0] as { result: T[] }).result || [];
+  }
+  if (Array.isArray(result[0])) {
+    return result[0] as T[];
+  }
+  if (result[0] && typeof result[0] === 'object') {
+    return [result[0] as T];
+  }
+  return [];
+}
+
+interface UserWithIntake {
+  id: string;
+  firebaseUid: string;
+  email: string;
+  intakeData?: IntakeData;
+}
+
+interface ConversationWithMessages {
+  id: string;
+  userId: string;
+  sessionType: string;
+  messages: Array<{
+    id: string;
+    role: string;
+    content: string;
+    timestamp: string;
+  }>;
+}
+
+/**
+ * POST /api/admin/backfill-embeddings
+ * Trigger embeddings backfill for all users with intake data
+ */
+router.post(
+  '/backfill-embeddings',
+  authenticateUser,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const db = getDatabase();
+    const results = {
+      intake: { success: 0, errors: 0, details: [] as string[] },
+      conversations: { success: 0, errors: 0, details: [] as string[] },
+    };
+
+    try {
+      // Backfill intake embeddings
+      const usersResult = await db.query(
+        'SELECT id, firebaseUid, email, intakeData FROM user WHERE intakeData != NONE'
+      );
+      const users = extractQueryResult<UserWithIntake>(usersResult);
+      results.intake.details.push(`Found ${users.length} users with intake data`);
+
+      for (const user of users) {
+        if (!user.intakeData) continue;
+
+        try {
+          await embedIntakeData(user.id, {
+            name: user.intakeData.name,
+            relationship_duration: user.intakeData.relationship_duration,
+            communication_style_summary: user.intakeData.communication_style_summary,
+            conflict_triggers: user.intakeData.conflict_triggers,
+            previous_patterns: user.intakeData.previous_patterns,
+            relationship_goals: user.intakeData.relationship_goals,
+          });
+          results.intake.success++;
+          results.intake.details.push(`✓ ${user.email || user.id}`);
+        } catch (error) {
+          results.intake.errors++;
+          results.intake.details.push(`✗ ${user.email || user.id}: ${error}`);
+        }
+      }
+
+      // Backfill conversation embeddings
+      const sessionsResult = await db.query(
+        'SELECT id, userId, sessionType, messages FROM conversation WHERE messages != NONE AND array::len(messages) > 0'
+      );
+      const sessions = extractQueryResult<ConversationWithMessages>(sessionsResult);
+      results.conversations.details.push(`Found ${sessions.length} conversations with messages`);
+
+      for (const session of sessions) {
+        if (!session.messages || session.messages.length === 0) continue;
+
+        const userMessages = session.messages.filter(
+          m => m.role === 'user' && m.content.length > 30
+        );
+
+        for (const msg of userMessages) {
+          try {
+            await embedAndStore(msg.content, {
+              type: 'conversation',
+              referenceId: `${session.id}:${msg.id}`,
+              userId: session.userId,
+            });
+            results.conversations.success++;
+          } catch (error) {
+            results.conversations.errors++;
+          }
+        }
+        results.conversations.details.push(`Processed ${userMessages.length} messages from ${session.id}`);
+      }
+
+      res.json({
+        success: true,
+        results,
+        summary: {
+          intakeEmbeddings: results.intake.success,
+          intakeErrors: results.intake.errors,
+          conversationEmbeddings: results.conversations.success,
+          conversationErrors: results.conversations.errors,
+        },
+      });
+    } catch (error) {
+      console.error('Error during backfill:', error);
+      res.status(500).json({
+        error: 'Backfill failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        partialResults: results,
+      });
     }
   }
 );
