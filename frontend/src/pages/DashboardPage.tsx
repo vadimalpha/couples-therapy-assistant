@@ -929,24 +929,33 @@ export const DashboardPage: React.FC = () => {
 
               return (
                 <div key={conflict.id} className="chat-row conflict-row">
-                  <div className="chat-row-main">
-                    <span className="chat-row-subject">{conflict.title}</span>
-                    {conflict.partnerName && (
-                      <span className="chat-row-partner">with {conflict.partnerName}</span>
-                    )}
+                  <div className="conflict-row-content">
+                    <div className="conflict-row-top">
+                      <span className="chat-row-subject">{conflict.title}</span>
+                      {conflict.description && (
+                        <span className="chat-row-description">{conflict.description}</span>
+                      )}
+                    </div>
+                    <div className="conflict-row-bottom">
+                      {conflict.partnerName && (
+                        <span className="chat-row-partner">{conflict.partnerName}</span>
+                      )}
+                      <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
+                    </div>
                   </div>
-                  <div className="chat-row-meta">
-                    {badge && (
-                      <span className={`badge badge-${badge.variant} badge-sm`}>{badge.label}</span>
-                    )}
-                    <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
-                  </div>
-                  <div className="chat-row-actions">
-                    {buttons.map((btn, idx) => (
-                      <Link key={idx} to={btn.to} className={`btn btn-${btn.variant || 'primary'} btn-sm`}>
-                        {btn.label}
-                      </Link>
-                    ))}
+                  <div className="conflict-row-right">
+                    <div className="chat-row-meta">
+                      {badge && (
+                        <span className={`badge badge-${badge.variant} badge-sm`}>{badge.label}</span>
+                      )}
+                    </div>
+                    <div className="chat-row-actions">
+                      {buttons.map((btn, idx) => (
+                        <Link key={idx} to={btn.to} className={`btn btn-${btn.variant || 'primary'} btn-sm`}>
+                          {btn.label}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 </div>
               );
