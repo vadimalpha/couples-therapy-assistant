@@ -929,19 +929,19 @@ export const DashboardPage: React.FC = () => {
 
               return (
                 <div key={conflict.id} className="chat-row conflict-row">
-                  {/* Row 1: Title + Description | Status + Date */}
+                  {/* Row 1: Title + Description | Date + Status */}
                   <div className="conflict-row-1">
                     <div className="conflict-title-area">
                       <span className="chat-row-subject">{conflict.title}</span>
                       {conflict.description && (
-                        <span className="chat-row-description">{conflict.description}</span>
+                        <span className="chat-row-description"> — {conflict.description}</span>
                       )}
                     </div>
                     <div className="conflict-status-area">
+                      <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
                       {badge && (
                         <span className={`badge badge-${badge.variant} badge-sm`}>{badge.label}</span>
                       )}
-                      <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
                     </div>
                   </div>
                   {/* Row 2: Partner Name | Buttons */}
