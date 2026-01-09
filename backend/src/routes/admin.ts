@@ -16,7 +16,7 @@ import {
 } from '../services/prompt-template';
 import { listAllUsers } from '../services/user';
 import { getDatabase } from '../services/db';
-import { embedIntakeData, embedAndStore } from '../services/embeddings';
+import { embedIntakeData, embedAndStore, searchSimilar } from '../services/embeddings';
 
 const router = Router();
 
@@ -502,6 +502,46 @@ router.get(
       console.error('Error fetching embeddings:', error);
       res.status(500).json({
         error: 'Failed to fetch embeddings',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/embeddings/:userId/search
+ * Debug endpoint to test similarity search
+ */
+router.get(
+  '/embeddings/:userId/search',
+  authenticateUser,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.params;
+    const { query } = req.query;
+
+    if (!query || typeof query !== 'string') {
+      res.status(400).json({ error: 'Query parameter required' });
+      return;
+    }
+
+    try {
+      const results = await searchSimilar(userId, query, 10);
+
+      res.json({
+        userId,
+        query,
+        resultCount: results.length,
+        results: results.map(r => ({
+          similarity: r.similarity.toFixed(4),
+          type: r.metadata?.type,
+          contentPreview: r.content?.substring(0, 100) + '...',
+        })),
+      });
+    } catch (error) {
+      console.error('Error in similarity search:', error);
+      res.status(500).json({
+        error: 'Search failed',
         details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
