@@ -33,7 +33,6 @@ interface ConflictData {
  */
 const PartnerViewPage: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(true);
