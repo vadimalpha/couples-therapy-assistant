@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { conversationService } from './conversation';
 import { ConversationSession, ConversationMessage, IntakeData } from '../types';
 import { getDatabase } from './db';
-import { embedIntakeData, storeText } from './embeddings';
+import { embedIntakeData, embedAndStore } from './embeddings';
 
 /**
  * Intake Service
@@ -196,10 +196,10 @@ export class IntakeService {
       const userMessages = messages.filter(m => m.role === 'user');
       for (const msg of userMessages) {
         if (msg.content.length > 50) { // Only embed substantial messages
-          await storeText(userId, msg.content, {
-            type: 'intake_conversation',
-            sessionId: userId, // Use as reference
-            messageId: msg.id,
+          await embedAndStore(msg.content, {
+            type: 'intake',
+            referenceId: `intake:${msg.id}`,
+            userId: userId,
           });
         }
       }

@@ -10,8 +10,8 @@
 import { config } from 'dotenv';
 config();
 
-import { getDatabase, initDatabase, closeDatabase } from '../services/db';
-import { embedIntakeData, storeText } from '../services/embeddings';
+import { getDatabase, initializeDatabase, closeDatabase } from '../services/db';
+import { embedIntakeData, embedAndStore } from '../services/embeddings';
 import { IntakeData } from '../types';
 
 interface UserWithIntake {
@@ -119,10 +119,10 @@ async function backfillConversationEmbeddings(): Promise<number> {
 
     for (const msg of userMessages) {
       try {
-        await storeText(session.userId, msg.content, {
-          type: `${session.sessionType}_conversation`,
-          sessionId: session.id,
-          messageId: msg.id,
+        await embedAndStore(msg.content, {
+          type: 'conversation',
+          referenceId: `${session.id}:${msg.id}`,
+          userId: session.userId,
         });
         messageCount++;
       } catch (error) {
@@ -148,7 +148,7 @@ async function main() {
 
   try {
     // Initialize database
-    await initDatabase();
+    await initializeDatabase();
     console.log('Database connected\n');
 
     // Run backfills

@@ -11,7 +11,7 @@ import { JointContextGuidanceJob } from '../queue/jobs';
 import { conflictService } from './conflict';
 import { getRelationship } from './relationship';
 import { synthesizeIndividualGuidance, synthesizeJointContextGuidance } from './chat-ai';
-import { storeText } from './embeddings';
+import { embedAndStore } from './embeddings';
 
 /**
  * Helper to extract results from SurrealDB query response
@@ -146,13 +146,12 @@ export class ConversationService {
 
     // Generate embedding for user messages (async, don't block)
     if (role === 'user' && content.length > 30) {
-      storeText(session.userId, content, {
-        type: `${session.sessionType}_conversation`,
-        sessionId: sessionId,
-        messageId: message.id,
-        conflictId: session.conflictId,
-      }).catch(error => {
-        console.error('Error generating message embedding (non-blocking):', error);
+      embedAndStore(content, {
+        type: 'conversation',
+        referenceId: `${sessionId}:${message.id}`,
+        userId: session.userId,
+      }).catch((err: Error) => {
+        console.error('Error generating message embedding (non-blocking):', err);
       });
     }
 
