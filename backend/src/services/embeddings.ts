@@ -115,6 +115,7 @@ export async function embedIntakeData(
 
   try {
     // Store embedding in database
+    // Convert userId to string to avoid SurrealDB treating it as a record reference
     await db.query(
       `CREATE embedding CONTENT {
         userId: $userId,
@@ -122,7 +123,7 @@ export async function embedIntakeData(
         embedding: $embedding,
         metadata: {
           type: 'intake',
-          sourceId: $userId,
+          sourceId: <string>$userId,
           createdAt: $createdAt
         }
       }`,
@@ -205,6 +206,7 @@ export async function embedAndStore(
   const embedding = await generateEmbedding(text);
 
   try {
+    // Cast sourceId to string to avoid SurrealDB treating record IDs as references
     await db.query(
       `CREATE embedding CONTENT {
         userId: $userId,
@@ -212,7 +214,7 @@ export async function embedAndStore(
         embedding: $embedding,
         metadata: {
           type: $type,
-          sourceId: $sourceId,
+          sourceId: <string>$sourceId,
           createdAt: $createdAt
         }
       }`,
@@ -365,7 +367,7 @@ export async function generateConflictEmbedding(
 
     const userId = conflictData[0].partner_a_id;
 
-    // Store embedding
+    // Store embedding - cast sourceId to string to avoid record reference issues
     await db.query(
       `CREATE embedding CONTENT {
         userId: $userId,
@@ -373,7 +375,7 @@ export async function generateConflictEmbedding(
         embedding: $embedding,
         metadata: {
           type: 'conflict',
-          sourceId: $conflictId,
+          sourceId: <string>$conflictId,
           createdAt: $createdAt
         }
       }`,
