@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 import { ConversationMessage, SessionType } from '../types';
-import { buildPrompt } from './prompt-builder';
+import { buildPrompt, substituteVariables } from './prompt-builder';
 import { conversationService } from './conversation';
 import { conflictService } from './conflict';
 import { getUserById } from './user';
@@ -80,31 +80,49 @@ export interface SoloContext {
 }
 
 /**
- * In-memory prompt override store for testing modified prompts
- * Key: sessionId, Value: system prompt override
+ * Structured prompt override for testing
  */
-const promptOverrides = new Map<string, string>();
+export interface PromptOverrideData {
+  fullPrompt?: string;
+  template?: string;
+  variableOverrides?: Record<string, string>;
+}
+
+/**
+ * In-memory prompt override store for testing modified prompts
+ * Key: sessionId, Value: PromptOverrideData
+ */
+const promptOverrides = new Map<string, PromptOverrideData>();
 
 export function getPromptOverride(sessionId: string): string | undefined {
+  const data = getPromptOverrideData(sessionId);
+  return data?.fullPrompt;
+}
+
+export function getPromptOverrideData(sessionId: string): PromptOverrideData | undefined {
   // Normalize sessionId to include conversation: prefix for consistent lookup
   const normalizedId = sessionId.startsWith('conversation:')
     ? sessionId
     : `conversation:${sessionId}`;
 
   const override = promptOverrides.get(normalizedId);
-  console.log(`[getPromptOverride] sessionId=${sessionId}, normalizedId=${normalizedId}, hasOverride=${!!override}, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
+  console.log(`[getPromptOverrideData] sessionId=${sessionId}, normalizedId=${normalizedId}, hasOverride=${!!override}, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
   return override;
 }
 
 export function setPromptOverride(sessionId: string, systemPrompt: string): void {
+  setPromptOverrideData(sessionId, { fullPrompt: systemPrompt });
+}
+
+export function setPromptOverrideData(sessionId: string, data: PromptOverrideData): void {
   // Normalize sessionId to include conversation: prefix for consistent storage
   const normalizedId = sessionId.startsWith('conversation:')
     ? sessionId
     : `conversation:${sessionId}`;
 
-  console.log(`[setPromptOverride] sessionId=${sessionId}, normalizedId=${normalizedId}, promptLength=${systemPrompt.length}`);
-  promptOverrides.set(normalizedId, systemPrompt);
-  console.log(`[setPromptOverride] After set, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
+  console.log(`[setPromptOverrideData] sessionId=${sessionId}, normalizedId=${normalizedId}, hasFullPrompt=${!!data.fullPrompt}, hasTemplate=${!!data.template}, hasVariableOverrides=${!!data.variableOverrides}`);
+  promptOverrides.set(normalizedId, data);
+  console.log(`[setPromptOverrideData] After set, mapKeys=${Array.from(promptOverrides.keys()).join(',')}`);
 }
 
 export function clearPromptOverride(sessionId: string): void {
@@ -113,6 +131,49 @@ export function clearPromptOverride(sessionId: string): void {
     ? sessionId
     : `conversation:${sessionId}`;
   promptOverrides.delete(normalizedId);
+}
+
+/**
+ * Apply override data to a prompt build result
+ * Returns modified template, variables, and rendered prompt
+ */
+function applyOverrides(
+  original: { template?: string; variables?: Record<string, string>; rendered: string },
+  overrideData: PromptOverrideData | undefined
+): { systemPrompt: string; promptTemplate?: string; promptVariables?: Record<string, string> } {
+  // No override - return original
+  if (!overrideData) {
+    return {
+      systemPrompt: original.rendered,
+      promptTemplate: original.template,
+      promptVariables: original.variables,
+    };
+  }
+
+  // Full prompt override without template/variable changes - just use fullPrompt
+  if (overrideData.fullPrompt && !overrideData.template && !overrideData.variableOverrides) {
+    return {
+      systemPrompt: overrideData.fullPrompt,
+      promptTemplate: original.template,
+      promptVariables: original.variables,
+    };
+  }
+
+  // Template or variable overrides - need to re-render
+  const finalTemplate = overrideData.template || original.template || '';
+  const finalVariables = {
+    ...original.variables,
+    ...overrideData.variableOverrides,
+  };
+  const rendered = substituteVariables(finalTemplate, finalVariables);
+
+  console.log(`[applyOverrides] Applied overrides - hasTemplateOverride: ${!!overrideData.template}, variableOverrideKeys: ${overrideData.variableOverrides ? Object.keys(overrideData.variableOverrides).join(',') : 'none'}`);
+
+  return {
+    systemPrompt: rendered,
+    promptTemplate: finalTemplate,
+    promptVariables: finalVariables,
+  };
 }
 
 /**
@@ -321,20 +382,13 @@ export async function streamExplorationResponse(
       guidanceMode: context.guidanceMode || conflict?.guidance_mode || 'conversational',
     };
 
-    // Check for admin prompt override first
-    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    let systemPrompt: string;
-    let promptTemplate: string | undefined;
-    let promptVariables: Record<string, string> | undefined;
+    // Build prompt first, then apply any overrides
+    const promptResult = await buildSystemPromptHelper('exploration-system-prompt.txt', enrichedContext);
+    const overrideData = context.sessionId ? getPromptOverrideData(context.sessionId) : undefined;
+    const { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
 
-    if (promptOverride) {
-      console.log(`[streamExplorationResponse] Using admin prompt override for session ${context.sessionId}`);
-      systemPrompt = promptOverride;
-    } else {
-      const promptResult = await buildSystemPromptHelper('exploration-system-prompt.txt', enrichedContext);
-      systemPrompt = promptResult.rendered;
-      promptTemplate = promptResult.template;
-      promptVariables = promptResult.variables;
+    if (overrideData) {
+      console.log(`[streamExplorationResponse] Applied override for session ${context.sessionId}`);
     }
 
     const openaiMessages = convertMessagesToOpenAI(messages);
@@ -434,25 +488,18 @@ export async function streamGuidanceRefinementResponse(
 
     console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
 
-    // Check for admin prompt override first
-    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    let systemPrompt: string;
-    let promptTemplate: string | undefined;
-    let promptVariables: Record<string, string> | undefined;
+    // Build prompt first, then apply any overrides
+    const promptResult = await buildPrompt('guidance-refinement-prompt.txt', {
+      conflictId: context.conflictId || '',
+      userId: context.userId,
+      sessionType: context.sessionType,
+      includeRAG: true,
+    });
+    const overrideData = context.sessionId ? getPromptOverrideData(context.sessionId) : undefined;
+    let { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
 
-    if (promptOverride) {
-      console.log(`[streamGuidanceRefinementResponse] Using admin prompt override for session ${context.sessionId}`);
-      systemPrompt = promptOverride;
-    } else {
-      const promptResult = await buildPrompt('guidance-refinement-prompt.txt', {
-        conflictId: context.conflictId || '',
-        userId: context.userId,
-        sessionType: context.sessionType,
-        includeRAG: true,
-      });
-      systemPrompt = promptResult.rendered;
-      promptTemplate = promptResult.template;
-      promptVariables = promptResult.variables;
+    if (overrideData) {
+      console.log(`[streamGuidanceRefinementResponse] Applied override for session ${context.sessionId}`);
     }
 
     // Extract and include the initial guidance in the system prompt
@@ -569,41 +616,32 @@ export async function streamSoloResponse(
     };
     const promptFile = promptFileMap[context.sessionType];
 
-    // Check for admin prompt override first
-    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    let systemPrompt: string;
-    let promptTemplate: string | undefined;
-    let promptVariables: Record<string, string> | undefined;
+    // Build prompt first
+    const promptResult = await buildPrompt(promptFile, {
+      conflictId: '',
+      userId: context.userId,
+      sessionType: context.sessionType,
+      includeRAG: false,
+      includePatterns: false,
+    });
 
-    if (promptOverride) {
-      console.log(`[streamSoloResponse] Using admin prompt override for session ${context.sessionId}`);
-      systemPrompt = promptOverride;
+    // For solo_contextual, inject past conversation history into variables
+    if (context.sessionType === 'solo_contextual') {
+      const conversationHistory = await buildSoloConversationHistory(context.userId);
+      promptResult.variables['CONVERSATION_HISTORY'] = conversationHistory;
+      promptResult.rendered = promptResult.rendered.replace('{{CONVERSATION_HISTORY}}', conversationHistory);
     } else {
-      const promptResult = await buildPrompt(promptFile, {
-        conflictId: '',
-        userId: context.userId,
-        sessionType: context.sessionType,
-        includeRAG: false,
-        includePatterns: false,
-      });
-      systemPrompt = promptResult.rendered;
-      promptTemplate = promptResult.template;
-      promptVariables = { ...promptResult.variables };
+      // Remove placeholder if not contextual
+      promptResult.variables['CONVERSATION_HISTORY'] = '';
+      promptResult.rendered = promptResult.rendered.replace('{{CONVERSATION_HISTORY}}', '');
     }
 
-    // For solo_contextual, inject past conversation history
-    if (context.sessionType === 'solo_contextual' && !promptOverride) {
-      const conversationHistory = await buildSoloConversationHistory(context.userId);
-      systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', conversationHistory);
-      if (promptVariables) {
-        promptVariables['CONVERSATION_HISTORY'] = conversationHistory;
-      }
-    } else if (!promptOverride) {
-      // Remove placeholder if not contextual
-      systemPrompt = systemPrompt.replace('{{CONVERSATION_HISTORY}}', '');
-      if (promptVariables) {
-        promptVariables['CONVERSATION_HISTORY'] = '';
-      }
+    // Apply any overrides
+    const overrideData = context.sessionId ? getPromptOverrideData(context.sessionId) : undefined;
+    const { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
+
+    if (overrideData) {
+      console.log(`[streamSoloResponse] Applied override for session ${context.sessionId}`);
     }
 
     const openaiMessages = convertMessagesToOpenAI(messages);
@@ -1083,27 +1121,20 @@ export async function regenerateJointContextGuidance(
     const requestingIntakeData = await getIntakeData(requestingUserId);
     const otherIntakeData = otherUserId ? await getIntakeData(otherUserId) : null;
 
-    // Check for admin prompt override first
-    const promptOverride = getPromptOverride(sessionId);
-    let systemPrompt: string;
-    let promptTemplate: string | undefined;
-    let promptVariables: Record<string, string> | undefined;
+    // Build prompt first, then apply any overrides
+    const promptResult = await buildPrompt('joint-context-synthesis.txt', {
+      conflictId: session.conflictId,
+      userId: requestingUserId,
+      sessionType: session.sessionType,
+      includeRAG: true,
+      includePatterns: true,
+      guidanceMode: conflict.guidance_mode || 'conversational',
+    });
+    const overrideData = getPromptOverrideData(sessionId);
+    const { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
 
-    if (promptOverride) {
-      console.log(`[regenerateJointContextGuidance] Using admin prompt override for session ${sessionId}`);
-      systemPrompt = promptOverride;
-    } else {
-      const promptResult = await buildPrompt('joint-context-synthesis.txt', {
-        conflictId: session.conflictId,
-        userId: requestingUserId,
-        sessionType: session.sessionType,
-        includeRAG: true,
-        includePatterns: true,
-        guidanceMode: conflict.guidance_mode || 'conversational',
-      });
-      systemPrompt = promptResult.rendered;
-      promptTemplate = promptResult.template;
-      promptVariables = promptResult.variables;
+    if (overrideData) {
+      console.log(`[regenerateJointContextGuidance] Applied override for session ${sessionId}`);
     }
 
     const context = buildJointContext(
@@ -1208,27 +1239,20 @@ export async function generateRelationshipSynthesis(
     const partnerAGuidance = await getPartnerGuidance(context.partnerAId, context.conflictId);
     const partnerBGuidance = await getPartnerGuidance(context.partnerBId, context.conflictId);
 
-    // Check for admin prompt override first
-    const promptOverride = context.sessionId ? getPromptOverride(context.sessionId) : undefined;
-    let systemPrompt: string;
-    let promptTemplate: string | undefined;
-    let promptVariables: Record<string, string> | undefined;
+    // Build prompt first, then apply any overrides
+    const promptResult = await buildPrompt('relationship-synthesis.txt', {
+      conflictId: context.conflictId,
+      userId: context.partnerAId,
+      sessionType: 'relationship_shared',
+      includeRAG: true,
+      includePatterns: true,
+      guidanceMode: conflict.guidance_mode || 'conversational',
+    });
+    const overrideData = context.sessionId ? getPromptOverrideData(context.sessionId) : undefined;
+    const { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
 
-    if (promptOverride) {
-      console.log(`[generateRelationshipSynthesis] Using admin prompt override for session ${context.sessionId}`);
-      systemPrompt = promptOverride;
-    } else {
-      const promptResult = await buildPrompt('relationship-synthesis.txt', {
-        conflictId: context.conflictId,
-        userId: context.partnerAId,
-        sessionType: 'relationship_shared',
-        includeRAG: true,
-        includePatterns: true,
-        guidanceMode: conflict.guidance_mode || 'conversational',
-      });
-      systemPrompt = promptResult.rendered;
-      promptTemplate = promptResult.template;
-      promptVariables = promptResult.variables;
+    if (overrideData) {
+      console.log(`[generateRelationshipSynthesis] Applied override for session ${context.sessionId}`);
     }
 
     const synthesisContext = buildRelationshipSynthesisContext(

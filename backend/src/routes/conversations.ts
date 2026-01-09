@@ -8,6 +8,7 @@ import {
   validateApiKey,
   GuidanceRefinementContext,
   setPromptOverride,
+  setPromptOverrideData,
   clearPromptOverride,
   getPromptOverride,
   MODEL,
@@ -1013,6 +1014,10 @@ router.get(
  *
  * Clears all messages from the session and stores a prompt override
  * for testing. The next AI response will use the overridden prompt.
+ *
+ * Supports two modes:
+ * 1. Full prompt override: { systemPrompt: "..." }
+ * 2. Template + variable overrides: { template: "...", variableOverrides: { RAG_CONTEXT: "..." } }
  */
 router.post(
   '/:id/restart-with-prompt',
@@ -1020,7 +1025,7 @@ router.post(
   async (req: AuthenticatedRequest, res: Response) => {
     try {
       const { id } = req.params;
-      const { systemPrompt } = req.body;
+      const { systemPrompt, template, variableOverrides } = req.body;
       const userId = req.user?.uid;
       const userEmail = req.user?.email;
 
@@ -1035,6 +1040,7 @@ router.post(
         return;
       }
 
+      // At least systemPrompt must be provided (used as fallback/default)
       if (!systemPrompt || typeof systemPrompt !== 'string') {
         res.status(400).json({ error: 'systemPrompt is required' });
         return;
@@ -1059,12 +1065,23 @@ router.post(
 
       // Store prompt override for this session
       // Use fullId to ensure consistent format with WebSocket handlers
-      setPromptOverride(fullId, systemPrompt);
+      // If template or variableOverrides provided, use structured override
+      if (template || variableOverrides) {
+        setPromptOverrideData(fullId, {
+          fullPrompt: systemPrompt,
+          template: template || undefined,
+          variableOverrides: variableOverrides || undefined,
+        });
+      } else {
+        setPromptOverride(fullId, systemPrompt);
+      }
 
       res.json({
         success: true,
         message: 'Session restarted with modified prompt',
         sessionId: fullId,
+        hasTemplateOverride: !!template,
+        hasVariableOverrides: !!variableOverrides,
       });
     } catch (error) {
       console.error('Error restarting session:', error);

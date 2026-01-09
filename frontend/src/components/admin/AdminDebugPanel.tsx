@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { DebugPromptInfo, SessionType } from '../../hooks/useChatSession';
+import React, { useState, useEffect, useMemo } from 'react';
+import { DebugPromptInfo, SessionType, RestartOptions } from '../../hooks/useChatSession';
 import './AdminDebugPanel.css';
+
+interface VariableOverrides {
+  [key: string]: string;
+}
 
 interface AdminDebugPanelProps {
   prompt: DebugPromptInfo | null;
   sessionType: SessionType;
   onRefresh?: () => void;
-  onRestartWithPrompt?: (systemPrompt: string) => Promise<{ success: boolean; error?: string }>;
+  onRestartWithPrompt?: (systemPrompt: string, options?: RestartOptions) => Promise<{ success: boolean; error?: string }>;
   onSaveTemplate?: (systemPrompt: string) => Promise<{ success: boolean; templateFile?: string; error?: string }>;
   onClearMessages?: () => void;
   isLoading?: boolean;
@@ -63,16 +67,49 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
   const [viewMode, setViewMode] = useState<'template' | 'rendered'>('template');
   // Track which variables are expanded in template view
   const [expandedVariables, setExpandedVariables] = useState<Set<string>>(new Set());
+  // Variable overrides for editing
+  const [variableOverrides, setVariableOverrides] = useState<VariableOverrides>({});
+  // Template editing
+  const [editedTemplate, setEditedTemplate] = useState('');
+  // Which variable is currently being edited
+  const [editingVariable, setEditingVariable] = useState<string | null>(null);
+
+  // Reconstruct rendered prompt from template + variables (with overrides)
+  const reconstructedPrompt = useMemo(() => {
+    if (!prompt?.promptTemplate) return editedPrompt;
+    let result = editedTemplate || prompt.promptTemplate;
+    const variables = prompt.promptVariables || {};
+
+    // Apply original variables with overrides
+    const varPattern = /\{\{(\w+)\}\}/g;
+    result = result.replace(varPattern, (match, varName) => {
+      if (variableOverrides[varName] !== undefined) {
+        return variableOverrides[varName];
+      }
+      return variables[varName] || match;
+    });
+
+    return result;
+  }, [prompt?.promptTemplate, prompt?.promptVariables, editedTemplate, variableOverrides, editedPrompt]);
 
   // Sync edited prompt with original when prompt changes
   useEffect(() => {
     if (prompt?.systemPrompt) {
-      setOriginalPrompt(prompt.systemPrompt);
+      // If systemPrompt is very short (bad data), use reconstructed from template
+      const effectivePrompt = prompt.systemPrompt.length < 50 && prompt.promptTemplate
+        ? reconstructedPrompt
+        : prompt.systemPrompt;
+      setOriginalPrompt(effectivePrompt);
       if (!isEditing && !isTesting) {
-        setEditedPrompt(prompt.systemPrompt);
+        setEditedPrompt(effectivePrompt);
       }
     }
-  }, [prompt?.systemPrompt, isEditing, isTesting]);
+    // Reset template and variable overrides when prompt changes
+    if (prompt?.promptTemplate && !isEditing && !isTesting) {
+      setEditedTemplate(prompt.promptTemplate);
+      setVariableOverrides({});
+    }
+  }, [prompt?.systemPrompt, prompt?.promptTemplate, isEditing, isTesting]);
 
   // Sync isTesting state with backend hasOverride on page load/refresh
   useEffect(() => {
@@ -81,7 +118,15 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
     }
   }, [prompt?.hasOverride]);
 
-  const isModified = editedPrompt !== originalPrompt;
+  // Check if template or variables have been modified
+  const hasTemplateModifications = useMemo(() => {
+    if (!prompt?.promptTemplate) return false;
+    const templateModified = editedTemplate !== prompt.promptTemplate;
+    const variablesModified = Object.keys(variableOverrides).length > 0;
+    return templateModified || variablesModified;
+  }, [editedTemplate, prompt?.promptTemplate, variableOverrides]);
+
+  const isModified = editedPrompt !== originalPrompt || hasTemplateModifications;
   const hasTemplateData = !!prompt?.promptTemplate && !!prompt?.promptVariables;
 
   const toggleVariable = (varName: string) => {
@@ -96,15 +141,37 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
     });
   };
 
+  const handleVariableEdit = (varName: string, value: string) => {
+    setVariableOverrides((prev) => ({
+      ...prev,
+      [varName]: value,
+    }));
+  };
+
+  const clearVariableOverride = (varName: string) => {
+    setVariableOverrides((prev) => {
+      const next = { ...prev };
+      delete next[varName];
+      return next;
+    });
+  };
+
+  const getEffectiveVariableValue = (varName: string): string => {
+    if (variableOverrides[varName] !== undefined) {
+      return variableOverrides[varName];
+    }
+    return prompt?.promptVariables?.[varName] || '';
+  };
+
   /**
-   * Parse template and render with inline expandable variable blocks
+   * Parse template and render with inline expandable/editable variable blocks
    */
   const renderTemplateWithVariables = () => {
     if (!prompt?.promptTemplate || !prompt?.promptVariables) {
       return <pre className="section-content">{editedPrompt}</pre>;
     }
 
-    const template = prompt.promptTemplate;
+    const template = editedTemplate || prompt.promptTemplate;
     const variables = prompt.promptVariables;
 
     // Split template by variable placeholders
@@ -134,24 +201,86 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
             return <span key={index} className="template-text">{part.content}</span>;
           }
           const varName = part.varName!;
-          const varValue = variables[varName] || '';
+          const originalValue = variables[varName] || '';
+          const effectiveValue = getEffectiveVariableValue(varName);
           const isVarExpanded = expandedVariables.has(varName);
-          const isEmpty = !varValue || varValue.trim() === '';
+          const isEmpty = !effectiveValue || effectiveValue.trim() === '';
+          const isVarEditing = editingVariable === varName;
+          const isVarModified = variableOverrides[varName] !== undefined;
 
           return (
             <span key={index} className="template-variable-wrapper">
               <button
-                className={`template-variable-button ${isVarExpanded ? 'expanded' : ''}`}
+                className={`template-variable-button ${isVarExpanded ? 'expanded' : ''} ${isVarModified ? 'modified' : ''}`}
                 onClick={() => toggleVariable(varName)}
               >
                 {part.content}
                 <span className="variable-indicator">
+                  {isVarModified && <span className="modified-dot">●</span>}
                   {isEmpty ? '(empty)' : isVarExpanded ? '▲' : '▼'}
                 </span>
               </button>
-              {isVarExpanded && !isEmpty && (
+              {isVarExpanded && (
                 <div className="template-variable-content">
-                  <pre>{varValue}</pre>
+                  <div className="variable-header">
+                    <span className="variable-name">{varName}</span>
+                    <span className="variable-size">{effectiveValue.length.toLocaleString()} chars</span>
+                    {!isVarEditing && isEditing && (
+                      <button
+                        className="variable-edit-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingVariable(varName);
+                        }}
+                      >
+                        Edit
+                      </button>
+                    )}
+                    {isVarModified && !isVarEditing && (
+                      <button
+                        className="variable-reset-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          clearVariableOverride(varName);
+                        }}
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+                  {isVarEditing ? (
+                    <div className="variable-editor">
+                      <textarea
+                        value={effectiveValue}
+                        onChange={(e) => handleVariableEdit(varName, e.target.value)}
+                        rows={10}
+                        className="variable-textarea"
+                      />
+                      <div className="variable-editor-actions">
+                        <button
+                          className="variable-done-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingVariable(null);
+                          }}
+                        >
+                          Done
+                        </button>
+                        <button
+                          className="variable-cancel-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearVariableOverride(varName);
+                            setEditingVariable(null);
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <pre className={isEmpty ? 'empty-value' : ''}>{isEmpty ? '(no content)' : effectiveValue}</pre>
+                  )}
                 </div>
               )}
             </span>
@@ -187,12 +316,29 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
     setActionError(null);
     setIsSaving(true);
 
-    const result = await onRestartWithPrompt(editedPrompt);
+    // Determine what to send based on modifications
+    const options: RestartOptions = {};
+
+    if (hasTemplateData && hasTemplateModifications) {
+      // Send template + variable overrides
+      if (editedTemplate !== prompt?.promptTemplate) {
+        options.template = editedTemplate;
+      }
+      if (Object.keys(variableOverrides).length > 0) {
+        options.variableOverrides = variableOverrides;
+      }
+    }
+
+    // Use reconstructed prompt if we have template modifications, otherwise edited prompt
+    const effectivePrompt = hasTemplateModifications ? reconstructedPrompt : editedPrompt;
+
+    const result = await onRestartWithPrompt(effectivePrompt, options);
     setIsSaving(false);
 
     if (result.success) {
       setIsTesting(true);
       setIsEditing(false);
+      setEditingVariable(null);
       if (onClearMessages) {
         onClearMessages();
       }
@@ -221,6 +367,9 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
 
   const handleReset = () => {
     setEditedPrompt(originalPrompt);
+    setEditedTemplate(prompt?.promptTemplate || '');
+    setVariableOverrides({});
+    setEditingVariable(null);
     setIsEditing(false);
     setIsTesting(false);
     setActionError(null);

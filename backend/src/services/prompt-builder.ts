@@ -56,6 +56,18 @@ export interface PromptBuildResult {
 }
 
 /**
+ * Substitute variables into a template string
+ * Replaces {{VARIABLE_NAME}} placeholders with their values
+ */
+export function substituteVariables(template: string, variables: Record<string, string>): string {
+  let result = template;
+  for (const [key, value] of Object.entries(variables)) {
+    result = result.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), value);
+  }
+  return result;
+}
+
+/**
  * Mode-aware templates that have separate versions for structured/conversational/test
  */
 const MODE_AWARE_TEMPLATES = [

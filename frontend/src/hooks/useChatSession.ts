@@ -48,6 +48,14 @@ export interface DebugPromptInfo {
 }
 
 /**
+ * Options for restarting a session with modified prompt
+ */
+export interface RestartOptions {
+  template?: string;
+  variableOverrides?: Record<string, string>;
+}
+
+/**
  * Options for useChatSession hook
  */
 export interface UseChatSessionOptions {
@@ -72,7 +80,7 @@ export interface UseChatSessionReturn {
   error: Error | null;
   debugPrompt: DebugPromptInfo | null;
   refreshDebugPrompt: () => Promise<void>;
-  restartWithPrompt: (systemPrompt: string) => Promise<{ success: boolean; error?: string }>;
+  restartWithPrompt: (systemPrompt: string, options?: RestartOptions) => Promise<{ success: boolean; error?: string }>;
   savePromptTemplate: (systemPrompt: string) => Promise<{ success: boolean; templateFile?: string; error?: string }>;
   clearMessages: () => void;
   // Multi-user specific (only for relationship_shared)
@@ -168,7 +176,7 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
   }, [isAdmin, sessionId, messages.length, refreshDebugPrompt]);
 
   // Restart session with modified prompt (admin only)
-  const restartWithPrompt = useCallback(async (systemPrompt: string): Promise<{ success: boolean; error?: string }> => {
+  const restartWithPrompt = useCallback(async (systemPrompt: string, options?: RestartOptions): Promise<{ success: boolean; error?: string }> => {
     if (!isAdmin || !sessionId) {
       return { success: false, error: 'Not authorized' };
     }
@@ -183,7 +191,11 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ systemPrompt }),
+        body: JSON.stringify({
+          systemPrompt,
+          template: options?.template,
+          variableOverrides: options?.variableOverrides,
+        }),
       });
 
       const data = await response.json();
