@@ -67,7 +67,12 @@ router.post(
         useIntakeContext
       );
 
-      res.status(201).json(conflict);
+      // Include conflictId at top level for frontend compatibility
+      res.status(201).json({
+        ...conflict,
+        conflictId: conflict.id,
+        sessionId: conflict.partner_a_session_id,
+      });
     } catch (error) {
       console.error('Error creating conflict:', error);
       res.status(500).json({ error: 'Failed to create conflict' });
