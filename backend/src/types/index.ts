@@ -13,6 +13,7 @@ export interface User {
   relationshipId?: string; // Legacy - primary relationship ID
   primaryRelationshipId?: string; // Primary relationship for conflicts
   intakeData?: IntakeData;
+  useIntakeContext?: boolean; // Global setting: include intake data in RAG context (default: true)
   createdAt: string;
   updatedAt: string;
   [key: string]: unknown;
@@ -106,6 +107,7 @@ export interface Conflict {
   partner_a_session_id?: string;
   partner_b_session_id?: string;
   relationship_id: string;
+  use_intake_context?: boolean; // Per-conflict setting: include intake data in RAG (default: user's global setting)
   created_at: string;
   updated_at: string;
   [key: string]: unknown;

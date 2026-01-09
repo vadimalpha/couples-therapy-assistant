@@ -118,7 +118,9 @@ export async function buildPrompt(
 
   // Inject RAG context if requested
   if (context.includeRAG) {
-    const ragSection = await buildRAGSection(context.conflictId, context.userId);
+    // Check user and conflict settings for intake context
+    const includeIntake = await shouldIncludeIntake(context.conflictId, context.userId);
+    const ragSection = await buildRAGSection(context.conflictId, context.userId, { includeIntake });
     variables['RAG_CONTEXT'] = ragSection;
     prompt = prompt.replace('{{RAG_CONTEXT}}', ragSection);
   } else {
@@ -164,13 +166,67 @@ export async function buildPrompt(
 }
 
 /**
+ * Options for building RAG section
+ */
+export interface RAGOptions {
+  includeIntake?: boolean; // Whether to include intake-related content (default: true)
+}
+
+/**
+ * Determine if intake context should be included based on user and conflict settings
+ * Conflict setting takes precedence over user setting if defined
+ */
+async function shouldIncludeIntake(conflictId: string, userId: string): Promise<boolean> {
+  const db = getDatabase();
+
+  try {
+    // Get conflict's use_intake_context setting
+    const fullConflictId = conflictId.startsWith('conflict:')
+      ? conflictId
+      : `conflict:${conflictId}`;
+    const conflictResult = await db.query(
+      'SELECT use_intake_context FROM type::thing($conflictId)',
+      { conflictId: fullConflictId }
+    );
+    const conflicts = extractQueryResult<{ use_intake_context?: boolean }>(conflictResult);
+
+    // If conflict has explicit setting, use it
+    if (conflicts.length > 0 && conflicts[0].use_intake_context !== undefined) {
+      return conflicts[0].use_intake_context;
+    }
+
+    // Otherwise, check user's global setting
+    const userResult = await db.query(
+      'SELECT useIntakeContext FROM user WHERE firebaseUid = $userId',
+      { userId }
+    );
+    const users = extractQueryResult<{ useIntakeContext?: boolean }>(userResult);
+
+    // User setting defaults to true if not set
+    if (users.length > 0 && users[0].useIntakeContext !== undefined) {
+      return users[0].useIntakeContext;
+    }
+
+    // Default to true (include intake context)
+    return true;
+  } catch (error) {
+    console.error('Error checking intake context settings:', error);
+    // Default to true on error
+    return true;
+  }
+}
+
+/**
  * Get RAG context section for injection
  * Searches for similar past conversations and conflicts
  */
 export async function buildRAGSection(
   conflictId: string,
-  userId: string
+  userId: string,
+  options: RAGOptions = {}
 ): Promise<string> {
+  const { includeIntake = true } = options;
+
   try {
     const db = getDatabase();
 
@@ -188,9 +244,29 @@ export async function buildRAGSection(
     const conflictTitle = conflicts[0].title;
 
     // Search for similar past content
-    const similarContent = await searchSimilar(userId, conflictTitle, 3);
+    const similarContent = await searchSimilar(userId, conflictTitle, 5);
 
     if (similarContent.length === 0) {
+      return '';
+    }
+
+    // Filter results based on options
+    const filteredContent = similarContent.filter(item => {
+      // Always filter by similarity threshold
+      if (item.similarity <= 0.6) return false;
+
+      // Filter out intake content if disabled
+      if (!includeIntake) {
+        const type = item.metadata?.type || '';
+        if (type === 'intake' || type === 'intake_conversation') {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (filteredContent.length === 0) {
       return '';
     }
 
@@ -198,11 +274,8 @@ export async function buildRAGSection(
     let ragSection = '\n\n## Relevant Past Context\n\n';
     ragSection += 'Based on previous conversations and conflicts:\n\n';
 
-    for (const item of similarContent) {
-      if (item.similarity > 0.6) {
-        // Only include reasonably similar content
-        ragSection += `- ${item.metadata.type}: ${item.content.substring(0, 150)}...\n`;
-      }
+    for (const item of filteredContent) {
+      ragSection += `- ${item.metadata.type}: ${item.content.substring(0, 150)}...\n`;
     }
 
     ragSection += '\nUse this context to inform your responses, but focus on the current situation.\n';

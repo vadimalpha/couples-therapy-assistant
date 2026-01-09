@@ -2,6 +2,7 @@ import OpenAI from 'openai';
 import { conversationService } from './conversation';
 import { ConversationSession, ConversationMessage, IntakeData } from '../types';
 import { getDatabase } from './db';
+import { embedIntakeData, storeText } from './embeddings';
 
 /**
  * Intake Service
@@ -163,7 +164,50 @@ export class IntakeService {
     // Save to user profile
     await this.saveIntakeData(session.userId, intakeData);
 
+    // Generate embeddings for RAG (async, don't block on failure)
+    this.generateIntakeEmbeddings(session.userId, intakeData, session.messages).catch(error => {
+      console.error('Error generating intake embeddings (non-blocking):', error);
+    });
+
     return intakeData;
+  }
+
+  /**
+   * Generate embeddings for intake data and conversation
+   */
+  private async generateIntakeEmbeddings(
+    userId: string,
+    intakeData: IntakeData,
+    messages: ConversationMessage[]
+  ): Promise<void> {
+    try {
+      // Embed structured intake data
+      await embedIntakeData(userId, {
+        name: intakeData.name,
+        relationship_duration: intakeData.relationship_duration,
+        communication_style_summary: intakeData.communication_style_summary,
+        conflict_triggers: intakeData.conflict_triggers,
+        previous_patterns: intakeData.previous_patterns,
+        relationship_goals: intakeData.relationship_goals,
+      });
+      console.log(`[IntakeService] Generated intake data embedding for user ${userId}`);
+
+      // Embed key conversation messages (user responses only, skip AI)
+      const userMessages = messages.filter(m => m.role === 'user');
+      for (const msg of userMessages) {
+        if (msg.content.length > 50) { // Only embed substantial messages
+          await storeText(userId, msg.content, {
+            type: 'intake_conversation',
+            sessionId: userId, // Use as reference
+            messageId: msg.id,
+          });
+        }
+      }
+      console.log(`[IntakeService] Generated ${userMessages.length} conversation embeddings for user ${userId}`);
+    } catch (error) {
+      console.error('Error generating intake embeddings:', error);
+      // Don't throw - embeddings are optional enhancement
+    }
   }
 
   /**

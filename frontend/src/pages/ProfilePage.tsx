@@ -22,11 +22,14 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [useIntakeContext, setUseIntakeContext] = useState<boolean>(true);
+  const [savingSettings, setSavingSettings] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
 
   useEffect(() => {
     loadIntakeData();
+    loadUserSettings();
   }, []);
 
   const loadIntakeData = async () => {
@@ -57,6 +60,52 @@ const ProfilePage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'Failed to load profile');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUserSettings = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        headers: {
+          'Authorization': `Bearer ${await user?.getIdToken()}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        // Default to true if not set
+        setUseIntakeContext(data.user?.useIntakeContext ?? true);
+      }
+    } catch (err) {
+      console.error('Error loading user settings:', err);
+      // Don't show error for settings, just use defaults
+    }
+  };
+
+  const handleToggleIntakeContext = async () => {
+    try {
+      setSavingSettings(true);
+      const newValue = !useIntakeContext;
+
+      const response = await fetch(`${API_URL}/api/users/me/settings`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${await user?.getIdToken()}`
+        },
+        body: JSON.stringify({ useIntakeContext: newValue })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update settings');
+      }
+
+      setUseIntakeContext(newValue);
+    } catch (err) {
+      console.error('Error updating settings:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update settings');
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -213,6 +262,46 @@ const ProfilePage: React.FC = () => {
                   Last updated: {formatDate(intakeData.last_updated)}
                 </p>
               </div>
+            </div>
+
+            {/* AI Context Settings */}
+            <div style={{
+              backgroundColor: '#f7fafc',
+              padding: '24px',
+              borderRadius: '8px',
+              marginBottom: '20px'
+            }}>
+              <h2 style={{ fontSize: '20px', fontWeight: '600', marginBottom: '16px' }}>
+                AI Context Settings
+              </h2>
+
+              <label style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '12px',
+                cursor: savingSettings ? 'wait' : 'pointer'
+              }}>
+                <input
+                  type="checkbox"
+                  checked={useIntakeContext}
+                  onChange={handleToggleIntakeContext}
+                  disabled={savingSettings}
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    marginTop: '2px',
+                    cursor: savingSettings ? 'wait' : 'pointer'
+                  }}
+                />
+                <span>
+                  <span style={{ fontWeight: '500', color: '#2d3748', display: 'block' }}>
+                    Use intake data in AI responses
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#718096', display: 'block', marginTop: '4px' }}>
+                    When enabled, the AI will use information from your intake interview to provide more personalized guidance. You can also override this per-conversation.
+                  </span>
+                </span>
+              </label>
             </div>
 
             {/* Action Buttons */}

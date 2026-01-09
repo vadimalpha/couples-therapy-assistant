@@ -42,7 +42,8 @@ export class ConflictService {
     privacy: ConflictPrivacy,
     relationshipId: string,
     guidanceMode: GuidanceMode = 'conversational',
-    description?: string
+    description?: string,
+    useIntakeContext?: boolean
   ): Promise<Conflict> {
     const db = getDatabase();
     const now = new Date().toISOString();
@@ -60,6 +61,11 @@ export class ConflictService {
 
     if (description) {
       conflictData.description = description;
+    }
+
+    // Add use_intake_context only if explicitly provided (undefined means use user's global setting)
+    if (useIntakeContext !== undefined) {
+      conflictData.use_intake_context = useIntakeContext;
     }
 
     const result = await db.query('CREATE conflict CONTENT $data', {

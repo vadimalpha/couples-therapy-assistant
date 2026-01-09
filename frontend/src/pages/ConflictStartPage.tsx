@@ -25,6 +25,7 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
   const [description, setDescription] = useState('');
   const [isShared, setIsShared] = useState(false);
   const [guidanceMode, setGuidanceMode] = useState<GuidanceMode>('conversational');
+  const [useIntakeContext, setUseIntakeContext] = useState<boolean | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -131,7 +132,8 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
           description: description.trim() || undefined,
           privacy: isShared ? 'shared' : 'private',
           relationshipId: selectedRelationshipId,
-          guidanceMode
+          guidanceMode,
+          useIntakeContext
         })
       });
 
@@ -314,6 +316,68 @@ const ConflictStartPage: React.FC<ConflictStartPageProps> = () => {
                 </span>
               </span>
             </label>
+          </div>
+
+          <div className="form-group">
+            <fieldset className="guidance-mode-fieldset">
+              <legend className="form-label">Use Intake Data</legend>
+              <p className="guidance-mode-description">
+                Choose whether to include your intake interview data for more personalized AI responses
+              </p>
+              <div className="guidance-mode-options">
+                <label className={`guidance-mode-option ${useIntakeContext === undefined ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="intakeContext"
+                    value="default"
+                    checked={useIntakeContext === undefined}
+                    onChange={() => setUseIntakeContext(undefined)}
+                    disabled={isSubmitting}
+                    className="guidance-mode-radio"
+                  />
+                  <span className="guidance-mode-content">
+                    <span className="guidance-mode-title">Use Profile Setting</span>
+                    <span className="guidance-mode-subtitle">
+                      Follow your global setting from your profile
+                    </span>
+                  </span>
+                </label>
+                <label className={`guidance-mode-option ${useIntakeContext === true ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="intakeContext"
+                    value="enabled"
+                    checked={useIntakeContext === true}
+                    onChange={() => setUseIntakeContext(true)}
+                    disabled={isSubmitting}
+                    className="guidance-mode-radio"
+                  />
+                  <span className="guidance-mode-content">
+                    <span className="guidance-mode-title">Always Include</span>
+                    <span className="guidance-mode-subtitle">
+                      Include intake data for this conversation
+                    </span>
+                  </span>
+                </label>
+                <label className={`guidance-mode-option ${useIntakeContext === false ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="intakeContext"
+                    value="disabled"
+                    checked={useIntakeContext === false}
+                    onChange={() => setUseIntakeContext(false)}
+                    disabled={isSubmitting}
+                    className="guidance-mode-radio"
+                  />
+                  <span className="guidance-mode-content">
+                    <span className="guidance-mode-title">Exclude</span>
+                    <span className="guidance-mode-subtitle">
+                      Don't use intake data for this conversation
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
           </div>
 
           {error && (

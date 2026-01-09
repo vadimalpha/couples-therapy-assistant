@@ -209,4 +209,67 @@ router.put('/me/intake', authenticateUser, async (req: AuthenticatedRequest, res
   }
 });
 
+/**
+ * PATCH /api/users/me/settings - Update user settings
+ * Supports updating useIntakeContext (global setting for intake context in RAG)
+ */
+router.patch('/me/settings', authenticateUser, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+
+    const user = await getUserByFirebaseUid(req.user.uid);
+
+    if (!user) {
+      res.status(404).json({ error: 'User not found' });
+      return;
+    }
+
+    const { useIntakeContext } = req.body;
+
+    // Validate input
+    if (useIntakeContext !== undefined && typeof useIntakeContext !== 'boolean') {
+      res.status(400).json({ error: 'useIntakeContext must be a boolean' });
+      return;
+    }
+
+    // Build update object
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
+
+    if (useIntakeContext !== undefined) {
+      updates.useIntakeContext = useIntakeContext;
+    }
+
+    // Update user
+    const db = getDatabase();
+    const updated = await db.query(
+      'UPDATE $userId MERGE $updates',
+      {
+        userId: user.id,
+        updates,
+      }
+    );
+
+    const updatedUsers = extractQueryResult<User>(updated);
+    if (updatedUsers.length === 0) {
+      throw new Error('Failed to update user settings');
+    }
+
+    res.json({
+      success: true,
+      settings: {
+        useIntakeContext: updatedUsers[0].useIntakeContext ?? true,
+      },
+      message: 'Settings updated successfully'
+    });
+  } catch (error) {
+    console.error('Error updating user settings:', error);
+    res.status(500).json({ error: 'Failed to update user settings' });
+  }
+});
+
 export default router;

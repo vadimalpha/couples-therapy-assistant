@@ -18,7 +18,7 @@ router.post(
   authenticateUser,
   async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { title, privacy, relationshipId, guidanceMode, description } = req.body;
+      const { title, privacy, relationshipId, guidanceMode, description, useIntakeContext } = req.body;
       const userId = req.user?.uid;
 
       if (!userId) {
@@ -51,13 +51,20 @@ router.post(
         return;
       }
 
+      // Validate useIntakeContext if provided (must be boolean)
+      if (useIntakeContext !== undefined && typeof useIntakeContext !== 'boolean') {
+        res.status(400).json({ error: 'useIntakeContext must be a boolean' });
+        return;
+      }
+
       const conflict = await conflictService.createConflict(
         userId,
         title,
         privacy,
         relationshipId,
         mode,
-        description
+        description,
+        useIntakeContext
       );
 
       res.status(201).json(conflict);
