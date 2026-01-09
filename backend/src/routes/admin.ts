@@ -389,7 +389,8 @@ router.post(
         if (!user.intakeData) continue;
 
         try {
-          await embedIntakeData(user.id, {
+          // Use firebaseUid to match how searchSimilar queries (via context.userId from routes)
+          await embedIntakeData(user.firebaseUid, {
             name: user.intakeData.name,
             relationship_duration: user.intakeData.relationship_duration,
             communication_style_summary: user.intakeData.communication_style_summary,
