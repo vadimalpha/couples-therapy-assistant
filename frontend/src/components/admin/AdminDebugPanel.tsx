@@ -201,7 +201,6 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
             return <span key={index} className="template-text">{part.content}</span>;
           }
           const varName = part.varName!;
-          const originalValue = variables[varName] || '';
           const effectiveValue = getEffectiveVariableValue(varName);
           const isVarExpanded = expandedVariables.has(varName);
           const isEmpty = !effectiveValue || effectiveValue.trim() === '';
