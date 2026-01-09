@@ -208,6 +208,7 @@ async function triggerAIResponse(
     const supportedSessionTypes = [
       'individual_a', 'individual_b',
       'joint_context_a', 'joint_context_b',
+      'solo_guidance_a', 'solo_guidance_b',
       'relationship_shared',
       'solo_free', 'solo_contextual', 'solo_coached'
     ];
@@ -276,6 +277,34 @@ async function triggerAIResponse(
 
       console.log(
         `AI guidance refinement response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
+    } else if (sessionType === 'solo_guidance_a' || sessionType === 'solo_guidance_b') {
+      // Solo guidance chat - uses streamGuidanceRefinementResponse with solo flag
+      console.log(`[triggerAIResponse] *** SOLO GUIDANCE PATH ***`);
+      console.log(`[triggerAIResponse] Session type: ${sessionType}`);
+      console.log(`[triggerAIResponse] User ID: ${userId}`);
+      console.log(`[triggerAIResponse] Conflict ID: ${session.conflictId}`);
+
+      const soloGuidanceContext: GuidanceRefinementContext = {
+        userId,
+        conflictId: session.conflictId,
+        sessionId: sessionId,
+        sessionType: sessionType as 'solo_guidance_a' | 'solo_guidance_b',
+        isSoloGuidance: true, // Flag to use solo guidance prompt
+      };
+      console.log(`[triggerAIResponse] Calling streamGuidanceRefinementResponse with solo flag...`);
+
+      const result = await streamGuidanceRefinementResponse(
+        session.messages,
+        soloGuidanceContext,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI solo guidance response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
       );
     } else if (sessionType === 'relationship_shared') {
       // Relationship shared chat - need conflict info for partner IDs

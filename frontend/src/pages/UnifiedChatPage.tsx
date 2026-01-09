@@ -64,6 +64,8 @@ const UnifiedChatPage: React.FC = () => {
         return userRole === 'b' ? 'individual_b' : 'individual_a';
       case 'guidance':
         return userRole === 'b' ? 'joint_context_b' : 'joint_context_a';
+      case 'my-guidance':
+        return userRole === 'b' ? 'solo_guidance_b' : 'solo_guidance_a';
       case 'shared':
         return 'relationship_shared';
       default:
@@ -235,6 +237,45 @@ const UnifiedChatPage: React.FC = () => {
         return;
       }
 
+      // MY-GUIDANCE: Get user's solo_guidance session (without partner context)
+      if (sessionTypeParam === 'my-guidance') {
+        const sessionsResponse = await fetch(`${API_URL}/api/conversations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (sessionsResponse.ok) {
+          const sessions = await sessionsResponse.json();
+          const normalizeId = (cid: string | undefined) => {
+            if (!cid) return '';
+            return cid.startsWith('conflict:') ? cid : `conflict:${cid}`;
+          };
+          const targetConflictId = normalizeId(conflict.id);
+
+          // Find solo_guidance session for this conflict and user's role
+          const sessionTypeToFind = isPartnerA ? 'solo_guidance_a' : 'solo_guidance_b';
+          const soloSession = sessions.find((s: any) =>
+            s.sessionType === sessionTypeToFind &&
+            normalizeId(s.conflictId) === targetConflictId
+          );
+
+          if (soloSession) {
+            setSessionId(soloSession.id);
+          } else {
+            // Check if user has finalized their exploration
+            const userFinalized = isPartnerA
+              ? ['pending_partner_b', 'partner_b_chatting', 'both_finalized'].includes(conflict.status)
+              : conflict.status === 'both_finalized';
+
+            if (!userFinalized) {
+              setResolutionError('My Guidance is not ready yet. Complete your exploration first.');
+            } else {
+              setResolutionError('My Guidance session not found');
+            }
+          }
+        }
+        return;
+      }
+
       // SHARED: Get shared relationship session
       if (sessionTypeParam === 'shared') {
         const sharedResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/shared-session`, {
@@ -315,6 +356,8 @@ const UnifiedChatPage: React.FC = () => {
       case 'individual_b': return 'Exploration';
       case 'joint_context_a': return 'Guidance';
       case 'joint_context_b': return 'Guidance';
+      case 'solo_guidance_a': return 'My Guidance';
+      case 'solo_guidance_b': return 'My Guidance';
       case 'relationship_shared': return 'Partner Chat';
       default: return 'Chat';
     }

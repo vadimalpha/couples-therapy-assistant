@@ -11,6 +11,8 @@ export type SessionType =
   | 'individual_b'
   | 'joint_context_a'
   | 'joint_context_b'
+  | 'solo_guidance_a'  // Solo guidance chat (without partner context)
+  | 'solo_guidance_b'  // Solo guidance chat (without partner context)
   | 'relationship_shared'
   | 'solo_free'        // Personal chat - no specific structure
   | 'solo_contextual'  // Personal chat with past conversation context
@@ -305,7 +307,7 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
  * Helper function to determine if a session type is a single-user session
  */
 export function isSingleUserSession(sessionType: SessionType): boolean {
-  return ['intake', 'individual_a', 'individual_b', 'joint_context_a', 'joint_context_b', 'solo_free', 'solo_contextual', 'solo_coached'].includes(sessionType);
+  return ['intake', 'individual_a', 'individual_b', 'joint_context_a', 'joint_context_b', 'solo_guidance_a', 'solo_guidance_b', 'solo_free', 'solo_contextual', 'solo_coached'].includes(sessionType);
 }
 
 /**
@@ -332,6 +334,8 @@ export function getSessionTypeLabel(sessionType: SessionType): string {
     individual_b: 'Your Perspective',
     joint_context_a: 'Personalized Guidance',
     joint_context_b: 'Personalized Guidance',
+    solo_guidance_a: 'My Guidance',
+    solo_guidance_b: 'My Guidance',
     relationship_shared: 'Together Conversation',
     solo_free: 'Personal Chat',
     solo_contextual: 'Personal Chat',
@@ -350,6 +354,8 @@ export function getSessionTypeDescription(sessionType: SessionType): string {
     individual_b: 'Describe what happened and how you feel about it.',
     joint_context_a: 'Ask questions about your personalized guidance.',
     joint_context_b: 'Ask questions about your personalized guidance.',
+    solo_guidance_a: 'Explore your guidance focused on your own perspective.',
+    solo_guidance_b: 'Explore your guidance focused on your own perspective.',
     relationship_shared: 'Work through this together with your partner.',
     solo_free: 'Talk about anything on your mind. No specific structure.',
     solo_contextual: 'AI remembers your journey and can reference past conversations.',

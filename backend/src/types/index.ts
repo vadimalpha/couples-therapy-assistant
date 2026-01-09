@@ -56,6 +56,8 @@ export type SessionType =
   | 'individual_b'
   | 'joint_context_a'
   | 'joint_context_b'
+  | 'solo_guidance_a'
+  | 'solo_guidance_b'
   | 'relationship_shared'
   | 'solo_free'
   | 'solo_contextual'

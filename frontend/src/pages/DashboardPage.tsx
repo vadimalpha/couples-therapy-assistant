@@ -734,6 +734,7 @@ export const DashboardPage: React.FC = () => {
     if (conflict.status === 'both_finalized') {
       buttons.push(
         { label: 'Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
+        { label: 'My Guidance', to: `/chat/my-guidance?conflictId=${conflict.id}`, variant: 'outline' },
         { label: 'Partner Chat', to: `/chat/shared?conflictId=${conflict.id}`, variant: 'primary' }
       );
     } else {
@@ -746,9 +747,17 @@ export const DashboardPage: React.FC = () => {
       } else if (conflict.status === 'partner_b_chatting' && !isPartnerA) {
         buttons.push({ label: 'Continue', to: `/chat/exploration?conflictId=${conflict.id}`, variant: 'primary' });
       } else if (conflict.status === 'pending_partner_b' && isPartnerA) {
-        buttons.push({ label: 'Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'primary' });
+        // Partner A has finalized - show both guidance options
+        buttons.push(
+          { label: 'Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
+          { label: 'My Guidance', to: `/chat/my-guidance?conflictId=${conflict.id}`, variant: 'primary' }
+        );
       } else if (conflict.status === 'partner_b_chatting' && isPartnerA) {
-        buttons.push({ label: 'Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' });
+        // Partner A has finalized - show both guidance options
+        buttons.push(
+          { label: 'Guidance', to: `/chat/guidance?conflictId=${conflict.id}`, variant: 'outline' },
+          { label: 'My Guidance', to: `/chat/my-guidance?conflictId=${conflict.id}`, variant: 'outline' }
+        );
       }
     }
     return buttons;

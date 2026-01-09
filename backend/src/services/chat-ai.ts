@@ -64,13 +64,15 @@ export interface GuidanceRefinementContext {
   userId: string;
   conflictId?: string;
   sessionId?: string;
-  sessionType: 'joint_context_a' | 'joint_context_b';
+  sessionType: 'joint_context_a' | 'joint_context_b' | 'solo_guidance_a' | 'solo_guidance_b';
+  isSoloGuidance?: boolean; // If true, uses solo guidance prompt (no partner context)
 }
 
 export interface GuidanceSynthesisResult {
   guidance: string;
   usage: TokenUsage;
   sessionId: string;
+  soloGuidanceSessionId?: string; // ID of the solo guidance session (without partner context)
 }
 
 export interface SoloContext {
@@ -486,14 +488,21 @@ export async function streamGuidanceRefinementResponse(
       : null;
     console.log(`[streamGuidanceRefinementResponse] User found: ${!!user}, Conflict found: ${!!conflict}`);
 
-    console.log(`[streamGuidanceRefinementResponse] Building prompt...`);
+    console.log(`[streamGuidanceRefinementResponse] Building prompt... isSoloGuidance=${context.isSoloGuidance}`);
+
+    // Choose prompt based on whether this is solo guidance or joint context
+    const promptFile = context.isSoloGuidance
+      ? 'solo-guidance-chat.txt'
+      : 'guidance-refinement-prompt.txt';
 
     // Build prompt first, then apply any overrides
-    const promptResult = await buildPrompt('guidance-refinement-prompt.txt', {
+    const promptResult = await buildPrompt(promptFile, {
       conflictId: context.conflictId || '',
       userId: context.userId,
       sessionType: context.sessionType,
       includeRAG: true,
+      // Solo guidance doesn't include pattern insights (no partner context)
+      includePatterns: !context.isSoloGuidance,
     });
     const overrideData = context.sessionId ? getPromptOverrideData(context.sessionId) : undefined;
     let { systemPrompt, promptTemplate, promptVariables } = applyOverrides(promptResult, overrideData);
@@ -911,6 +920,7 @@ export async function synthesizeIndividualGuidance(
       promptVariables: promptResult.variables,
     });
 
+    // Create joint context session (for guidance with partner context in chat)
     const jointContextSession = await conversationService.createSession(
       explorationSession.userId,
       jointContextSessionType,
@@ -923,10 +933,26 @@ export async function synthesizeIndividualGuidance(
 
     console.log(`synthesizeIndividualGuidance: Added guidance message to session ${jointContextSession.id}`);
 
+    // Also create solo guidance session (for guidance without partner context in chat)
+    const soloGuidanceSessionType = isPartnerA ? 'solo_guidance_a' : 'solo_guidance_b';
+    const soloGuidanceSession = await conversationService.createSession(
+      explorationSession.userId,
+      soloGuidanceSessionType,
+      explorationSession.conflictId
+    );
+
+    console.log(`synthesizeIndividualGuidance: Created solo guidance session - id=${soloGuidanceSession.id}, type=${soloGuidanceSession.sessionType}, conflictId=${soloGuidanceSession.conflictId}`);
+
+    // Add the same initial guidance to solo session
+    await conversationService.addMessage(soloGuidanceSession.id, 'ai', guidance);
+
+    console.log(`synthesizeIndividualGuidance: Added guidance message to solo session ${soloGuidanceSession.id}`);
+
     return {
       guidance,
       usage,
       sessionId: jointContextSession.id,
+      soloGuidanceSessionId: soloGuidanceSession.id,
     };
   } catch (error) {
     console.error('Error synthesizing individual guidance:', error);

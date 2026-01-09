@@ -26,6 +26,8 @@ const getTemplateName = (sessionType: SessionType): string => {
     'individual_b': 'exploration-system-prompt.txt',
     'joint_context_a': 'guidance-refinement-prompt.txt',
     'joint_context_b': 'guidance-refinement-prompt.txt',
+    'solo_guidance_a': 'solo-guidance-chat.txt',
+    'solo_guidance_b': 'solo-guidance-chat.txt',
     'relationship_shared': 'relationship-system-prompt.txt',
     'solo_free': 'solo-free-prompt.txt',
     'solo_contextual': 'solo-contextual-prompt.txt',
