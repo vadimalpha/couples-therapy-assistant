@@ -20,6 +20,7 @@ interface ConflictInfo {
   description?: string;
   partnerAId: string;
   partnerBId?: string;
+  privacy: 'private' | 'shared';
 }
 
 /**
@@ -143,6 +144,7 @@ const UnifiedChatPage: React.FC = () => {
         description: conflict.description,
         partnerAId: conflict.partner_a_id,
         partnerBId: conflict.partner_b_id,
+        privacy: conflict.privacy || 'private',
       });
 
       // Determine user's role
@@ -376,6 +378,8 @@ const UnifiedChatPage: React.FC = () => {
         conflictTitle={conflictInfo?.title}
         conflictDescription={conflictInfo?.description}
         isFinalized={isFinalized}
+        conflictId={conflictInfo?.id}
+        privacy={conflictInfo?.privacy}
       />
 
       {/* Main chat content */}

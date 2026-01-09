@@ -104,6 +104,34 @@
   height: 14px;
 }
 
+/* Partner conversation link */
+.partner-conversation-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background-color: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.partner-conversation-link:hover {
+  background-color: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.partner-conversation-link svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
 /* Mode-specific color variants */
 .chat-mode-header.mode-intake .mode-icon-container {
   background-color: rgba(59, 130, 246, 0.15);

@@ -8,6 +8,8 @@ interface ChatModeHeaderProps {
   conflictDescription?: string;
   partnerName?: string;
   isFinalized?: boolean;
+  conflictId?: string;
+  privacy?: 'private' | 'shared';
 }
 
 /**
@@ -25,6 +27,8 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
   conflictDescription,
   partnerName,
   isFinalized,
+  conflictId,
+  privacy,
 }) => {
   const label = getSessionTypeLabel(sessionType);
   const description = getSessionTypeDescription(sessionType);
@@ -36,6 +40,10 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
     sessionType === 'joint_context_a' ||
     sessionType === 'joint_context_b'
   ) && conflictTitle;
+
+  // Check if partner conversation link should be shown (guidance sessions with shared privacy)
+  const isGuidanceSession = sessionType === 'joint_context_a' || sessionType === 'joint_context_b';
+  const showPartnerLink = isGuidanceSession && privacy === 'shared' && conflictId;
 
   // Get mode-specific icon
   const getIcon = () => {
@@ -124,6 +132,19 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
             <span className="mode-tag">{getModeTag()}</span>
           </div>
         </div>
+        {showPartnerLink && (
+          <a
+            href={`/chat/partner-view?conflictId=${conflictId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="partner-conversation-link"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+            <span>View Partner's Conversation</span>
+          </a>
+        )}
         {isFinalized && (
           <div className="mode-finalized-badge">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

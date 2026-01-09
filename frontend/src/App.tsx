@@ -14,6 +14,7 @@ import AcceptInvitationPage from './pages/AcceptInvitationPage';
 import AdminLogsPage from './pages/AdminLogsPage';
 import AdminPromptsPage from './pages/AdminPromptsPage';
 import UnifiedChatPage from './pages/UnifiedChatPage';
+import PartnerViewPage from './pages/PartnerViewPage';
 import NewSoloChatPage from './pages/NewSoloChatPage';
 import SoloChatPage from './pages/SoloChatPage';
 import { IntakeSummary } from './components/intake';
@@ -61,8 +62,9 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 // Check if current route is a full-page chat experience
 const isChatRoute = (pathname: string): boolean => {
-  // Match chat routes: /chat/:sessionType, /chat/solo/:sessionId, /conflicts/:id/joint-guidance
+  // Match chat routes: /chat/:sessionType, /chat/partner-view, /chat/solo/:sessionId, /conflicts/:id/joint-guidance
   const chatPatterns = [
+    /^\/chat\/partner-view$/,  // Partner view page (read-only)
     /^\/chat\/[^/]+$/,  // Unified chat route: /chat/intake, /chat/exploration, etc.
     /^\/chat\/solo\/[^/]+$/,  // Solo chat route: /chat/solo/:sessionId
     /^\/conflicts\/[^/]+\/joint-guidance$/,  // Keep joint guidance as separate view
@@ -165,6 +167,18 @@ const AppContent: React.FC = () => {
               <ProtectedRoute>
                 <AuthenticatedLayout>
                   <AdminPromptsPage />
+                </AuthenticatedLayout>
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Partner conversation view - read-only (must be before :sessionType) */}
+          <Route
+            path="/chat/partner-view"
+            element={
+              <ProtectedRoute>
+                <AuthenticatedLayout>
+                  <PartnerViewPage />
                 </AuthenticatedLayout>
               </ProtectedRoute>
             }
