@@ -544,7 +544,7 @@ router.post(
         // Prepare context
         const context = {
           userId,
-          sessionId: id,
+          sessionId: session.id,  // Use full session ID for correct logging
           conflictId: session.conflictId,
           sessionType: session.sessionType,
           // TODO: Add intake data when available
@@ -580,7 +580,7 @@ router.post(
             safetyCheck.severity || 'unknown',
             {
               userId,
-              sessionId: id,
+              sessionId: session.id,  // Use full session ID
             }
           );
 
@@ -841,7 +841,7 @@ router.post(
 
       const context: GuidanceRefinementContext = {
         userId,
-        sessionId: id,
+        sessionId: session.id,  // Use full session ID for correct logging
         conflictId: session.conflictId,
         sessionType: session.sessionType as 'joint_context_a' | 'joint_context_b',
       };
