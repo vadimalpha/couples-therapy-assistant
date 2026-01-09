@@ -54,6 +54,8 @@ router.post(
         'individual_b',
         'joint_context_a',
         'joint_context_b',
+        'solo_guidance_a',
+        'solo_guidance_b',
         'relationship_shared',
         'solo_free',
         'solo_contextual',
@@ -370,9 +372,42 @@ router.get(
           res.status(403).json({ error: 'Access denied' });
           return;
         }
-      } else {
-        // For other sessions, verify the user owns this session
-        if (session.userId !== userId) {
+      } else if (session.userId !== userId) {
+        // User doesn't own this session - check if they can view it via partner-view
+        // This is allowed when:
+        // 1. The session is an exploration session (individual_a/b)
+        // 2. The session is part of a conflict with privacy='shared'
+        // 3. The requesting user is the other partner in that conflict
+        // 4. Both partners have finalized (status='both_finalized')
+
+        let canViewPartnerSession = false;
+
+        if ((session.sessionType === 'individual_a' || session.sessionType === 'individual_b') && session.conflictId) {
+          try {
+            const { getDatabase } = await import('../services/db');
+            const db = getDatabase();
+
+            // Get the conflict and check access conditions
+            const conflictResult = await db.query<any[]>(
+              `SELECT * FROM type::thing($conflictId)`,
+              { conflictId: session.conflictId }
+            );
+
+            const conflict = conflictResult?.[0]?.[0];
+
+            if (conflict &&
+                conflict.privacy === 'shared' &&
+                conflict.status === 'both_finalized' &&
+                (conflict.partner_a_id === userId || conflict.partner_b_id === userId)) {
+              // User is a partner in this conflict, it's shared and both finalized
+              canViewPartnerSession = true;
+            }
+          } catch (err) {
+            console.error('Error checking partner-view access:', err);
+          }
+        }
+
+        if (!canViewPartnerSession) {
           res.status(403).json({ error: 'Access denied' });
           return;
         }
@@ -1138,6 +1173,8 @@ router.post(
         'individual_b': 'exploration-system-prompt.txt',
         'joint_context_a': 'guidance-refinement-prompt.txt',
         'joint_context_b': 'guidance-refinement-prompt.txt',
+        'solo_guidance_a': 'solo-guidance-chat.txt',
+        'solo_guidance_b': 'solo-guidance-chat.txt',
         'relationship_shared': 'relationship-system-prompt.txt',
         'solo_free': 'solo-free-prompt.txt',
         'solo_contextual': 'solo-contextual-prompt.txt',
