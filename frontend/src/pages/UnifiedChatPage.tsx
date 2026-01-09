@@ -169,6 +169,22 @@ const UnifiedChatPage: React.FC = () => {
           if (joinResponse.ok) {
             const joinData = await joinResponse.json();
             userSession = joinData.sessionId;
+
+            // If sessionId not in response, re-fetch conflict to get it
+            if (!userSession && joinData.conflict?.partner_b_session_id) {
+              userSession = joinData.conflict.partner_b_session_id;
+            }
+
+            // Still no session? Re-fetch conflict as fallback
+            if (!userSession) {
+              const refreshResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              if (refreshResponse.ok) {
+                const refreshData = await refreshResponse.json();
+                userSession = refreshData.conflict?.partner_b_session_id;
+              }
+            }
           } else {
             throw new Error('Failed to join conflict');
           }
