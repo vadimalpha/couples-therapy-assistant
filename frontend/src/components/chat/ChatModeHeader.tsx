@@ -47,6 +47,10 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
   const isGuidanceSession = sessionType === 'joint_context_a' || sessionType === 'joint_context_b';
   const showPartnerLink = isGuidanceSession && privacy === 'shared' && conflictId;
 
+  // Check if this is a solo guidance session (My Guidance)
+  const isSoloGuidanceSession = sessionType === 'solo_guidance_a' || sessionType === 'solo_guidance_b';
+  const showExplorationLink = isSoloGuidanceSession && conflictId;
+
   // Get mode-specific icon
   const getIcon = () => {
     switch (sessionType) {
@@ -157,6 +161,19 @@ export const ChatModeHeader: React.FC<ChatModeHeaderProps> = ({
               <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             <span>View Partner's Conversation</span>
+          </a>
+        )}
+        {showExplorationLink && (
+          <a
+            href={`/chat/exploration?conflictId=${conflictId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="exploration-conversation-link"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" />
+            </svg>
+            <span>View My Exploration</span>
           </a>
         )}
         {isFinalized && (
