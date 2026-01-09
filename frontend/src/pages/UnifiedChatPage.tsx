@@ -269,7 +269,67 @@ const UnifiedChatPage: React.FC = () => {
             if (!userFinalized) {
               setResolutionError('My Guidance is not ready yet. Complete your exploration first.');
             } else {
-              setResolutionError('My Guidance session not found');
+              // Solo guidance session doesn't exist - try to create it on-demand
+              // First check if joint_context session exists (which means guidance was generated)
+              const jointSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
+              const jointSession = sessions.find((s: any) =>
+                s.sessionType === jointSessionType &&
+                normalizeId(s.conflictId) === targetConflictId
+              );
+
+              if (jointSession) {
+                // Create solo_guidance session on-demand
+                try {
+                  const createResponse = await fetch(`${API_URL}/api/conversations`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                      sessionType: sessionTypeToFind,
+                      conflictId: conflict.id,
+                    }),
+                  });
+
+                  if (createResponse.ok) {
+                    const newSession = await createResponse.json();
+
+                    // Copy the initial guidance message from joint_context to solo_guidance
+                    const jointSessionData = await fetch(`${API_URL}/api/conversations/${jointSession.id}`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+
+                    if (jointSessionData.ok) {
+                      const jointData = await jointSessionData.json();
+                      const initialGuidance = jointData.messages?.find((m: any) => m.role === 'ai');
+
+                      if (initialGuidance) {
+                        await fetch(`${API_URL}/api/conversations/${newSession.id}/messages`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({
+                            role: 'ai',
+                            content: initialGuidance.content,
+                          }),
+                        });
+                      }
+                    }
+
+                    setSessionId(newSession.id);
+                  } else {
+                    setResolutionError('Failed to create My Guidance session');
+                  }
+                } catch (err) {
+                  console.error('Error creating solo_guidance session:', err);
+                  setResolutionError('Failed to create My Guidance session');
+                }
+              } else {
+                setResolutionError('My Guidance session not found. Please try using Guidance first.');
+              }
             }
           }
         }
