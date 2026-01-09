@@ -172,7 +172,6 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
     }
 
     const template = editedTemplate || prompt.promptTemplate;
-    const variables = prompt.promptVariables;
 
     // Split template by variable placeholders
     const parts: Array<{ type: 'text' | 'variable'; content: string; varName?: string }> = [];
