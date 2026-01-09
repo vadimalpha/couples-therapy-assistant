@@ -532,7 +532,9 @@ export const AdminDebugPanel: React.FC<AdminDebugPanelProps> = ({
                           </div>
                           <div className="variables-editor-section">
                             <label className="editor-label">Variables</label>
-                            {Object.keys(prompt?.promptVariables || {}).map((varName) => (
+                            {Object.keys(prompt?.promptVariables || {})
+                              .filter((varName) => editedTemplate.includes(`{{${varName}}}`))
+                              .map((varName) => (
                               <div key={varName} className="variable-editor-row">
                                 <div className="variable-editor-header">
                                   <code className="variable-name-tag">{`{{${varName}}}`}</code>
