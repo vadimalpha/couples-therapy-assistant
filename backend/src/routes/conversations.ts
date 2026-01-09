@@ -931,7 +931,7 @@ router.get(
       // Convert sessionId to safe format (colons to double underscores) to match stored format
       const safeSessionId = session.id.replace(/:/g, '__');
 
-      const result = await db.query<any[]>(
+      let result = await db.query<any[]>(
         `SELECT * FROM prompt_log
          WHERE sessionId = $sessionId
          ORDER BY createdAt DESC
@@ -939,7 +939,23 @@ router.get(
         { sessionId: safeSessionId }
       );
 
-      const promptLog = result?.[0]?.[0];
+      let promptLog = result?.[0]?.[0];
+
+      // For joint_context sessions, fallback to searching by conflictId + sessionType
+      // Initial guidance is logged without sessionId (before session is created)
+      if (!promptLog && session.conflictId &&
+          (session.sessionType === 'joint_context_a' || session.sessionType === 'joint_context_b')) {
+        const safeConflictId = session.conflictId.replace(/:/g, '__');
+        result = await db.query<any[]>(
+          `SELECT * FROM prompt_log
+           WHERE conflictId = $conflictId
+             AND sessionType = $sessionType
+           ORDER BY createdAt DESC
+           LIMIT 1`,
+          { conflictId: safeConflictId, sessionType: session.sessionType }
+        );
+        promptLog = result?.[0]?.[0];
+      }
 
       if (!promptLog) {
         res.json({
