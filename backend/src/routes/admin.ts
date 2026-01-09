@@ -456,4 +456,56 @@ router.post(
   }
 );
 
+/**
+ * GET /api/admin/embeddings/:userId
+ * Debug endpoint to check embeddings for a user
+ */
+router.get(
+  '/embeddings/:userId',
+  authenticateUser,
+  requireAdmin,
+  async (req: AuthenticatedRequest, res: Response) => {
+    const { userId } = req.params;
+    const db = getDatabase();
+
+    try {
+      const result = await db.query(
+        'SELECT id, userId, content, metadata FROM embedding WHERE userId = $userId LIMIT 20',
+        { userId }
+      );
+      const embeddings = extractQueryResult<{
+        id: string;
+        userId: string;
+        content: string;
+        metadata: { type: string; sourceId: string; createdAt: string };
+      }>(result);
+
+      // Also get total count
+      const countResult = await db.query(
+        'SELECT count() FROM embedding WHERE userId = $userId GROUP ALL',
+        { userId }
+      );
+      const countData = extractQueryResult<{ count: number }>(countResult);
+      const totalCount = countData[0]?.count || 0;
+
+      res.json({
+        userId,
+        totalCount,
+        sample: embeddings.map(e => ({
+          id: e.id,
+          contentPreview: e.content?.substring(0, 100) + '...',
+          type: e.metadata?.type,
+          sourceId: e.metadata?.sourceId,
+        })),
+      });
+    } catch (error) {
+      console.error('Error fetching embeddings:', error);
+      res.status(500).json({
+        error: 'Failed to fetch embeddings',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+);
+
 export default router;
