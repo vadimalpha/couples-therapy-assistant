@@ -920,15 +920,22 @@
   text-align: right;
 }
 
-/* Conflict Row - Two Column Layout */
+/* Conflict Row - Two Row Layout */
 .conflict-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Row 1: Title + Description | Status + Date */
+.conflict-row-1 {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: var(--space-3);
 }
 
-.conflict-row-content {
+.conflict-title-area {
   flex: 1;
   min-width: 0;
   display: flex;
@@ -937,7 +944,7 @@
   gap: 2px;
 }
 
-.conflict-row-content .chat-row-subject {
+.conflict-title-area .chat-row-subject {
   font-weight: var(--font-medium);
   color: var(--text-primary);
   font-size: var(--text-sm);
@@ -955,26 +962,25 @@
   text-align: left;
 }
 
-.chat-row-partner {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
-  text-align: left;
-}
-
-.conflict-row-right {
+.conflict-status-area {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
 }
 
-.chat-row-meta {
+/* Row 2: Partner Name | Buttons */
+.conflict-row-2 {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: var(--space-2);
-  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.chat-row-partner {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  text-align: left;
 }
 
 .badge-sm {
@@ -1061,30 +1067,25 @@
     gap: var(--space-2);
   }
 
-  .conflict-row {
+  .conflict-row-1,
+  .conflict-row-2 {
     flex-direction: column;
-    align-items: stretch;
+    align-items: flex-start;
     gap: var(--space-2);
   }
 
-  .conflict-row-right {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    min-width: unset;
+  .conflict-status-area {
     width: 100%;
-  }
-
-  .chat-row-meta {
     justify-content: flex-start;
   }
 
   .chat-row-actions {
+    width: 100%;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
   }
 
   .chat-row-actions .btn {
-    flex: 0 0 auto;
+    flex: 1;
   }
 }

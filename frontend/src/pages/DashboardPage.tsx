@@ -929,22 +929,24 @@ export const DashboardPage: React.FC = () => {
 
               return (
                 <div key={conflict.id} className="chat-row conflict-row">
-                  <div className="conflict-row-content">
-                    <span className="chat-row-subject">{conflict.title}</span>
-                    {conflict.description && (
-                      <span className="chat-row-description">{conflict.description}</span>
-                    )}
-                    {conflict.partnerName && (
-                      <span className="chat-row-partner">{conflict.partnerName}</span>
-                    )}
-                  </div>
-                  <div className="conflict-row-right">
-                    <div className="chat-row-meta">
+                  {/* Row 1: Title + Description | Status + Date */}
+                  <div className="conflict-row-1">
+                    <div className="conflict-title-area">
+                      <span className="chat-row-subject">{conflict.title}</span>
+                      {conflict.description && (
+                        <span className="chat-row-description">{conflict.description}</span>
+                      )}
+                    </div>
+                    <div className="conflict-status-area">
                       {badge && (
                         <span className={`badge badge-${badge.variant} badge-sm`}>{badge.label}</span>
                       )}
                       <span className="chat-row-date">{formatDate(conflict.created_at)}</span>
                     </div>
+                  </div>
+                  {/* Row 2: Partner Name | Buttons */}
+                  <div className="conflict-row-2">
+                    <span className="chat-row-partner">{conflict.partnerName || '\u00A0'}</span>
                     <div className="chat-row-actions">
                       {buttons.map((btn, idx) => (
                         <Link key={idx} to={btn.to} className={`btn btn-${btn.variant || 'primary'} btn-sm`}>
