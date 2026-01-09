@@ -941,37 +941,22 @@ router.get(
 
       let promptLog = result?.[0]?.[0];
 
-      // For joint_context sessions, fallback to searching by conflictId + sessionType
+      // For joint_context sessions, fallback to searching by conflictId
       // Initial guidance is logged without sessionId (before session is created)
       if (!promptLog && session.conflictId &&
           (session.sessionType === 'joint_context_a' || session.sessionType === 'joint_context_b')) {
         const safeConflictId = session.conflictId.replace(/:/g, '__');
-        console.log(`[debug-prompt] Fallback query: conflictId=${safeConflictId}, sessionType=${session.sessionType}`);
+
+        // Try by conflictId + logType (most reliable for initial guidance)
         result = await db.query<any[]>(
           `SELECT * FROM prompt_log
            WHERE conflictId = $conflictId
-             AND sessionType = $sessionType
+             AND logType = 'joint_context_guidance'
            ORDER BY createdAt DESC
            LIMIT 1`,
-          { conflictId: safeConflictId, sessionType: session.sessionType }
+          { conflictId: safeConflictId }
         );
         promptLog = result?.[0]?.[0];
-        console.log(`[debug-prompt] Fallback result: ${promptLog ? 'found' : 'not found'}`);
-
-        // If still not found, try just by conflictId + logType
-        if (!promptLog) {
-          console.log(`[debug-prompt] Trying logType fallback`);
-          result = await db.query<any[]>(
-            `SELECT * FROM prompt_log
-             WHERE conflictId = $conflictId
-               AND logType = 'joint_context_guidance'
-             ORDER BY createdAt DESC
-             LIMIT 1`,
-            { conflictId: safeConflictId }
-          );
-          promptLog = result?.[0]?.[0];
-          console.log(`[debug-prompt] LogType fallback result: ${promptLog ? 'found' : 'not found'}`);
-        }
       }
 
       if (!promptLog) {
