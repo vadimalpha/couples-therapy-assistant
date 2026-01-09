@@ -499,4 +499,91 @@ router.get(
   }
 );
 
+/**
+ * Debug endpoint to check conflict and session status
+ * GET /api/conflicts/:id/debug
+ */
+router.get(
+  '/:id/debug',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Get conflict
+      const conflict = await conflictService.getConflict(id);
+
+      if (!conflict) {
+        res.status(404).json({ error: 'Conflict not found' });
+        return;
+      }
+
+      const isPartnerA = conflict.partner_a_id === userId;
+      const isPartnerB = conflict.partner_b_id === userId;
+      const userRole = isPartnerA ? 'partner_a' : isPartnerB ? 'partner_b' : 'none';
+
+      // Get all sessions for this conflict
+      const sessions = await conversationService.getSessionsByConflict(id);
+      const sessionSummary = sessions.map(s => ({
+        id: s.id,
+        sessionType: s.sessionType,
+        userId: s.userId,
+        isOwnSession: s.userId === userId,
+        hasMessages: s.messages?.length > 0,
+        messageCount: s.messages?.length || 0,
+      }));
+
+      // Determine what My Guidance needs
+      const userFinalized = isPartnerA
+        ? ['pending_partner_b', 'partner_b_chatting', 'both_finalized'].includes(conflict.status)
+        : conflict.status === 'both_finalized';
+
+      const jointSessionType = isPartnerA ? 'joint_context_a' : 'joint_context_b';
+      const soloSessionType = isPartnerA ? 'solo_guidance_a' : 'solo_guidance_b';
+
+      const hasJointSession = sessions.some(s => s.sessionType === jointSessionType);
+      const hasSoloSession = sessions.some(s => s.sessionType === soloSessionType);
+
+      res.json({
+        conflict: {
+          id: conflict.id,
+          title: conflict.title,
+          status: conflict.status,
+          privacy: conflict.privacy,
+          partner_a_id: conflict.partner_a_id,
+          partner_b_id: conflict.partner_b_id,
+        },
+        user: {
+          userId,
+          role: userRole,
+          isPartnerInConflict: isPartnerA || isPartnerB,
+          hasFinalized: userFinalized,
+        },
+        sessions: sessionSummary,
+        myGuidanceStatus: {
+          canAccess: (isPartnerA || isPartnerB) && userFinalized,
+          hasJointContextSession: hasJointSession,
+          hasSoloGuidanceSession: hasSoloSession,
+          reason: !isPartnerA && !isPartnerB
+            ? 'User is not a partner in this conflict'
+            : !userFinalized
+            ? 'User has not finalized exploration yet'
+            : !hasJointSession
+            ? 'No joint_context session exists - guidance not generated yet'
+            : 'Should be able to access My Guidance',
+        },
+      });
+    } catch (error) {
+      console.error('Error in debug endpoint:', error);
+      res.status(500).json({ error: 'Debug endpoint failed' });
+    }
+  }
+);
+
 export default router;
