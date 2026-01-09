@@ -184,8 +184,9 @@ router.put('/me/intake', authenticateUser, async (req: AuthenticatedRequest, res
     }
 
     // Generate and store embeddings for the intake data
+    // Use firebaseUid to match how searchSimilar queries (via context.userId from routes)
     try {
-      await embedIntakeData(user.id, {
+      await embedIntakeData(user.firebaseUid, {
         name,
         relationship_duration,
         communication_style_summary,

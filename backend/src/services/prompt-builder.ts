@@ -230,10 +230,15 @@ export async function buildRAGSection(
   try {
     const db = getDatabase();
 
+    // Normalize conflictId to ensure proper format
+    const fullConflictId = conflictId.startsWith('conflict:')
+      ? conflictId
+      : `conflict:${conflictId}`;
+
     // Get current conflict details
     const conflictResult = await db.query(
-      'SELECT title FROM conflict WHERE id = $conflictId',
-      { conflictId }
+      'SELECT title FROM type::thing($conflictId)',
+      { conflictId: fullConflictId }
     );
 
     const conflicts = extractQueryResult<{ title: string }>(conflictResult);
