@@ -527,7 +527,7 @@ const UnifiedChatPage: React.FC = () => {
         {/* Chat-type-specific confirmation elements */}
         {(sessionType === 'individual_a' || sessionType === 'individual_b') &&
          !isFinalized &&
-         mappedMessages.length >= 4 && (
+         mappedMessages.length >= 2 && (
           <div className="unified-chat-actions">
             <ReadyButton
               onReady={handleFinalize}
