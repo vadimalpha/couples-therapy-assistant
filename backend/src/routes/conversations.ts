@@ -378,7 +378,8 @@ router.get(
         // 1. The session is an exploration session (individual_a/b)
         // 2. The session is part of a conflict with privacy='shared'
         // 3. The requesting user is the other partner in that conflict
-        // 4. Both partners have finalized (status='both_finalized')
+        // Note: We allow viewing partner's exploration even if not both finalized,
+        // as long as the partner has started their exploration (session exists)
 
         let canViewPartnerSession = false;
 
@@ -397,9 +398,8 @@ router.get(
 
             if (conflict &&
                 conflict.privacy === 'shared' &&
-                conflict.status === 'both_finalized' &&
                 (conflict.partner_a_id === userId || conflict.partner_b_id === userId)) {
-              // User is a partner in this conflict, it's shared and both finalized
+              // User is a partner in this shared conflict - allow viewing partner's exploration
               canViewPartnerSession = true;
             }
           } catch (err) {
