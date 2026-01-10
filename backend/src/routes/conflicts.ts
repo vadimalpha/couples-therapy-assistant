@@ -586,4 +586,82 @@ router.get(
   }
 );
 
+/**
+ * Generate individual guidance for a partner
+ * POST /api/conflicts/:id/generate-my-guidance
+ *
+ * This endpoint is called when a user accesses My Guidance but no
+ * joint_context/solo_guidance session exists. It generates guidance
+ * based on the user's exploration only.
+ */
+router.post(
+  '/:id/generate-my-guidance',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { id } = req.params;
+      const userId = req.user?.uid;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Get conflict
+      const conflict = await conflictService.getConflict(id);
+
+      if (!conflict) {
+        res.status(404).json({ error: 'Conflict not found' });
+        return;
+      }
+
+      const isPartnerA = conflict.partner_a_id === userId;
+      const isPartnerB = conflict.partner_b_id === userId;
+
+      if (!isPartnerA && !isPartnerB) {
+        res.status(403).json({ error: 'Access denied: User is not part of this conflict' });
+        return;
+      }
+
+      // Check if user has finalized their exploration
+      const userFinalized = isPartnerA
+        ? ['pending_partner_b', 'partner_b_chatting', 'both_finalized'].includes(conflict.status)
+        : conflict.status === 'both_finalized';
+
+      if (!userFinalized) {
+        res.status(400).json({ error: 'Cannot generate guidance: exploration not finalized' });
+        return;
+      }
+
+      // Find user's exploration session
+      const explorationSessionId = isPartnerA
+        ? conflict.partner_a_session_id
+        : conflict.partner_b_session_id;
+
+      if (!explorationSessionId) {
+        res.status(404).json({ error: 'Exploration session not found' });
+        return;
+      }
+
+      // Import and call synthesizeIndividualGuidance
+      const { synthesizeIndividualGuidance } = await import('../services/chat-ai');
+
+      console.log(`Generating individual guidance for conflict ${id}, user ${userId}, session ${explorationSessionId}`);
+
+      const result = await synthesizeIndividualGuidance(explorationSessionId);
+
+      res.json({
+        success: true,
+        jointContextSessionId: result.sessionId,
+        soloGuidanceSessionId: result.soloGuidanceSessionId,
+      });
+    } catch (error) {
+      console.error('Error generating individual guidance:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to generate guidance',
+      });
+    }
+  }
+);
+
 export default router;

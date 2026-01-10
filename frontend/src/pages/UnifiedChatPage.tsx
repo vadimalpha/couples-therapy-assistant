@@ -328,7 +328,35 @@ const UnifiedChatPage: React.FC = () => {
                   setResolutionError('Failed to create My Guidance session');
                 }
               } else {
-                setResolutionError('My Guidance session not found. Please try using Guidance first.');
+                // No joint_context session exists - try to generate guidance on-demand
+                console.log('No joint_context session found, generating guidance on-demand...');
+                try {
+                  const generateResponse = await fetch(`${API_URL}/api/conflicts/${conflictId}/generate-my-guidance`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${token}`,
+                    },
+                  });
+
+                  if (generateResponse.ok) {
+                    const result = await generateResponse.json();
+                    console.log('Guidance generated successfully:', result);
+                    // Use the solo_guidance session that was just created
+                    if (result.soloGuidanceSessionId) {
+                      setSessionId(result.soloGuidanceSessionId);
+                    } else {
+                      setResolutionError('Guidance was generated but session ID not returned');
+                    }
+                  } else {
+                    const errorData = await generateResponse.json();
+                    console.error('Failed to generate guidance:', errorData);
+                    setResolutionError(errorData.error || 'Failed to generate My Guidance');
+                  }
+                } catch (err) {
+                  console.error('Error generating guidance:', err);
+                  setResolutionError('Failed to generate My Guidance. Please try again.');
+                }
               }
             }
           }
