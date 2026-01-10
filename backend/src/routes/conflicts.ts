@@ -643,6 +643,14 @@ router.post(
         return;
       }
 
+      // First, ensure the exploration session is marked as finalized
+      // (handles data inconsistency where conflict status is updated but session status isn't)
+      const explorationSession = await conversationService.getSession(explorationSessionId);
+      if (explorationSession && explorationSession.status !== 'finalized') {
+        console.log(`Fixing session status: ${explorationSessionId} status=${explorationSession.status} -> finalized`);
+        await conversationService.updateSession(explorationSessionId, { status: 'finalized' });
+      }
+
       // Import and call synthesizeIndividualGuidance
       const { synthesizeIndividualGuidance } = await import('../services/chat-ai');
 
