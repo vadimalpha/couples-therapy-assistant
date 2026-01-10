@@ -14,6 +14,7 @@
   --chat-ai-bg: transparent;
   --chat-input-bg: #404040;
   --chat-hover-bg: #2a2a2a;
+  color-scheme: dark;
 }
 
 /* ===== Full Page Chat Layout ===== */
@@ -325,6 +326,7 @@
   padding: 8px 0;
   border: none;
   background: transparent;
+  background-color: transparent;
   font-size: 15px;
   font-family: inherit;
   color: var(--chat-text-primary);
@@ -332,6 +334,12 @@
   max-height: 200px;
   overflow-y: auto;
   line-height: 1.5;
+  /* iOS fixes */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border-radius: 0;
+  color-scheme: dark;
 }
 
 .chat-input-textarea::placeholder {
