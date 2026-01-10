@@ -56,7 +56,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   position: relative;
 }
 
@@ -65,8 +65,10 @@
   flex: 1;
   height: auto !important;
   min-height: 0;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .unified-chat-content .chat-messages {
@@ -80,7 +82,7 @@
   position: sticky;
   bottom: 0;
   background-color: var(--chat-bg-primary, #212121);
-  padding-bottom: 20px;
+  padding-bottom: 12px;
 }
 
 /* Actions area (for ReadyButton, etc.) */
@@ -141,10 +143,23 @@
 @media (max-width: 768px) {
   .unified-chat-page {
     height: calc(100vh - 52px); /* Smaller header on mobile */
+    height: calc(100dvh - 52px); /* Dynamic viewport height for mobile */
+  }
+
+  .unified-chat-content {
+    overflow: visible;
+  }
+
+  .unified-chat-content .chat-window {
+    flex: 1;
+    min-height: 0;
   }
 
   .unified-chat-actions {
     padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    position: relative;
+    z-index: 10;
   }
 
   .unified-chat-status {
@@ -156,10 +171,12 @@
 @media (max-width: 480px) {
   .unified-chat-page {
     height: calc(100vh - 48px);
+    height: calc(100dvh - 48px);
   }
 
   .unified-chat-actions {
     padding: 10px 12px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
   }
 }
 
