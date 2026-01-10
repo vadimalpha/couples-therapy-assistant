@@ -27,7 +27,7 @@ interface ConflictData {
  *
  * This page shows the partner's individual exploration chat when:
  * - The conflict has privacy='shared'
- * - Both partners have finalized their exploration
+ * - Partner has started their exploration (session exists)
  *
  * Opens in a new tab from the guidance page header.
  */
