@@ -1040,12 +1040,27 @@ router.get(
       }
 
       if (!promptLog) {
+        // Debug: check if any logs exist for solo_chat
+        let debugInfo: any = {};
+        if (session.sessionType?.startsWith('solo_')) {
+          const allSoloLogs = await db.query<any[]>(
+            `SELECT id, sessionId, userId, logType, createdAt FROM prompt_log
+             WHERE logType = 'solo_chat'
+             ORDER BY createdAt DESC
+             LIMIT 5`
+          );
+          debugInfo.allSoloLogs = allSoloLogs?.[0] || [];
+          debugInfo.sessionUserId = session.userId;
+          debugInfo.queriedSafeSessionId = safeSessionId;
+        }
+
         res.json({
           sessionId: session.id,
           sessionType: session.sessionType,
           messageCount: session.messages?.length || 0,
           promptLog: null,
           message: 'No prompt logs found for this session',
+          debugInfo,
         });
         return;
       }
