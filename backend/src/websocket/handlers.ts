@@ -204,8 +204,9 @@ async function triggerAIResponse(
     const sessionType = session.sessionType as SessionType;
     console.log(`[triggerAIResponse] Session found: type=${sessionType}, conflictId=${session.conflictId}, messageCount=${session.messages?.length || 0}`);
 
-    // Only generate AI responses for exploration, guidance refinement, relationship, and solo sessions
+    // Only generate AI responses for supported session types
     const supportedSessionTypes = [
+      'intake',
       'individual_a', 'individual_b',
       'joint_context_a', 'joint_context_b',
       'solo_guidance_a', 'solo_guidance_b',
@@ -377,6 +378,37 @@ async function triggerAIResponse(
           // Non-critical - continue without subject
         }
       }
+    } else if (sessionType === 'intake') {
+      // Intake chat - use streamIntakeResponse
+      console.log(`[triggerAIResponse] *** INTAKE PATH ***`);
+      console.log(`[triggerAIResponse] User ID: ${userId}`);
+
+      const { streamIntakeResponse } = await import('../services/chat-ai');
+      const { intakeService } = await import('../services/intake');
+
+      // Check if this is a refresh (user has previous intake data)
+      const previousIntakeData = await intakeService.getIntakeData(userId);
+      const isRefresh = !!previousIntakeData;
+
+      const intakeContext = {
+        userId,
+        sessionId: sessionId,
+        isRefresh,
+        previousIntakeData: previousIntakeData || undefined,
+      };
+
+      const result = await streamIntakeResponse(
+        session.messages,
+        intakeContext,
+        (chunk: string) => {
+          emitToClient('stream-chunk', { content: chunk });
+        }
+      );
+      fullContent = result.fullContent;
+
+      console.log(
+        `AI intake response - Session: ${sessionId}, Tokens: ${result.usage.inputTokens}/${result.usage.outputTokens}, Cost: $${result.usage.totalCost.toFixed(4)}`
+      );
     }
 
     // Save the AI message to the database (do this before stream-end so it's persisted)
