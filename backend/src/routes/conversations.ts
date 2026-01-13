@@ -977,22 +977,66 @@ router.get(
 
       let promptLog = result?.[0]?.[0];
 
-      // For joint_context sessions, fallback to searching by conflictId
+      // Fallback: For joint_context/solo_guidance sessions, search by conflictId + logType
       // Initial guidance is logged without sessionId (before session is created)
-      if (!promptLog && session.conflictId &&
-          (session.sessionType === 'joint_context_a' || session.sessionType === 'joint_context_b')) {
+      // Also try 'guidance_refinement' which is used for chat messages in guidance
+      if (!promptLog && session.conflictId) {
         const safeConflictId = session.conflictId.replace(/:/g, '__');
 
-        // Try by conflictId + logType (most reliable for initial guidance)
-        result = await db.query<any[]>(
-          `SELECT * FROM prompt_log
-           WHERE conflictId = $conflictId
-             AND logType = 'joint_context_guidance'
-           ORDER BY createdAt DESC
-           LIMIT 1`,
-          { conflictId: safeConflictId }
-        );
-        promptLog = result?.[0]?.[0];
+        // Determine which logTypes to search based on session type
+        let logTypes: string[] = [];
+        if (session.sessionType === 'joint_context_a' || session.sessionType === 'joint_context_b') {
+          logTypes = ['joint_context_guidance', 'guidance_refinement'];
+        } else if (session.sessionType === 'solo_guidance_a' || session.sessionType === 'solo_guidance_b') {
+          logTypes = ['solo_guidance', 'guidance_refinement'];
+        } else if (session.sessionType === 'individual_a' || session.sessionType === 'individual_b') {
+          logTypes = ['exploration'];
+        } else if (session.sessionType === 'relationship_shared') {
+          logTypes = ['relationship_chat'];
+        }
+
+        if (logTypes.length > 0) {
+          // Try by conflictId + any of the relevant logTypes
+          result = await db.query<any[]>(
+            `SELECT * FROM prompt_log
+             WHERE conflictId = $conflictId
+               AND logType IN $logTypes
+             ORDER BY createdAt DESC
+             LIMIT 1`,
+            { conflictId: safeConflictId, logTypes }
+          );
+          promptLog = result?.[0]?.[0];
+        }
+      }
+
+      // Final fallback: search by userId + sessionType if still no results
+      if (!promptLog && session.userId) {
+        const logTypeMap: Record<string, string[]> = {
+          'joint_context_a': ['joint_context_guidance', 'guidance_refinement'],
+          'joint_context_b': ['joint_context_guidance', 'guidance_refinement'],
+          'solo_guidance_a': ['solo_guidance', 'guidance_refinement'],
+          'solo_guidance_b': ['solo_guidance', 'guidance_refinement'],
+          'individual_a': ['exploration'],
+          'individual_b': ['exploration'],
+          'relationship_shared': ['relationship_chat'],
+          'intake': ['intake'],
+          'solo_free': ['solo_chat'],
+          'solo_contextual': ['solo_chat'],
+          'solo_coached': ['solo_chat'],
+        };
+
+        const logTypes = logTypeMap[session.sessionType] || [];
+        if (logTypes.length > 0) {
+          result = await db.query<any[]>(
+            `SELECT * FROM prompt_log
+             WHERE userId = $userId
+               AND logType IN $logTypes
+             ORDER BY createdAt DESC
+             LIMIT 1`,
+            { userId: session.userId, logTypes }
+          );
+          promptLog = result?.[0]?.[0];
+        }
       }
 
       if (!promptLog) {
