@@ -33,11 +33,8 @@ export interface LogPromptParams {
  * Log a prompt interaction to the database
  */
 export async function logPrompt(params: LogPromptParams): Promise<void> {
-  console.log(`[logPrompt] ENTRY - userId: ${params.userId}, sessionId: ${params.sessionId}, logType: ${params.logType}, sessionType: ${params.sessionType}`);
   try {
-    console.log(`[logPrompt] Received - hasTemplate: ${!!params.promptTemplate}, templateLength: ${params.promptTemplate?.length}, hasVariables: ${!!params.promptVariables}, variableKeys: ${params.promptVariables ? Object.keys(params.promptVariables).join(',') : 'none'}`);
     const db = getDatabase();
-    console.log(`[logPrompt] Got database connection`);
     const now = new Date().toISOString();
 
     // Convert record IDs to plain strings by replacing colons to prevent
@@ -76,13 +73,10 @@ export async function logPrompt(params: LogPromptParams): Promise<void> {
     // Stringify variables since SurrealDB SCHEMAFULL doesn't preserve nested object properties
     if (params.promptVariables) content.promptVariables = JSON.stringify(params.promptVariables);
 
-    console.log(`[logPrompt] Content before save - hasTemplate: ${!!content.promptTemplate}, hasVariables: ${!!content.promptVariables}, contentKeys: ${Object.keys(content).join(',')}`);
-    const result = await db.query('CREATE prompt_log CONTENT $content', { content });
-    console.log(`[logPrompt] SUCCESS - created log, result: ${JSON.stringify(result).substring(0, 200)}`);
+    await db.query('CREATE prompt_log CONTENT $content', { content });
   } catch (error) {
     // Log but don't throw - logging shouldn't break main functionality
     console.error('[logPrompt] ERROR:', error);
-    console.error('[logPrompt] Stack:', error instanceof Error ? error.stack : 'no stack');
   }
 }
 

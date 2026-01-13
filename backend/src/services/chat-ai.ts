@@ -697,28 +697,22 @@ export async function streamSoloResponse(
     }
 
     // Log the prompt
-    console.log(`[streamSoloResponse] About to log prompt - sessionId: ${context.sessionId}, userId: ${context.userId}, sessionType: ${context.sessionType}`);
-    try {
-      await logPrompt({
-        userId: context.userId,
-        userEmail: user?.email,
-        userName: user?.displayName,
-        sessionId: context.sessionId,
-        sessionType: context.sessionType,
-        logType: 'solo_chat',
-        systemPrompt,
-        userMessage: userMessageContent,
-        aiResponse: fullContent,
-        inputTokens: usage.inputTokens,
-        outputTokens: usage.outputTokens,
-        cost: usage.totalCost,
-        promptTemplate,
-        promptVariables,
-      });
-      console.log(`[streamSoloResponse] Prompt logged successfully`);
-    } catch (logError) {
-      console.error(`[streamSoloResponse] Error logging prompt:`, logError);
-    }
+    await logPrompt({
+      userId: context.userId,
+      userEmail: user?.email,
+      userName: user?.displayName,
+      sessionId: context.sessionId,
+      sessionType: context.sessionType,
+      logType: 'solo_chat',
+      systemPrompt,
+      userMessage: userMessageContent,
+      aiResponse: fullContent,
+      inputTokens: usage.inputTokens,
+      outputTokens: usage.outputTokens,
+      cost: usage.totalCost,
+      promptTemplate,
+      promptVariables,
+    });
 
     return { fullContent, usage };
   } catch (error) {
