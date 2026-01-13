@@ -967,6 +967,9 @@ router.get(
       // Convert sessionId to safe format (colons to double underscores) to match stored format
       const safeSessionId = session.id.replace(/:/g, '__');
 
+      console.log(`[debug-prompt] Session: id=${session.id}, type=${session.sessionType}, userId=${session.userId}, conflictId=${session.conflictId}`);
+      console.log(`[debug-prompt] Query 1: sessionId=${safeSessionId}`);
+
       let result = await db.query<any[]>(
         `SELECT * FROM prompt_log
          WHERE sessionId = $sessionId
@@ -976,6 +979,7 @@ router.get(
       );
 
       let promptLog = result?.[0]?.[0];
+      console.log(`[debug-prompt] Query 1 result: found=${!!promptLog}`);
 
       // Fallback: For joint_context/solo_guidance sessions, search by conflictId + logType
       // Initial guidance is logged without sessionId (before session is created)
@@ -1026,6 +1030,7 @@ router.get(
         };
 
         const logTypes = logTypeMap[session.sessionType] || [];
+        console.log(`[debug-prompt] Query 3: userId=${session.userId}, logTypes=${JSON.stringify(logTypes)}`);
         if (logTypes.length > 0) {
           result = await db.query<any[]>(
             `SELECT * FROM prompt_log
@@ -1036,6 +1041,7 @@ router.get(
             { userId: session.userId, logTypes }
           );
           promptLog = result?.[0]?.[0];
+          console.log(`[debug-prompt] Query 3 result: found=${!!promptLog}`);
         }
       }
 
