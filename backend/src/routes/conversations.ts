@@ -1337,6 +1337,7 @@ router.get(
 /**
  * Debug endpoint to check recent prompt logs (no auth, uses secret key)
  * GET /api/conversations/debug-recent-logs/:secretKey
+ * Optional query params: logType (to filter), limit (default 20)
  */
 router.get(
   '/debug-recent-logs/:secretKey',
@@ -1348,9 +1349,16 @@ router.get(
 
     try {
       const { getPromptLogs } = await import('../services/prompt-logger');
-      const logs = await getPromptLogs({ limit: 20 });
+      const logType = req.query.logType as string | undefined;
+      const limit = parseInt(req.query.limit as string) || 20;
+
+      const logs = await getPromptLogs({
+        limit,
+        logType: logType as any,
+      });
 
       res.json({
+        filter: { logType, limit },
         totalRecentLogs: logs.length,
         logs: logs.map(log => ({
           id: log.id,
