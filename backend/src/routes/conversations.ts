@@ -1332,6 +1332,16 @@ router.get(
         );
       }
 
+      // Also test the exact query used by debug-prompt endpoint
+      const debugPromptQuery = await db.query<any[]>(
+        `SELECT * FROM prompt_log
+         WHERE sessionId = $sessionId
+         ORDER BY createdAt DESC
+         LIMIT 1`,
+        { sessionId: safeSessionId }
+      );
+      const debugPromptResult = debugPromptQuery?.[0]?.[0];
+
       res.json({
         requestedSessionId: sessionId,
         safeSessionId,
@@ -1344,6 +1354,8 @@ router.get(
         allSoloLogs: allSoloLogs?.[0] || [],
         sessionLogs: sessionLogs?.[0] || [],
         userLogs: userLogs?.[0] || null,
+        debugPromptQueryResult: debugPromptResult || null,
+        debugPromptQueryRaw: debugPromptQuery,
       });
     } catch (error) {
       res.status(500).json({
