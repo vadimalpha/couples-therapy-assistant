@@ -155,12 +155,15 @@ export function useChatSession(options: UseChatSessionOptions): UseChatSessionRe
 
       if (response.ok) {
         const data = await response.json();
+        console.log('[useChatSession] Debug prompt API response:', JSON.stringify(data, null, 2));
         if (data.promptLog) {
           // Include hasOverride from top-level response
           setDebugPrompt({
             ...data.promptLog,
             hasOverride: data.hasOverride || false,
           });
+        } else {
+          console.log('[useChatSession] No promptLog in response. debugInfo:', data.debugInfo);
         }
       }
     } catch (err) {
