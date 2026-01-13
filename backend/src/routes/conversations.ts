@@ -1047,6 +1047,7 @@ router.get(
 
       if (!promptLog) {
         // Debug: Check what intake logs exist for this user
+        let debugInfo: any = {};
         if (session.sessionType === 'intake') {
           const allIntakeLogs = await db.query<any[]>(
             `SELECT id, sessionId, userId, logType, createdAt FROM prompt_log
@@ -1055,6 +1056,9 @@ router.get(
              LIMIT 5`
           );
           console.log(`[debug-prompt] All intake logs (last 5):`, JSON.stringify(allIntakeLogs?.[0] || []));
+          debugInfo.allIntakeLogs = allIntakeLogs?.[0] || [];
+          debugInfo.sessionUserId = session.userId;
+          debugInfo.queriedSafeSessionId = safeSessionId;
         }
 
         res.json({
@@ -1063,6 +1067,7 @@ router.get(
           messageCount: session.messages?.length || 0,
           promptLog: null,
           message: 'No prompt logs found for this session',
+          debugInfo,
         });
         return;
       }
