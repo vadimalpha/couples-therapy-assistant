@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { authenticateUser } from '../middleware/auth';
 import { conversationService } from '../services/conversation';
@@ -1273,6 +1273,56 @@ router.post(
       console.error('Error saving prompt template:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to save prompt template',
+      });
+    }
+  }
+);
+
+/**
+ * Simple test endpoint (no auth required, uses secret key)
+ * GET /api/conversations/debug-log-test/:secretKey
+ */
+router.get(
+  '/debug-log-test/:secretKey',
+  async (req: Request, res: Response) => {
+    // Simple secret key check (for temporary debugging only)
+    if (req.params.secretKey !== 'claude-debug-2026') {
+      res.status(403).json({ error: 'Invalid key' });
+      return;
+    }
+
+    const testSessionId = `test-session-${Date.now()}`;
+    console.log(`[debug-log-test] Starting test, sessionId: ${testSessionId}`);
+
+    try {
+      await logPrompt({
+        userId: 'test-user-debug',
+        userEmail: 'debug@test.com',
+        userName: 'Debug Test',
+        sessionId: testSessionId,
+        sessionType: 'solo_free',
+        logType: 'solo_chat',
+        systemPrompt: 'Debug test system prompt',
+        userMessage: 'Debug test user message',
+        aiResponse: 'Debug test AI response',
+        inputTokens: 100,
+        outputTokens: 50,
+        cost: 0.001,
+      });
+
+      console.log(`[debug-log-test] logPrompt completed without throwing`);
+
+      res.json({
+        success: true,
+        message: 'Test log created',
+        testSessionId,
+      });
+    } catch (logError) {
+      console.error(`[debug-log-test] Error:`, logError);
+      res.status(500).json({
+        success: false,
+        error: logError instanceof Error ? logError.message : 'Unknown error',
+        stack: logError instanceof Error ? logError.stack : undefined,
       });
     }
   }
