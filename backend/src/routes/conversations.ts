@@ -20,6 +20,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { contentFilter } from '../services/content-filter';
 import { buildPrompt } from '../services/prompt-builder';
+import { logPrompt } from '../services/prompt-logger';
 
 const router = Router();
 
@@ -1272,6 +1273,73 @@ router.post(
       console.error('Error saving prompt template:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to save prompt template',
+      });
+    }
+  }
+);
+
+/**
+ * Test endpoint to verify prompt logging works (admin only)
+ * POST /api/conversations/test-prompt-log
+ */
+router.post(
+  '/test-prompt-log',
+  authenticateUser,
+  async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const userId = req.user?.uid;
+      const userEmail = req.user?.email;
+
+      if (!userId) {
+        res.status(401).json({ error: 'User not authenticated' });
+        return;
+      }
+
+      // Check admin access
+      if (!userEmail || !ADMIN_EMAILS.includes(userEmail)) {
+        res.status(403).json({ error: 'Admin access required' });
+        return;
+      }
+
+      console.log(`[test-prompt-log] Starting test for user ${userId}`);
+
+      const testSessionId = `test-session-${Date.now()}`;
+
+      try {
+        await logPrompt({
+          userId,
+          userEmail,
+          userName: 'Test User',
+          sessionId: testSessionId,
+          sessionType: 'solo_free',
+          logType: 'solo_chat',
+          systemPrompt: 'Test system prompt',
+          userMessage: 'Test user message',
+          aiResponse: 'Test AI response',
+          inputTokens: 100,
+          outputTokens: 50,
+          cost: 0.001,
+        });
+
+        console.log(`[test-prompt-log] logPrompt completed without error`);
+
+        res.json({
+          success: true,
+          message: 'Test log created successfully',
+          testSessionId,
+        });
+      } catch (logError) {
+        console.error(`[test-prompt-log] logPrompt threw error:`, logError);
+        res.status(500).json({
+          success: false,
+          error: logError instanceof Error ? logError.message : 'Unknown error in logPrompt',
+          stack: logError instanceof Error ? logError.stack : undefined,
+        });
+      }
+    } catch (error) {
+      console.error('Error in test-prompt-log:', error);
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Failed to test prompt log',
       });
     }
   }
