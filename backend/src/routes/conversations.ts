@@ -1333,14 +1333,23 @@ router.get(
       }
 
       // Also test the exact query used by debug-prompt endpoint
-      const debugPromptQuery = await db.query<any[]>(
+      // Test with both variable names to see which works
+      const debugPromptQuery1 = await db.query<any[]>(
         `SELECT * FROM prompt_log
          WHERE sessionId = $sessionId
          ORDER BY createdAt DESC
          LIMIT 1`,
         { sessionId: safeSessionId }
       );
-      const debugPromptResult = debugPromptQuery?.[0]?.[0];
+      const debugPromptQuery2 = await db.query<any[]>(
+        `SELECT * FROM prompt_log
+         WHERE sessionId = $safeSessionId
+         ORDER BY createdAt DESC
+         LIMIT 1`,
+        { safeSessionId }
+      );
+      const debugPromptResult1 = debugPromptQuery1?.[0]?.[0];
+      const debugPromptResult2 = debugPromptQuery2?.[0]?.[0];
 
       res.json({
         requestedSessionId: sessionId,
@@ -1354,8 +1363,10 @@ router.get(
         allSoloLogs: allSoloLogs?.[0] || [],
         sessionLogs: sessionLogs?.[0] || [],
         userLogs: userLogs?.[0] || null,
-        debugPromptQueryResult: debugPromptResult || null,
-        debugPromptQueryRaw: debugPromptQuery,
+        debugPromptResult1: debugPromptResult1 ? 'FOUND' : null,
+        debugPromptResult2: debugPromptResult2 ? 'FOUND' : null,
+        debugPromptQuery1Raw: debugPromptQuery1,
+        debugPromptQuery2Raw: debugPromptQuery2,
       });
     } catch (error) {
       res.status(500).json({
