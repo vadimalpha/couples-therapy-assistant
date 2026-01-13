@@ -1281,6 +1281,7 @@ router.post(
 /**
  * Simple test endpoint (no auth required, uses secret key)
  * GET /api/conversations/debug-log-test/:secretKey
+ * Optional query param: format=surrealdb to test with colon-style IDs
  */
 router.get(
   '/debug-log-test/:secretKey',
@@ -1291,8 +1292,12 @@ router.get(
       return;
     }
 
-    const testSessionId = `test-session-${Date.now()}`;
-    console.log(`[debug-log-test] Starting test, sessionId: ${testSessionId}`);
+    const useSurrealFormat = req.query.format === 'surrealdb';
+    const testSessionId = useSurrealFormat
+      ? `conversation:test-${Date.now()}`
+      : `test-session-${Date.now()}`;
+
+    console.log(`[debug-log-test] Starting test, sessionId: ${testSessionId}, format: ${useSurrealFormat ? 'surrealdb' : 'plain'}`);
 
     try {
       await logPrompt({
@@ -1316,6 +1321,7 @@ router.get(
         success: true,
         message: 'Test log created',
         testSessionId,
+        format: useSurrealFormat ? 'surrealdb' : 'plain',
       });
     } catch (logError) {
       console.error(`[debug-log-test] Error:`, logError);
