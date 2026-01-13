@@ -1,4 +1,4 @@
-import { Router, Response } from 'express';
+import { Router, Response, Request } from 'express';
 import { AuthenticatedRequest } from '../types';
 import { authenticateUser } from '../middleware/auth';
 import { conversationService } from '../services/conversation';
@@ -1272,6 +1272,82 @@ router.post(
       console.error('Error saving prompt template:', error);
       res.status(500).json({
         error: error instanceof Error ? error.message : 'Failed to save prompt template',
+      });
+    }
+  }
+);
+
+/**
+ * Temporary debug endpoint to check solo chat logs for a specific session
+ * GET /api/conversations/debug-solo/:sessionId/:secretKey
+ */
+router.get(
+  '/debug-solo/:sessionId/:secretKey',
+  async (req: Request, res: Response) => {
+    if (req.params.secretKey !== 'claude-debug-2026') {
+      res.status(403).json({ error: 'Invalid key' });
+      return;
+    }
+
+    try {
+      const { getDatabase } = await import('../services/db');
+      const db = getDatabase();
+
+      const sessionId = req.params.sessionId;
+      const safeSessionId = sessionId.replace(/:/g, '__');
+
+      // Get session info
+      const sessionResult = await db.query<any[]>(
+        `SELECT * FROM $sessionId`,
+        { sessionId }
+      );
+      const session = sessionResult?.[0]?.[0];
+
+      // Get all solo_chat logs
+      const allSoloLogs = await db.query<any[]>(
+        `SELECT id, sessionId, userId, logType, sessionType, createdAt FROM prompt_log
+         WHERE logType = 'solo_chat'
+         ORDER BY createdAt DESC
+         LIMIT 10`
+      );
+
+      // Get logs for this specific session
+      const sessionLogs = await db.query<any[]>(
+        `SELECT id, sessionId, userId, logType, sessionType, createdAt FROM prompt_log
+         WHERE sessionId = $safeSessionId
+         ORDER BY createdAt DESC
+         LIMIT 5`,
+        { safeSessionId }
+      );
+
+      // Get logs by userId if we have session
+      let userLogs = null;
+      if (session?.userId) {
+        userLogs = await db.query<any[]>(
+          `SELECT id, sessionId, userId, logType, sessionType, createdAt FROM prompt_log
+           WHERE userId = $userId AND logType = 'solo_chat'
+           ORDER BY createdAt DESC
+           LIMIT 5`,
+          { userId: session.userId }
+        );
+      }
+
+      res.json({
+        requestedSessionId: sessionId,
+        safeSessionId,
+        session: session ? {
+          id: session.id,
+          userId: session.userId,
+          sessionType: session.sessionType,
+          messageCount: session.messages?.length || 0,
+        } : null,
+        allSoloLogs: allSoloLogs?.[0] || [],
+        sessionLogs: sessionLogs?.[0] || [],
+        userLogs: userLogs?.[0] || null,
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   }
