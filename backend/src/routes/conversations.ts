@@ -1335,6 +1335,43 @@ router.get(
 );
 
 /**
+ * Debug endpoint to check recent prompt logs (no auth, uses secret key)
+ * GET /api/conversations/debug-recent-logs/:secretKey
+ */
+router.get(
+  '/debug-recent-logs/:secretKey',
+  async (req: Request, res: Response) => {
+    if (req.params.secretKey !== 'claude-debug-2026') {
+      res.status(403).json({ error: 'Invalid key' });
+      return;
+    }
+
+    try {
+      const { getPromptLogs } = await import('../services/prompt-logger');
+      const logs = await getPromptLogs({ limit: 20 });
+
+      res.json({
+        totalRecentLogs: logs.length,
+        logs: logs.map(log => ({
+          id: log.id,
+          logType: log.logType,
+          sessionType: log.sessionType,
+          sessionId: log.sessionId,
+          userId: log.userId,
+          createdAt: log.createdAt,
+          inputTokens: log.inputTokens,
+          outputTokens: log.outputTokens,
+        })),
+      });
+    } catch (error) {
+      res.status(500).json({
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+);
+
+/**
  * Test endpoint to verify prompt logging works (admin only)
  * POST /api/conversations/test-prompt-log
  */
